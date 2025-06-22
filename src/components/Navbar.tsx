@@ -56,14 +56,7 @@ export const Navbar: FC<NavbarProps> = ({ user }) => {
                   </div>
                 </div>
               </div>
-            ) : (
-              <a
-                href="/login"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-              >
-                Admin Login
-              </a>
-            )}
+            ) : null}
           </div>
           
           {/* Mobile menu button */}
@@ -120,16 +113,7 @@ export const Navbar: FC<NavbarProps> = ({ user }) => {
                 Logout
               </a>
             </div>
-          ) : (
-            <div class="px-4">
-              <a
-                href="/login"
-                class="block w-full text-center px-4 py-2 border border-transparent rounded-md text-base font-medium text-white bg-primary-600 hover:bg-primary-700"
-              >
-                Admin Login
-              </a>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </nav>

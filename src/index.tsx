@@ -1394,79 +1394,126 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     .orderBy(churches.name)
     .all();
   
+  const statusStyles: Record<string, string> = {
+    'Listed': 'bg-green-50 text-green-700 ring-green-600/20',
+    'Ready to list': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+    'Assess': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
+    'Needs data': 'bg-red-50 text-red-700 ring-red-600/20',
+    'Unlisted': 'bg-gray-50 text-gray-700 ring-gray-600/20',
+    'Heretical': 'bg-red-900 text-white ring-red-900',
+    'Closed': 'bg-gray-800 text-white ring-gray-800',
+  };
+  
   return c.html(
     <Layout title="Manage Churches - Utah Churches" user={user}>
-      <div style="margin-bottom: 2rem;">
-        <h1 style="margin-bottom: 1rem;">Manage Churches</h1>
-        <a href="/admin" style="color: #3b82f6; margin-right: 1rem;">← Back to Admin</a>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                  <li>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
+                  </li>
+                  <li>
+                    <span class="mx-2 text-gray-400">/</span>
+                  </li>
+                  <li>
+                    <span class="text-gray-900">Churches</span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Manage Churches
+              </h1>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+              <a
+                href="/admin/churches/new"
+                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Church
+              </a>
+            </div>
+          </div>
+          
+          {/* Table */}
+          <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Church
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {allChurches.map((church) => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">{church.name}</div>
+                        {church.path && (
+                          <div class="text-sm text-gray-500">/{church.path}</div>
+                        )}
+                        {church.serviceTimes && (
+                          <div class="text-sm text-gray-500 mt-1">🕐 {church.serviceTimes}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      {church.status ? (
+                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyles[church.status] || ''}`}>
+                          {church.status}
+                        </span>
+                      ) : (
+                        <span class="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="text-sm text-gray-900">
+                        {church.gatheringAddress || <span class="text-gray-400">No address</span>}
+                      </div>
+                      {church.countyName && (
+                        <div class="text-sm text-gray-500">{church.countyName} County</div>
+                      )}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/admin/churches/${church.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                        Edit
+                      </a>
+                      <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline">
+                        <button 
+                          type="submit"
+                          class="text-red-600 hover:text-red-900"
+                          onclick="return confirm('Are you sure you want to delete this church?')"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      
-      <button class={addButtonClass} onclick="window.location.href='/admin/churches/new'">
-        Add New Church
-      </button>
-      
-      <table class={tableClass}>
-        <thead class={tableHeaderClass}>
-          <tr>
-            <th>Name</th>
-            <th>Path</th>
-            <th>Status</th>
-            <th>Address</th>
-            <th>County</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allChurches.map((church) => (
-            <tr class={tableRowClass}>
-              <td>{church.name}</td>
-              <td style="font-size: 0.875rem; color: #6b7280;">{church.path || '-'}</td>
-              <td>
-                {church.status && (
-                  <span class={`${statusBadgeClass} ${
-                    church.status === 'Listed' ? 'bg-green-100 text-green-800' :
-                    church.status === 'Ready to list' ? 'bg-blue-100 text-blue-800' :
-                    church.status === 'Assess' ? 'bg-yellow-100 text-yellow-800' :
-                    church.status === 'Needs data' ? 'bg-red-100 text-red-800' :
-                    church.status === 'Unlisted' ? 'bg-gray-100 text-gray-800' :
-                    church.status === 'Heretical' ? 'bg-red-900 text-white' :
-                    church.status === 'Closed' ? 'bg-gray-600 text-white' : ''
-                  }`} style={
-                    church.status === 'Listed' ? 'background-color: #d1fae5; color: #065f46;' :
-                    church.status === 'Ready to list' ? 'background-color: #dbeafe; color: #1e40af;' :
-                    church.status === 'Assess' ? 'background-color: #fef3c7; color: #92400e;' :
-                    church.status === 'Needs data' ? 'background-color: #fee2e2; color: #991b1b;' :
-                    church.status === 'Unlisted' ? 'background-color: #f3f4f6; color: #374151;' :
-                    church.status === 'Heretical' ? 'background-color: #991b1b; color: white;' :
-                    church.status === 'Closed' ? 'background-color: #4b5563; color: white;' : ''
-                  }>
-                    {church.status}
-                  </span>
-                )}
-              </td>
-              <td>{church.gatheringAddress || '-'}</td>
-              <td>{church.countyName || '-'}</td>
-              <td>
-                <button 
-                  class={editButtonClass}
-                  onclick={`window.location.href='/admin/churches/${church.id}/edit'`}
-                >
-                  Edit
-                </button>
-                <form method="POST" action={`/admin/churches/${church.id}/delete`} style="display: inline;">
-                  <button 
-                    type="submit"
-                    class={deleteButtonClass}
-                    onclick="return confirm('Are you sure you want to delete this church?')"
-                  >
-                    Delete
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </Layout>
   );
 });
@@ -1474,6 +1521,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
 // Create new church
 app.get('/admin/churches/new', adminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const allAffiliations = await db.select()
     .from(affiliations)
     .orderBy(affiliations.name)
@@ -1485,14 +1533,35 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
     .all();
   
   return c.html(
-    <Layout title="Create Church - Utah Churches">
-      <div style="max-width: 800px; margin: 0 auto;">
-        <ChurchForm 
-          action="/admin/churches" 
-          isNew={true}
-          affiliations={allAffiliations}
-          counties={allCounties}
-        />
+    <Layout title="Create Church - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">Admin</a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">Churches</a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <span class="text-gray-900">New</span>
+              </li>
+            </ol>
+          </nav>
+          <ChurchForm 
+            action="/admin/churches" 
+            isNew={true}
+            affiliations={allAffiliations}
+            counties={allCounties}
+          />
+        </div>
       </div>
     </Layout>
   );
@@ -1552,6 +1621,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
 // Edit church
 app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const id = c.req.param('id');
   
   const church = await db.select().from(churches).where(eq(churches.id, Number(id))).get();
@@ -1575,15 +1645,36 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
     .all();
   
   return c.html(
-    <Layout title="Edit Church - Utah Churches">
-      <div style="max-width: 800px; margin: 0 auto;">
-        <ChurchForm 
-          action={`/admin/churches/${id}`} 
-          church={church}
-          affiliations={allAffiliations}
-          counties={allCounties}
-          churchAffiliations={currentAffiliations}
-        />
+    <Layout title="Edit Church - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">Admin</a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">Churches</a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <span class="text-gray-900">Edit</span>
+              </li>
+            </ol>
+          </nav>
+          <ChurchForm 
+            action={`/admin/churches/${id}`} 
+            church={church}
+            affiliations={allAffiliations}
+            counties={allCounties}
+            churchAffiliations={currentAffiliations}
+          />
+        </div>
       </div>
     </Layout>
   );
