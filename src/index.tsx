@@ -2609,16 +2609,18 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                       <a href={`/admin/churches/${church.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
                         Edit
                       </a>
-                      <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline">
+                      <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline" id={`delete-form-${church.id}`}>
                         <button 
                           type="submit"
                           class="text-red-600 hover:text-red-900 delete-btn"
                           data-church-id={church.id}
                           onclick={`
+                            event.preventDefault();
                             if (!confirm('Are you sure you want to delete this church?')) return false;
                             
                             // Show loading state
                             this.disabled = true;
+                            const originalText = this.innerHTML;
                             this.innerHTML = '<svg class="animate-spin h-4 w-4 text-red-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
                             
                             // Fade out the row
@@ -2636,7 +2638,8 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                               editLink.style.opacity = '0.5';
                             }
                             
-                            return true;
+                            // Submit the form
+                            document.getElementById('delete-form-${church.id}').submit();
                           `}
                         >
                           Delete
@@ -2960,17 +2963,22 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
 
 // Delete church
 app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
-  const db = createDb(c.env);
-  const id = c.req.param('id');
-  
-  // Delete related data first
-  await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
-  await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
-  
-  // Then delete the church
-  await db.delete(churches).where(eq(churches.id, Number(id)));
-  
-  return c.redirect('/admin/churches');
+  try {
+    const db = createDb(c.env);
+    const id = c.req.param('id');
+    
+    // Delete related data first
+    await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
+    await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
+    
+    // Then delete the church
+    await db.delete(churches).where(eq(churches.id, Number(id)));
+    
+    return c.redirect('/admin/churches');
+  } catch (error) {
+    console.error('Error deleting church:', error);
+    return c.redirect('/admin/churches?error=delete_failed');
+  }
 });
 
 // County management routes
