@@ -69,9 +69,9 @@ app.get('/', async (c) => {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Christian Churches in Utah</h1>
+            <h1 class="text-3xl font-bold text-gray-900">Churches in Utah</h1>
             <p class="mt-2 text-lg text-gray-600">
-              A list of Christian churches in Utah
+              A directory of churches organized by county
             </p>
           </div>
           
@@ -191,7 +191,7 @@ app.get('/counties/:path', async (c) => {
     .all();
   
   return c.html(
-    <Layout title={`${county.name} County Churches - Utah Churches`}>
+    <Layout title={`${county.name} Churches - Utah Churches`}>
       <div class="min-h-screen">
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -210,21 +210,16 @@ app.get('/counties/:path', async (c) => {
                         <span class="mx-2 text-primary-300">/</span>
                       </li>
                       <li>
-                        <span class="text-white">{county.name} County</span>
+                        <span class="text-white">{county.name}</span>
                       </li>
                     </ol>
                   </nav>
                   <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
-                    Christian Churches in {county.name} County
+                    Churches in {county.name}
                   </h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {countyChurches.length} {countyChurches.length === 1 ? 'church' : 'churches'} in this county
                   </p>
-                  {county.description && (
-                    <p class="mt-2 text-primary-100">
-                      {county.description}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
