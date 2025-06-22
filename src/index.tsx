@@ -2510,6 +2510,17 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
   
   return c.html(
     <Layout title="Manage Churches - Utah Churches" user={user}>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .animate-spin {
+            animation: spin 1s linear infinite;
+          }
+        `
+      }} />
       <div class="min-h-screen bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -2568,10 +2579,10 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 {allChurches.map((church) => (
-                  <tr class="hover:bg-gray-50">
+                  <tr class="hover:bg-gray-50 transition-all duration-300" id={`church-row-${church.id}`}>
                     <td class="px-6 py-4">
                       <div>
-                        <div class="text-sm font-medium text-gray-900">{church.name}</div>
+                        <div class="text-sm font-medium text-gray-900 church-name">{church.name}</div>
                         {church.path && (
                           <div class="text-sm text-gray-500">/{church.path}</div>
                         )}
@@ -2601,8 +2612,32 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                       <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline">
                         <button 
                           type="submit"
-                          class="text-red-600 hover:text-red-900"
-                          onclick="return confirm('Are you sure you want to delete this church?')"
+                          class="text-red-600 hover:text-red-900 delete-btn"
+                          data-church-id={church.id}
+                          onclick={`
+                            if (!confirm('Are you sure you want to delete this church?')) return false;
+                            
+                            // Show loading state
+                            this.disabled = true;
+                            this.innerHTML = '<svg class="animate-spin h-4 w-4 text-red-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                            
+                            // Fade out the row
+                            const row = document.getElementById('church-row-${church.id}');
+                            row.style.opacity = '0.5';
+                            row.style.transform = 'translateX(-10px)';
+                            
+                            // Add strikethrough to the name
+                            row.querySelector('.church-name').style.textDecoration = 'line-through';
+                            
+                            // Disable edit link
+                            const editLink = row.querySelector('a[href*="edit"]');
+                            if (editLink) {
+                              editLink.style.pointerEvents = 'none';
+                              editLink.style.opacity = '0.5';
+                            }
+                            
+                            return true;
+                          `}
                         >
                           Delete
                         </button>
