@@ -283,6 +283,99 @@ app.get('/api/churches/:id', async (c) => {
   return c.json(church);
 });
 
+app.get('/networks', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get all listed affiliations
+  const listedAffiliations = await db.select()
+    .from(affiliations)
+    .where(eq(affiliations.status, 'Listed'))
+    .orderBy(affiliations.name)
+    .all();
+  
+  return c.html(
+    <Layout title="Church Networks - Utah Churches">
+      <div class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Church Networks</h1>
+            <p class="mt-2 text-lg text-gray-600">Denominations and affiliations represented in Utah</p>
+          </div>
+          
+          {/* Affiliations Grid */}
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
+            <ul class="divide-y divide-gray-200">
+              {listedAffiliations.map((affiliation) => (
+                <li class="p-6 hover:bg-gray-50 transition-colors">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-lg font-medium text-gray-900">
+                        {affiliation.website ? (
+                          <a
+                            href={affiliation.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary-600 hover:text-primary-900 hover:underline"
+                          >
+                            {affiliation.name}
+                          </a>
+                        ) : (
+                          <span>{affiliation.name}</span>
+                        )}
+                      </h3>
+                      {affiliation.publicNotes && (
+                        <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>
+                      )}
+                    </div>
+                    {affiliation.website && (
+                      <svg class="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            
+            {listedAffiliations.length === 0 && (
+              <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h3 class="mt-2 text-sm font-semibold text-gray-900">No networks available</h3>
+                <p class="mt-1 text-sm text-gray-500">Check back later for church network information.</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <footer class="bg-white border-t border-gray-200 mt-auto">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+              <div class="text-gray-600 text-sm text-center sm:text-left">
+                <p class="italic">"Peace be to you. The friends greet you.</p>
+                <p class="italic">Greet the friends, each by name."</p>
+                <p class="mt-1 text-gray-500">– 3 John 1:15</p>
+              </div>
+              <a
+                href="/churches.json"
+                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Data (JSON)
+              </a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </Layout>
+  );
+});
+
 app.get('/map', async (c) => {
   const db = createDb(c.env);
   
