@@ -272,21 +272,6 @@ app.get('/counties/:path', async (c) => {
 
         {/* Churches Grid */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Show unlisted checkbox */}
-          {unlistedChurches.length > 0 && (
-            <div class="mb-6">
-              <label class="inline-flex items-center">
-                <input
-                  type="checkbox"
-                  id="show-unlisted"
-                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  onchange="toggleUnlisted()"
-                  checked={listedChurches.length === 0}
-                />
-                <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
-              </label>
-            </div>
-          )}
           
           {listedChurches.length === 0 && unlistedChurches.length === 0 ? (
             <div class="text-center py-12">
@@ -316,6 +301,22 @@ app.get('/counties/:path', async (c) => {
                   <ChurchCard church={church} />
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Show unlisted checkbox - moved to bottom */}
+          {unlistedChurches.length > 0 && (
+            <div class="mt-8 text-center">
+              <label class="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  id="show-unlisted"
+                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  onchange="toggleUnlisted()"
+                  checked={listedChurches.length === 0}
+                />
+                <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
+              </label>
             </div>
           )}
         </div>
