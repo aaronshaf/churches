@@ -281,6 +281,7 @@ app.get('/counties/:path', async (c) => {
                   id="show-unlisted"
                   class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   onchange="toggleUnlisted()"
+                  checked={listedChurches.length === 0}
                 />
                 <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
               </label>
@@ -309,9 +310,9 @@ app.get('/counties/:path', async (c) => {
                 </div>
               ))}
               
-              {/* Unlisted Churches (hidden by default) */}
+              {/* Unlisted Churches (hidden by default unless no listed churches) */}
               {unlistedChurches.map((church) => (
-                <div class="church-card unlisted-church hidden">
+                <div class={`church-card unlisted-church ${listedChurches.length > 0 ? 'hidden' : ''}`}>
                   <ChurchCard church={church} />
                 </div>
               ))}
