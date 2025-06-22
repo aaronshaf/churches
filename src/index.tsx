@@ -636,17 +636,30 @@ app.get('/churches/:path', async (c) => {
                       <h3 class="text-sm font-medium text-gray-500">Address</h3>
                       <p class="mt-1 text-sm text-gray-900">{church.gatheringAddress}</p>
                       {church.latitude && church.longitude && (
-                        <a 
-                          href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
-                        >
-                          View on Google Maps
-                          <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
+                        <div class="flex flex-col gap-1 mt-1">
+                          <a 
+                            href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                          >
+                            View on Google Maps
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                          <a 
+                            href={`https://maps.apple.com/?ll=${church.latitude},${church.longitude}&q=${encodeURIComponent(church.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                          >
+                            View on Apple Maps
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
                       )}
                     </div>
                   )}
