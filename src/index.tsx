@@ -223,6 +223,7 @@ app.get('/counties/:path', async (c) => {
     status: churches.status,
     gatheringAddress: churches.gatheringAddress,
     website: churches.website,
+    language: churches.language,
     publicNotes: churches.publicNotes,
   })
     .from(churches)
@@ -830,6 +831,7 @@ app.get('/map', async (c) => {
     countyName: counties.name,
     website: churches.website,
     status: churches.status,
+    language: churches.language,
     publicNotes: churches.publicNotes,
   })
     .from(churches)
@@ -1158,6 +1160,7 @@ app.get('/churches.json', async (c) => {
     instagram: churches.instagram,
     youtube: churches.youtube,
     spotify: churches.spotify,
+    language: churches.language,
     notes: churches.publicNotes,
   })
     .from(churches)
@@ -1234,6 +1237,7 @@ app.get('/churches.yaml', async (c) => {
     instagram: churches.instagram,
     youtube: churches.youtube,
     spotify: churches.spotify,
+    language: churches.language,
     notes: churches.publicNotes,
   })
     .from(churches)
@@ -1327,6 +1331,7 @@ app.get('/churches.csv', async (c) => {
     instagram: churches.instagram,
     youtube: churches.youtube,
     spotify: churches.spotify,
+    language: churches.language,
     notes: churches.publicNotes,
   })
     .from(churches)
@@ -1436,6 +1441,7 @@ app.get('/churches.xlsx', async (c) => {
     instagram: churches.instagram,
     youtube: churches.youtube,
     spotify: churches.spotify,
+    language: churches.language,
     notes: churches.publicNotes,
   })
     .from(churches)
@@ -2821,6 +2827,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
         instagram: body.instagram as string || undefined,
         youtube: body.youtube as string || undefined,
         spotify: body.spotify as string || undefined,
+        language: body.language as string || 'English',
         privateNotes: body.privateNotes as string || undefined,
         publicNotes: body.publicNotes as string || undefined,
       },
@@ -2973,6 +2980,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         instagram: body.instagram as string || undefined,
         youtube: body.youtube as string || undefined,
         spotify: body.spotify as string || undefined,
+        language: body.language as string || 'English',
         privateNotes: body.privateNotes as string || undefined,
         publicNotes: body.publicNotes as string || undefined,
       },

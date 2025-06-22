@@ -20,6 +20,7 @@ export const churches = sqliteTable('churches', {
   instagram: text('instagram'),
   youtube: text('youtube'),
   spotify: text('spotify'),
+  language: text('language').notNull().default('English'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });

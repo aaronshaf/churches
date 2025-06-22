@@ -20,6 +20,7 @@ export const churchSchema = z.object({
   instagram: z.string().url('Invalid URL').optional().or(z.literal('')),
   youtube: z.string().url('Invalid URL').optional().or(z.literal('')),
   spotify: z.string().url('Invalid URL').optional().or(z.literal('')),
+  language: z.string().min(1, 'Language is required').default('English'),
 });
 
 // Gathering validation schema
