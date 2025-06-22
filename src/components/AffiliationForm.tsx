@@ -83,9 +83,12 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
                   id="website"
                   value={affiliation?.website || ''}
                   placeholder="https://example.com"
+                  pattern="https?://.+"
+                  title="Please enter a valid URL starting with http:// or https://"
                   class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                 />
               </div>
+              <p class="mt-2 text-sm text-gray-500">Must start with http:// or https://</p>
             </div>
           </div>
         </div>
