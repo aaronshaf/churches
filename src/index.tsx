@@ -1555,7 +1555,7 @@ app.get('/data', async (c) => {
             <div class="px-6 py-8 sm:p-10">
               <h1 class="text-3xl font-bold text-gray-900 mb-2">Download Church Data</h1>
               <p class="text-lg text-gray-600 mb-8">
-                Export data for {churchCount?.count || 0} churches in various formats
+                Export data for {churchCount?.count || 0} evangelical churches in various formats
               </p>
               
               <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto">
