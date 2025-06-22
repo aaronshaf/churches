@@ -3,6 +3,7 @@ import { FC } from 'hono/jsx';
 type ChurchFormProps = {
   action: string;
   church?: any;
+  gatherings?: any[];
   affiliations?: any[];
   churchAffiliations?: any[];
   counties?: any[];
@@ -13,6 +14,7 @@ type ChurchFormProps = {
 export const ChurchForm: FC<ChurchFormProps> = ({ 
   action, 
   church, 
+  gatherings = [],
   affiliations = [], 
   churchAffiliations = [],
   counties = [],
@@ -193,6 +195,100 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
                 </div>
+              </div>
+
+              {/* Gatherings */}
+              <div class="sm:col-span-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Gatherings</h3>
+                <p class="text-sm text-gray-500 mb-4">Add gathering times and optional notes</p>
+                
+                <div id="gatherings-container" class="space-y-4">
+                  {gatherings.map((gathering, index) => (
+                    <div class="flex gap-4 items-start p-4 bg-gray-50 rounded-lg">
+                      <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                          Time <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name={`gatherings[${index}][time]`}
+                          value={gathering.time}
+                          placeholder="e.g., Sunday 10:30 AM"
+                          required
+                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                      <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                          Notes (optional)
+                        </label>
+                        <input
+                          type="text"
+                          name={`gatherings[${index}][notes]`}
+                          value={gathering.notes || ''}
+                          placeholder="e.g., Children's ministry available"
+                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onclick={`this.closest('.flex').remove()`}
+                        class="mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                
+                <button
+                  type="button"
+                  onclick={`
+                    const container = document.getElementById('gatherings-container');
+                    const index = container.children.length;
+                    const newGathering = document.createElement('div');
+                    newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
+                    newGathering.innerHTML = \`
+                      <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                          Time <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="gatherings[\${index}][time]"
+                          placeholder="e.g., Sunday 10:30 AM"
+                          required
+                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                      <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                          Notes (optional)
+                        </label>
+                        <input
+                          type="text"
+                          name="gatherings[\${index}][notes]"
+                          placeholder="e.g., Children's ministry available"
+                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onclick="this.closest('.flex').remove()"
+                        class="mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        Remove
+                      </button>
+                    \`;
+                    container.appendChild(newGathering);
+                  `}
+                  class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Gathering
+                </button>
               </div>
 
               {/* Contact Information */}

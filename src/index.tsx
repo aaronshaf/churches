@@ -3,7 +3,8 @@ import { cors } from 'hono/cors';
 import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
 import { eq, sql } from 'drizzle-orm';
 import { createDb } from './db';
-import { churches, users, affiliations, churchAffiliations, counties } from './db/schema';
+import { churches, users, affiliations, churchAffiliations, counties, churchGatherings } from './db/schema';
+import { churchWithGatheringsSchema } from './utils/validation';
 import { Layout } from './components/Layout';
 import { ChurchCard } from './components/ChurchCard';
 import { LoginForm } from './components/LoginForm';
@@ -427,6 +428,13 @@ app.get('/churches/:path', async (c) => {
     .orderBy(churchAffiliations.order)
     .all();
   
+  // Get church gatherings
+  const churchGatheringsList = await db.select()
+    .from(churchGatherings)
+    .where(eq(churchGatherings.churchId, church.id))
+    .orderBy(churchGatherings.id)
+    .all();
+  
   return c.html(
     <Layout title={`${church.name} - Utah Churches`}>
       <div class="bg-gray-50">
@@ -504,6 +512,22 @@ app.get('/churches/:path', async (c) => {
                     <div>
                       <h3 class="text-sm font-medium text-gray-500">Service Times</h3>
                       <p class="mt-1 text-sm text-gray-900">{church.serviceTimes}</p>
+                    </div>
+                  )}
+                  
+                  {churchGatheringsList.length > 0 && (
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-500">Gatherings</h3>
+                      <div class="mt-1 space-y-1">
+                        {churchGatheringsList.map(gathering => (
+                          <div class="text-sm text-gray-900">
+                            <span class="font-medium">{gathering.time}</span>
+                            {gathering.notes && (
+                              <span class="text-gray-600"> – {gathering.notes}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   
@@ -2347,41 +2371,73 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
     const db = createDb(c.env);
     const body = await c.req.parseBody();
     
-    const churchData = {
-      name: body.name as string,
-      path: body.path as string || null,
-      status: body.status as string || null,
-      gatheringAddress: body.gatheringAddress as string || null,
-      latitude: body.latitude ? parseFloat(body.latitude as string) : null,
-      longitude: body.longitude ? parseFloat(body.longitude as string) : null,
-      countyId: body.countyId ? Number(body.countyId) : null,
-      serviceTimes: body.serviceTimes as string || null,
-      website: body.website as string || null,
-      statementOfFaith: body.statementOfFaith as string || null,
-      phone: body.phone as string || null,
-      email: body.email as string || null,
-      facebook: body.facebook as string || null,
-      instagram: body.instagram as string || null,
-      youtube: body.youtube as string || null,
-      spotify: body.spotify as string || null,
-      privateNotes: body.privateNotes as string || null,
-      publicNotes: body.publicNotes as string || null,
-      lastUpdated: new Date(),
-    };
+    // Parse gatherings from form data
+    const gatherings = [];
+    let index = 0;
+    while (body[`gatherings[${index}][time]`]) {
+      gatherings.push({
+        time: body[`gatherings[${index}][time]`] as string,
+        notes: body[`gatherings[${index}][notes]`] as string || undefined,
+      });
+      index++;
+    }
     
-    const result = await db.insert(churches).values(churchData).returning({ id: churches.id });
+    // Validate input
+    const validationResult = churchWithGatheringsSchema.safeParse({
+      church: {
+        name: body.name as string,
+        path: body.path as string || undefined,
+        status: body.status as string || undefined,
+        gatheringAddress: body.gatheringAddress as string || undefined,
+        latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
+        longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
+        countyId: body.countyId ? Number(body.countyId) : undefined,
+        serviceTimes: body.serviceTimes as string || undefined,
+        website: body.website as string || undefined,
+        statementOfFaith: body.statementOfFaith as string || undefined,
+        phone: body.phone as string || undefined,
+        email: body.email as string || undefined,
+        facebook: body.facebook as string || undefined,
+        instagram: body.instagram as string || undefined,
+        youtube: body.youtube as string || undefined,
+        spotify: body.spotify as string || undefined,
+        privateNotes: body.privateNotes as string || undefined,
+        publicNotes: body.publicNotes as string || undefined,
+      },
+      gatherings,
+      affiliations: body.affiliations 
+        ? (Array.isArray(body.affiliations) ? body.affiliations.map(Number) : [Number(body.affiliations)])
+        : [],
+    });
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.flatten();
+      return c.text(`Validation error: ${JSON.stringify(errors)}`, 400);
+    }
+    
+    const { church: churchData, gatherings: validatedGatherings, affiliations: selectedAffiliations } = validationResult.data;
+    
+    // Create church
+    const result = await db.insert(churches).values({
+      ...churchData,
+      lastUpdated: new Date(),
+    }).returning({ id: churches.id });
     const churchId = result[0].id;
     
-    // Handle affiliations
-    const selectedAffiliations = body.affiliations 
-      ? (Array.isArray(body.affiliations) ? body.affiliations : [body.affiliations])
-      : [];
+    // Insert gatherings
+    for (const gathering of validatedGatherings) {
+      await db.insert(churchGatherings).values({
+        churchId,
+        time: gathering.time,
+        notes: gathering.notes || null,
+      });
+    }
     
     // Insert affiliations
     for (let i = 0; i < selectedAffiliations.length; i++) {
       await db.insert(churchAffiliations).values({
         churchId,
-        affiliationId: Number(selectedAffiliations[i]),
+        affiliationId: selectedAffiliations[i],
         order: i + 1,
       });
     }
@@ -2419,6 +2475,12 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
     .where(eq(churchAffiliations.churchId, Number(id)))
     .all();
   
+  const currentGatherings = await db.select()
+    .from(churchGatherings)
+    .where(eq(churchGatherings.churchId, Number(id)))
+    .orderBy(churchGatherings.id)
+    .all();
+  
   return c.html(
     <Layout title="Edit Church - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2445,6 +2507,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
           <ChurchForm 
             action={`/admin/churches/${id}`} 
             church={church}
+            gatherings={currentGatherings}
             affiliations={allAffiliations}
             counties={allCounties}
             churchAffiliations={currentAffiliations}
@@ -2461,45 +2524,82 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
     const id = c.req.param('id');
     const body = await c.req.parseBody();
     
-    const churchData = {
-      name: body.name as string,
-      path: body.path as string || null,
-      status: body.status as string || null,
-      gatheringAddress: body.gatheringAddress as string || null,
-      latitude: body.latitude ? parseFloat(body.latitude as string) : null,
-      longitude: body.longitude ? parseFloat(body.longitude as string) : null,
-      countyId: body.countyId ? Number(body.countyId) : null,
-      serviceTimes: body.serviceTimes as string || null,
-      website: body.website as string || null,
-      statementOfFaith: body.statementOfFaith as string || null,
-      phone: body.phone as string || null,
-      email: body.email as string || null,
-      facebook: body.facebook as string || null,
-      instagram: body.instagram as string || null,
-      youtube: body.youtube as string || null,
-      spotify: body.spotify as string || null,
-      privateNotes: body.privateNotes as string || null,
-      publicNotes: body.publicNotes as string || null,
-      lastUpdated: new Date(),
-    };
+    // Parse gatherings from form data
+    const gatherings = [];
+    let index = 0;
+    while (body[`gatherings[${index}][time]`]) {
+      gatherings.push({
+        time: body[`gatherings[${index}][time]`] as string,
+        notes: body[`gatherings[${index}][notes]`] as string || undefined,
+      });
+      index++;
+    }
     
+    // Validate input
+    const validationResult = churchWithGatheringsSchema.safeParse({
+      church: {
+        name: body.name as string,
+        path: body.path as string || undefined,
+        status: body.status as string || undefined,
+        gatheringAddress: body.gatheringAddress as string || undefined,
+        latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
+        longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
+        countyId: body.countyId ? Number(body.countyId) : undefined,
+        serviceTimes: body.serviceTimes as string || undefined,
+        website: body.website as string || undefined,
+        statementOfFaith: body.statementOfFaith as string || undefined,
+        phone: body.phone as string || undefined,
+        email: body.email as string || undefined,
+        facebook: body.facebook as string || undefined,
+        instagram: body.instagram as string || undefined,
+        youtube: body.youtube as string || undefined,
+        spotify: body.spotify as string || undefined,
+        privateNotes: body.privateNotes as string || undefined,
+        publicNotes: body.publicNotes as string || undefined,
+      },
+      gatherings,
+      affiliations: body.affiliations 
+        ? (Array.isArray(body.affiliations) ? body.affiliations.map(Number) : [Number(body.affiliations)])
+        : [],
+    });
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.flatten();
+      return c.text(`Validation error: ${JSON.stringify(errors)}`, 400);
+    }
+    
+    const { church: churchData, gatherings: validatedGatherings, affiliations: selectedAffiliations } = validationResult.data;
+    
+    // Update church
     await db.update(churches)
-      .set(churchData)
+      .set({
+        ...churchData,
+        lastUpdated: new Date(),
+      })
       .where(eq(churches.id, Number(id)));
+    
+    // Update gatherings
+    // First, delete existing gatherings
+    await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
+    
+    // Then insert new ones
+    for (const gathering of validatedGatherings) {
+      await db.insert(churchGatherings).values({
+        churchId: Number(id),
+        time: gathering.time,
+        notes: gathering.notes || null,
+      });
+    }
     
     // Update affiliations
     // First, delete existing affiliations
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
     
     // Then insert new ones
-    const selectedAffiliations = body.affiliations 
-      ? (Array.isArray(body.affiliations) ? body.affiliations : [body.affiliations])
-      : [];
-    
     for (let i = 0; i < selectedAffiliations.length; i++) {
       await db.insert(churchAffiliations).values({
         churchId: Number(id),
-        affiliationId: Number(selectedAffiliations[i]),
+        affiliationId: selectedAffiliations[i],
         order: i + 1,
       });
     }
@@ -2516,8 +2616,9 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   
-  // Delete affiliations first
+  // Delete related data first
   await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
+  await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
   
   // Then delete the church
   await db.delete(churches).where(eq(churches.id, Number(id)));

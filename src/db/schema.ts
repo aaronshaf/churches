@@ -70,3 +70,12 @@ export const sessions = sqliteTable('sessions', {
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });
+
+export const churchGatherings = sqliteTable('church_gatherings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  churchId: integer('church_id').notNull().references(() => churches.id),
+  time: text('time').notNull(),
+  notes: text('notes'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+});
