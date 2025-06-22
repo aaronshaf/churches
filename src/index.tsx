@@ -1263,8 +1263,10 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                         <span class="text-gray-400">—</span>
                       )}
                     </td>
-                    <td class="px-3 py-4 text-sm text-gray-600 max-w-xs truncate">
-                      {affiliation.publicNotes || <span class="text-gray-400">—</span>}
+                    <td class="px-3 py-4 text-sm text-gray-600 max-w-md">
+                      <div class="break-words">
+                        {affiliation.publicNotes || <span class="text-gray-400">—</span>}
+                      </div>
                     </td>
                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                       <a 
