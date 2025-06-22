@@ -2207,10 +2207,30 @@ app.post('/admin/users/:id/delete', requireAdminMiddleware, async (c) => {
 app.get('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  
+  // Get all affiliations first
   const allAffiliations = await db.select()
     .from(affiliations)
     .orderBy(affiliations.name)
     .all();
+  
+  // Get church counts for each affiliation
+  const churchCounts = await db.select({
+    affiliationId: churchAffiliations.affiliationId,
+    count: sql<number>`count(*)`.as('count'),
+  })
+    .from(churchAffiliations)
+    .groupBy(churchAffiliations.affiliationId)
+    .all();
+  
+  // Create a map of affiliation ID to church count
+  const countMap = new Map(churchCounts.map(c => [c.affiliationId, c.count]));
+  
+  // Add church counts to affiliations
+  const affiliationsWithCounts = allAffiliations.map(aff => ({
+    ...aff,
+    churchCount: countMap.get(aff.id) || 0,
+  }));
   
   return c.html(
     <Layout title="Manage Affiliations - Utah Churches" user={user}>
@@ -2235,7 +2255,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 </ol>
               </nav>
               <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Manage Affiliations ({allAffiliations.length})
+                Manage Affiliations ({affiliationsWithCounts.length})
               </h1>
             </div>
             <div class="mt-4 flex md:mt-0 md:ml-4">
@@ -2274,10 +2294,10 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                {allAffiliations.map((affiliation, index) => (
+                {affiliationsWithCounts.map((affiliation, index) => (
                   <tr class="hover:bg-gray-50 transition-colors">
                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                      {affiliation.name}
+                      {affiliation.name} {affiliation.churchCount > 0 && `(${affiliation.churchCount})`}
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm">
                       <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
@@ -2334,7 +2354,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 ))}
               </tbody>
             </table>
-            {allAffiliations.length === 0 && (
+            {affiliationsWithCounts.length === 0 && (
               <div class="text-center py-12">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
