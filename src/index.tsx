@@ -1251,9 +1251,13 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                           href={affiliation.website} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          class="text-primary-600 hover:text-primary-900 underline underline-offset-2"
+                          class="text-primary-600 hover:text-primary-900 underline underline-offset-2 block truncate max-w-xs"
+                          title={affiliation.website}
                         >
-                          {affiliation.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          {(() => {
+                            const cleanUrl = affiliation.website.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                            return cleanUrl.length > 40 ? cleanUrl.substring(0, 40) + '…' : cleanUrl;
+                          })()}
                         </a>
                       ) : (
                         <span class="text-gray-400">—</span>
