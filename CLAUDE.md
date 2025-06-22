@@ -8,14 +8,39 @@ Utah Churches - An application for discovering Christian churches in Utah.
 Database name: `utahchurches`
 Production URL: https://utahchurches.aaronshaf.workers.dev
 
-## Technology Stack
+## Technology Stack & Library Choices
 
-- **Package Manager**: pnpm (v10.11.0)
-- **Backend**: Cloudflare Workers with Hono
-- **Database**: Turso (SQLite at the edge)
-- **ORM**: Drizzle ORM
-- **Styling**: Tailwind CSS (via CDN)
-- **Maps**: Google Maps JavaScript API
+### Core Technologies
+- **Runtime**: Cloudflare Workers (edge computing, global distribution)
+- **Framework**: Hono (lightweight, edge-optimized web framework)
+- **Database**: Turso (SQLite at the edge, low-latency reads)
+- **ORM**: Drizzle ORM (type-safe, edge-compatible, lightweight)
+
+### Frontend & Styling
+- **UI Rendering**: Server-side JSX (no client-side framework needed)
+- **Styling**: Tailwind CSS via CDN (no build step, instant updates)
+- **Icons**: Heroicons (inline SVGs for performance)
+- **Maps**: Google Maps JavaScript API (best coverage for Utah)
+
+### Development Tools
+- **Package Manager**: pnpm v10.11.0 (faster, more efficient than npm)
+- **Local Dev**: Wrangler (Cloudflare's CLI)
+- **TypeScript**: Built-in support via Hono
+
+### Key Dependencies
+- `hono` - Web framework optimized for edge
+- `@libsql/client` - Turso database client
+- `drizzle-orm` - Type-safe ORM
+- `bcryptjs` - Password hashing
+- `js-yaml` - YAML data export
+- `drizzle-kit` - Database migrations and schema management
+
+### Why These Choices?
+- **Edge-first**: All technologies chosen for edge compatibility
+- **No build step**: Direct TSX support, CDN assets
+- **Type safety**: TypeScript + Drizzle for runtime safety
+- **Performance**: SQLite at edge locations, server-side rendering
+- **Simplicity**: Minimal dependencies, no complex build pipeline
 
 ## Development Setup
 
@@ -121,13 +146,49 @@ wrangler secret put GOOGLE_MAPS_API_KEY
    - Improved loading indicators
    - Sticky footer with Bible verse
 
+## Architectural Patterns & Conventions
+
+### Component Structure
+- Server-side JSX components in `/src/components/`
+- Props interfaces defined with TypeScript
+- Functional components using Hono's JSX runtime
+- No client-side state management (all server-rendered)
+
+### Routing Patterns
+- RESTful URLs for resources (`/churches/:path`, `/counties/:path`)
+- Admin routes prefixed with `/admin/`
+- Data export routes use file extensions (`.json`, `.yaml`, `.csv`)
+- Current path passed to Layout for active navigation states
+
+### Database Patterns
+- Soft references via `countyId`, `affiliationId`
+- Many-to-many via junction tables (`church_affiliations`)
+- Timestamps on all tables (`createdAt`, `updatedAt`)
+- Status enums for controlled values
+
+### Security Patterns
+- Session-based authentication (not JWT)
+- bcrypt for password hashing
+- Admin middleware for protected routes
+- Environment variables for secrets
+
+### UI/UX Patterns
+- Responsive grid layouts
+- Consistent color scheme via Tailwind config
+- Loading states with delays to prevent flash
+- Hover states and transitions for interactivity
+
 ## Important Implementation Notes
 
 - Always use pnpm commands instead of npm or yarn
-- Church paths should be URL-friendly slugs
+- Church paths should be URL-friendly slugs (lowercase, hyphens)
 - Heretical churches are excluded from public data exports
 - Use environment variables for sensitive configuration
 - Tailwind CSS is loaded via CDN, not compiled
 - Map loading indicator has 500ms delay to prevent flash
 - Footer shows single "Data" link instead of individual format links
 - Active navbar items show blue bottom border
+- All timestamps stored as Unix timestamps (seconds)
+- Use Drizzle migrations for schema changes
+- Prefer server-side rendering over client-side JavaScript
+- Keep components pure (no side effects in render)
