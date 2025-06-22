@@ -1073,20 +1073,33 @@ app.get('/churches.yaml', async (c) => {
     if (!acc[item.churchId]) {
       acc[item.churchId] = [];
     }
-    acc[item.churchId].push({
+    const affiliation: any = {
       id: item.affiliationId,
       name: item.affiliationName,
-      website: item.affiliationWebsite,
-      notes: item.affiliationPublicNotes,
-    });
+    };
+    if (item.affiliationWebsite) affiliation.website = item.affiliationWebsite;
+    if (item.affiliationPublicNotes) affiliation.notes = item.affiliationPublicNotes;
+    acc[item.churchId].push(affiliation);
     return acc;
   }, {} as Record<number, any[]>);
   
-  // Combine church data with affiliations
-  const churchesWithAffiliations = allChurches.map(church => ({
-    ...church,
-    affiliations: affiliationsByChurch[church.id] || [],
-  }));
+  // Helper function to remove null values from objects
+  const removeNulls = (obj: any): any => {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== null && value !== undefined) {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  };
+  
+  // Combine church data with affiliations and remove nulls
+  const churchesWithAffiliations = allChurches.map(church => {
+    const cleanChurch = removeNulls(church);
+    cleanChurch.affiliations = affiliationsByChurch[church.id] || [];
+    return cleanChurch;
+  });
   
   const yamlData = yaml.dump({
     total: churchesWithAffiliations.length,
