@@ -1302,9 +1302,9 @@ app.get('/data', async (c) => {
                     <h3 class="text-sm font-medium text-blue-800">About the data</h3>
                     <div class="mt-2 text-sm text-blue-700">
                       <ul class="list-disc list-inside space-y-1">
-                        <li>Churches marked as "Heretical" are excluded from exports</li>
                         <li>Data includes church details, locations, and affiliations</li>
                         <li>Updated regularly as new churches are added</li>
+                        <li>Available in multiple formats for different use cases</li>
                       </ul>
                     </div>
                   </div>
