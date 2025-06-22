@@ -62,31 +62,111 @@ app.get('/', async (c) => {
   
   return c.html(
     <Layout>
-      <header class="site-header">
-        <div class="container">
-          <h1 class="site-title">Utah Churches</h1>
-          <p class="site-tagline">Connecting communities with places of worship across Utah</p>
-        </div>
-      </header>
-      
-      <main class="container">
-        <div class="counties-grid">
-          <a href="/map" class="county-card map-card">
-            <div class="county-name">📍 Who's near you?</div>
-            <div class="church-count">
-              Find churches in your area
-            </div>
-          </a>
-          {countiesWithChurches.map((county) => (
-            <a href={`/county/${county.path || county.id}`} class="county-card">
-              <div class="county-name">{county.name}</div>
-              <div class="church-count">
-                {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
+      <div class="min-h-screen bg-white">
+        {/* Hero Section */}
+        <div class="relative bg-gradient-to-br from-primary-600 to-primary-800">
+          <div class="absolute inset-0 bg-black opacity-10"></div>
+          <div class="relative">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+              <div class="text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-white tracking-tight">
+                  Utah Churches
+                </h1>
+                <p class="mt-6 max-w-2xl mx-auto text-xl text-primary-100">
+                  Discover and connect with {totalChurches} places of worship across Utah's communities
+                </p>
+                <div class="mt-10 flex justify-center gap-4">
+                  <a
+                    href="/map"
+                    class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-lg text-primary-700 bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Find Churches Near You
+                  </a>
+                  <a
+                    href="/churches.json"
+                    class="inline-flex items-center px-6 py-3 border border-white text-base font-medium rounded-lg text-white hover:bg-white hover:text-primary-700 transition-all duration-200"
+                  >
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Data
+                  </a>
+                </div>
               </div>
-            </a>
-          ))}
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0">
+            <svg class="w-full h-12 text-gray-50" preserveAspectRatio="none" viewBox="0 0 1440 48" fill="currentColor">
+              <path d="M0,48 L1440,48 L1440,0 C1440,0 1140,48 720,48 C300,48 0,0 0,0 L0,48 Z"></path>
+            </svg>
+          </div>
         </div>
-      </main>
+
+        {/* Counties Section */}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900">Browse by County</h2>
+            <p class="mt-4 text-lg text-gray-600">
+              Select a county to explore local churches and faith communities
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {countiesWithChurches.map((county) => (
+              <a
+                href={`/county/${county.path || county.id}`}
+                class="group relative bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-primary-500 transition-all duration-200 p-6 hover:-translate-y-1"
+              >
+                <div class="flex items-start justify-between">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                      {county.name}
+                    </h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                      {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
+                    </p>
+                  </div>
+                  <div class="ml-4 flex-shrink-0">
+                    <svg class="h-6 w-6 text-gray-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+                {county.description && (
+                  <p class="mt-3 text-sm text-gray-600 line-clamp-2">
+                    {county.description}
+                  </p>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer class="bg-gray-900">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+              <div class="text-center md:text-left">
+                <p class="text-gray-400">
+                  © {new Date().getFullYear()} Utah Churches. Connecting communities with faith.
+                </p>
+              </div>
+              <div class="mt-4 md:mt-0 flex space-x-6">
+                <a href="/login" class="text-gray-400 hover:text-white transition-colors">
+                  Admin Login
+                </a>
+                <a href="/churches.json" class="text-gray-400 hover:text-white transition-colors">
+                  API
+                </a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
     </Layout>
   );
 });
@@ -123,25 +203,69 @@ app.get('/county/:path', async (c) => {
   
   return c.html(
     <Layout title={`${county.name} County Churches - Utah Churches`}>
-      <header class="site-header">
-        <div class="container">
-          <h1 class="site-title">{county.name} County</h1>
-          <p class="site-tagline">
-            {countyChurches.length} {countyChurches.length === 1 ? 'church' : 'churches'} in this county
-          </p>
-          <div style="margin-top: 1rem;">
-            <a href="/" style="color: #4a5568; text-decoration: none; font-size: 0.875rem;">← Back to all counties</a>
+      <div class="min-h-screen bg-white">
+        {/* Header */}
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-16 md:py-20">
+              <div class="md:flex md:items-center md:justify-between">
+                <div class="flex-1 min-w-0">
+                  <nav class="flex" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-2">
+                      <li>
+                        <a href="/" class="text-primary-200 hover:text-white transition-colors">
+                          Home
+                        </a>
+                      </li>
+                      <li>
+                        <span class="mx-2 text-primary-300">/</span>
+                      </li>
+                      <li>
+                        <span class="text-white">{county.name} County</span>
+                      </li>
+                    </ol>
+                  </nav>
+                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
+                    {county.name} County
+                  </h1>
+                  <p class="mt-4 text-xl text-primary-100">
+                    {countyChurches.length} {countyChurches.length === 1 ? 'church' : 'churches'} in this county
+                  </p>
+                  {county.description && (
+                    <p class="mt-2 text-primary-100">
+                      {county.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </header>
-      
-      <main class="container">
-        <div class={churchGridClass}>
-          {countyChurches.map((church) => (
-            <ChurchCard church={church} />
-          ))}
+
+        {/* Churches Grid */}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {countyChurches.length === 0 ? (
+            <div class="text-center py-12">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 class="mt-2 text-sm font-medium text-gray-900">No churches found</h3>
+              <p class="mt-1 text-sm text-gray-500">No churches have been added to this county yet.</p>
+              <div class="mt-6">
+                <a href="/" class="text-primary-600 hover:text-primary-500 font-medium">
+                  &larr; Back to all counties
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {countyChurches.map((church) => (
+                <ChurchCard church={church} />
+              ))}
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </Layout>
   );
 });
