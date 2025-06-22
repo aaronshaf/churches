@@ -13,6 +13,7 @@ import { AffiliationForm } from './components/AffiliationForm';
 import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
 import { NotFound } from './components/NotFound';
+import { ErrorPage } from './components/ErrorPage';
 import { churchGridClass } from './styles/components';
 import { 
   tableClass, 
@@ -46,11 +47,32 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('/api/*', cors());
 
-app.get('/', async (c) => {
-  const db = createDb(c.env);
+// Global error handler
+app.onError((err, c) => {
+  console.error('Unhandled error:', err);
   
-  // Get counties that have churches, with church count
-  const countiesWithChurches = await db.select({
+  // Check if it's a database connection error
+  const isDatabaseError = err.message?.includes('Network connection lost') || 
+                         err.message?.includes('Failed query') ||
+                         err.cause?.message?.includes('Network connection lost');
+  
+  return c.html(
+    <Layout title="Error - Utah Churches">
+      <ErrorPage 
+        error={isDatabaseError ? 'Database connection error' : err.message} 
+        statusCode={err.status || 500}
+      />
+    </Layout>,
+    err.status || 500
+  );
+});
+
+app.get('/', async (c) => {
+  try {
+    const db = createDb(c.env);
+    
+    // Get counties that have churches, with church count
+    const countiesWithChurches = await db.select({
     id: counties.id,
     name: counties.name,
     path: counties.path,
@@ -160,6 +182,18 @@ app.get('/', async (c) => {
       </div>
     </Layout>
   );
+  } catch (error) {
+    console.error('Error loading home page:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches">
+        <ErrorPage 
+          error={error.message || 'Failed to load churches'} 
+          statusCode={500}
+        />
+      </Layout>,
+      500
+    );
+  }
 });
 
 app.get('/counties/:path', async (c) => {
@@ -1454,17 +1488,18 @@ app.get('/churches.xlsx', async (c) => {
 });
 
 app.get('/data', async (c) => {
-  const db = createDb(c.env);
-  
-  // Get count of churches (excluding heretical)
-  const churchCount = await db.select({
-    count: sql<number>`COUNT(*)`.as('count')
-  })
-    .from(churches)
-    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
-    .get();
-  
-  return c.html(
+  try {
+    const db = createDb(c.env);
+    
+    // Get count of churches (excluding heretical)
+    const churchCount = await db.select({
+      count: sql<number>`COUNT(*)`.as('count')
+    })
+      .from(churches)
+      .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+      .get();
+    
+    return c.html(
     <Layout title="Download Data - Utah Churches" currentPath="/data">
       <div class="bg-gray-50 min-h-screen">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -1597,6 +1632,18 @@ app.get('/data', async (c) => {
       </div>
     </Layout>
   );
+  } catch (error) {
+    console.error('Error loading data page:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches">
+        <ErrorPage 
+          error={error.message || 'Failed to load data'} 
+          statusCode={500}
+        />
+      </Layout>,
+      500
+    );
+  }
 });
 
 // Login routes
