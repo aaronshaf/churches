@@ -38,6 +38,7 @@ export const counties = sqliteTable('counties', {
 export const affiliations = sqliteTable('affiliations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
+  status: text('status', { enum: ['Listed', 'Unlisted', 'Heretical'] }).default('Listed'),
   website: text('website'),
   privateNotes: text('private_notes'),
   publicNotes: text('public_notes'),

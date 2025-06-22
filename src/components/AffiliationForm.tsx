@@ -1,5 +1,4 @@
 import { FC } from 'hono/jsx';
-import { formGroupClass, labelClass, inputClass, buttonClass, errorClass } from '../styles/forms';
 
 type AffiliationFormProps = {
   action: string;
@@ -10,70 +9,143 @@ type AffiliationFormProps = {
 
 export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation, error, isNew = false }) => {
   return (
-    <form method="POST" action={action}>
-      <h2 style="margin-bottom: 1.5rem; font-size: 1.5rem; font-weight: 600;">
-        {isNew ? 'Create New Affiliation' : 'Edit Affiliation'}
-      </h2>
-      
+    <form method="POST" action={action} class="space-y-8 divide-y divide-gray-200">
       {error && (
-        <p class={errorClass} style="margin-bottom: 1rem;">
-          {error}
-        </p>
+        <div class="rounded-md bg-red-50 p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
       )}
       
-      <div class={formGroupClass}>
-        <label for="name" class={labelClass}>Name *</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          required
-          class={inputClass}
-          value={affiliation?.name || ''}
-        />
+      <div class="space-y-8 divide-y divide-gray-200">
+        <div>
+          <div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+              {isNew ? 'Create New Affiliation' : 'Edit Affiliation'}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {isNew ? 'Add a new church affiliation or denomination.' : 'Update the affiliation details.'}
+            </p>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-4">
+              <label for="name" class="block text-sm font-medium text-gray-700">
+                Name <span class="text-red-500">*</span>
+              </label>
+              <div class="mt-1">
+                <input
+                  type="text"
+                  name="name"
+                  id="name"
+                  required
+                  value={affiliation?.name || ''}
+                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                />
+              </div>
+            </div>
+
+            <div class="sm:col-span-3">
+              <label for="status" class="block text-sm font-medium text-gray-700">
+                Status <span class="text-red-500">*</span>
+              </label>
+              <div class="mt-1">
+                <select
+                  id="status"
+                  name="status"
+                  required
+                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                >
+                  <option value="Listed" selected={affiliation?.status === 'Listed' || (!affiliation && true)}>Listed</option>
+                  <option value="Unlisted" selected={affiliation?.status === 'Unlisted'}>Unlisted</option>
+                  <option value="Heretical" selected={affiliation?.status === 'Heretical'}>Heretical</option>
+                </select>
+              </div>
+              <p class="mt-2 text-sm text-gray-500">Choose how this affiliation should be displayed</p>
+            </div>
+
+            <div class="sm:col-span-4">
+              <label for="website" class="block text-sm font-medium text-gray-700">
+                Website
+              </label>
+              <div class="mt-1">
+                <input
+                  type="url"
+                  name="website"
+                  id="website"
+                  value={affiliation?.website || ''}
+                  placeholder="https://example.com"
+                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-8">
+          <div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Notes</h3>
+            <p class="mt-1 text-sm text-gray-500">Additional information about this affiliation.</p>
+          </div>
+          <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-6">
+              <label for="publicNotes" class="block text-sm font-medium text-gray-700">
+                Public Notes
+              </label>
+              <div class="mt-1">
+                <textarea
+                  id="publicNotes"
+                  name="publicNotes"
+                  rows="3"
+                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  placeholder="Notes visible to the public"
+                >{affiliation?.publicNotes || ''}</textarea>
+              </div>
+              <p class="mt-2 text-sm text-gray-500">These notes will be visible on the public website.</p>
+            </div>
+
+            <div class="sm:col-span-6">
+              <label for="privateNotes" class="block text-sm font-medium text-gray-700">
+                Private Notes
+              </label>
+              <div class="mt-1">
+                <textarea
+                  id="privateNotes"
+                  name="privateNotes"
+                  rows="3"
+                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  placeholder="Internal notes (not visible to public)"
+                >{affiliation?.privateNotes || ''}</textarea>
+              </div>
+              <p class="mt-2 text-sm text-gray-500">Internal notes for administrative purposes only.</p>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <div class={formGroupClass}>
-        <label for="website" class={labelClass}>Website</label>
-        <input
-          type="url"
-          id="website"
-          name="website"
-          class={inputClass}
-          value={affiliation?.website || ''}
-          placeholder="https://example.com"
-        />
-      </div>
-      
-      <div class={formGroupClass}>
-        <label for="publicNotes" class={labelClass}>Public Notes</label>
-        <textarea
-          id="publicNotes"
-          name="publicNotes"
-          class={inputClass}
-          rows="4"
-          placeholder="Notes visible to the public"
-        >{affiliation?.publicNotes || ''}</textarea>
-      </div>
-      
-      <div class={formGroupClass}>
-        <label for="privateNotes" class={labelClass}>Private Notes</label>
-        <textarea
-          id="privateNotes"
-          name="privateNotes"
-          class={inputClass}
-          rows="4"
-          placeholder="Internal notes (not visible to public)"
-        >{affiliation?.privateNotes || ''}</textarea>
-      </div>
-      
-      <div style="display: flex; gap: 1rem;">
-        <button type="submit" class={buttonClass}>
-          {isNew ? 'Create Affiliation' : 'Update Affiliation'}
-        </button>
-        <a href="/admin/affiliations" class={buttonClass} style="background-color: #6b7280; text-align: center; text-decoration: none;">
-          Cancel
-        </a>
+
+      <div class="pt-5">
+        <div class="flex justify-end space-x-3">
+          <a
+            href="/admin/affiliations"
+            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+          >
+            Cancel
+          </a>
+          <button
+            type="submit"
+            class="inline-flex justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+          >
+            {isNew ? 'Create Affiliation' : 'Save Changes'}
+          </button>
+        </div>
       </div>
     </form>
   );

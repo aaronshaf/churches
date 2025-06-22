@@ -1216,6 +1216,9 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                     Name
                   </th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Website
                   </th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1231,6 +1234,16 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                   <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm font-medium text-gray-900">{affiliation.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        affiliation.status === 'Listed' ? 'bg-green-100 text-green-800' :
+                        affiliation.status === 'Unlisted' ? 'bg-gray-100 text-gray-800' :
+                        affiliation.status === 'Heretical' ? 'bg-red-100 text-red-800' :
+                        'bg-green-100 text-green-800' // Default to Listed if not set
+                      }`}>
+                        {affiliation.status || 'Listed'}
+                      </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {affiliation.website ? (
@@ -1279,8 +1292,12 @@ app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
   const user = c.get('user');
   return c.html(
     <Layout title="Create Affiliation - Utah Churches" user={user}>
-      <div style="max-width: 600px; margin: 0 auto;">
-        <AffiliationForm action="/admin/affiliations" isNew={true} />
+      <div class="min-h-screen bg-gray-50 py-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white shadow sm:rounded-lg p-6">
+            <AffiliationForm action="/admin/affiliations" isNew={true} />
+          </div>
+        </div>
       </div>
     </Layout>
   );
@@ -1292,6 +1309,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   const user = c.get('user');
   
   const name = body.name as string;
+  const status = body.status as string;
   const website = body.website as string;
   const publicNotes = body.publicNotes as string;
   const privateNotes = body.privateNotes as string;
@@ -1301,13 +1319,17 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   if (existing) {
     return c.html(
       <Layout title="Create Affiliation - Utah Churches" user={user}>
-        <div style="max-width: 600px; margin: 0 auto;">
-          <AffiliationForm 
-            action="/admin/affiliations" 
-            isNew={true} 
-            error="An affiliation with this name already exists"
-            affiliation={{ name, website, publicNotes, privateNotes }}
-          />
+        <div class="min-h-screen bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <AffiliationForm 
+                action="/admin/affiliations" 
+                isNew={true} 
+                error="An affiliation with this name already exists"
+                affiliation={{ name, status, website, publicNotes, privateNotes }}
+              />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -1315,6 +1337,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   
   await db.insert(affiliations).values({
     name,
+    status: status as 'Listed' | 'Unlisted' | 'Heretical',
     website: website || null,
     publicNotes: publicNotes || null,
     privateNotes: privateNotes || null,
@@ -1336,8 +1359,12 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   
   return c.html(
     <Layout title="Edit Affiliation - Utah Churches" user={user}>
-      <div style="max-width: 600px; margin: 0 auto;">
-        <AffiliationForm action={`/admin/affiliations/${id}`} affiliation={affiliation} />
+      <div class="min-h-screen bg-gray-50 py-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white shadow sm:rounded-lg p-6">
+            <AffiliationForm action={`/admin/affiliations/${id}`} affiliation={affiliation} />
+          </div>
+        </div>
       </div>
     </Layout>
   );
@@ -1349,6 +1376,7 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const body = await c.req.parseBody();
   
   const name = body.name as string;
+  const status = body.status as string;
   const website = body.website as string;
   const publicNotes = body.publicNotes as string;
   const privateNotes = body.privateNotes as string;
@@ -1356,9 +1384,11 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   await db.update(affiliations)
     .set({
       name,
+      status: status as 'Listed' | 'Unlisted' | 'Heretical',
       website: website || null,
       publicNotes: publicNotes || null,
       privateNotes: privateNotes || null,
+      updatedAt: new Date(),
     })
     .where(eq(affiliations.id, Number(id)));
   

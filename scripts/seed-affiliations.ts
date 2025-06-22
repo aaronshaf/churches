@@ -2,6 +2,8 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { affiliations } from '../src/db/schema';
 import { sql } from 'drizzle-orm';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const affiliationData = [
   { name: 'Alpine Church', website: 'https://alpinechurch.org/' },
@@ -63,14 +65,36 @@ const affiliationData = [
 ];
 
 async function seedAffiliations() {
-  if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
-    console.error('Missing environment variables: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN');
+  // Try to load from .dev.vars if env vars not set
+  let dbUrl = process.env.TURSO_DATABASE_URL;
+  let authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!dbUrl || !authToken) {
+    try {
+      const devVarsPath = path.join(__dirname, '..', '.dev.vars');
+      const devVars = fs.readFileSync(devVarsPath, 'utf-8');
+      const lines = devVars.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('TURSO_DATABASE_URL=')) {
+          dbUrl = line.split('=')[1].trim();
+        } else if (line.startsWith('TURSO_AUTH_TOKEN=')) {
+          authToken = line.split('=')[1].trim();
+        }
+      }
+    } catch (error) {
+      console.error('Could not read .dev.vars file');
+    }
+  }
+
+  if (!dbUrl || !authToken) {
+    console.error('Missing database credentials');
     process.exit(1);
   }
 
   const client = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url: dbUrl,
+    authToken: authToken,
   });
 
   const db = drizzle(client);
