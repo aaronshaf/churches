@@ -212,7 +212,7 @@ app.get('/county/:path', async (c) => {
                     </ol>
                   </nav>
                   <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
-                    {county.name} County
+                    Christian Churches in {county.name} County
                   </h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {countyChurches.length} {countyChurches.length === 1 ? 'church' : 'churches'} in this county
