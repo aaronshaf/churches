@@ -1558,7 +1558,7 @@ app.get('/data', async (c) => {
                 Export data for {churchCount?.count || 0} churches in various formats
               </p>
               
-              <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="grid gap-4 grid-cols-2 max-w-2xl">
                 {/* XLSX Download */}
                 <a
                   href="/churches.xlsx"
