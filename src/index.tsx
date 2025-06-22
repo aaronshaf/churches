@@ -104,7 +104,7 @@ app.get('/', async (c) => {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {countiesWithChurches.map((county) => (
                 <a
-                  href={`/county/${county.path || county.id}`}
+                  href={`/counties/${county.path || county.id}`}
                   class="group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
                 >
                   <div class="flex items-start justify-between">
@@ -157,7 +157,7 @@ app.get('/', async (c) => {
   );
 });
 
-app.get('/county/:path', async (c) => {
+app.get('/counties/:path', async (c) => {
   const db = createDb(c.env);
   const countyPath = c.req.param('path');
   
