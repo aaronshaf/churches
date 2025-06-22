@@ -1253,7 +1253,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                           rel="noopener noreferrer" 
                           class="text-primary-600 hover:text-primary-900 underline underline-offset-2"
                         >
-                          Visit website
+                          {affiliation.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                         </a>
                       ) : (
                         <span class="text-gray-400">—</span>
