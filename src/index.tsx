@@ -41,14 +41,6 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('/api/*', cors());
 
-// Serve static files
-app.get('/js/*', async (c) => {
-  const path = c.req.path;
-  // @ts-ignore
-  const asset = c.env.ASSETS.fetch(c.req.raw);
-  return asset;
-});
-
 app.get('/', async (c) => {
   const db = createDb(c.env);
   

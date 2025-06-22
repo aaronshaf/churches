@@ -13,7 +13,7 @@ export const Navbar: FC<NavbarProps> = ({ user }) => {
             {/* Logo/Brand */}
             <div class="flex-shrink-0 flex items-center">
               <a href="/" class="flex items-center">
-                <span class="text-xl font-semibold text-gray-900">Utah Churches</span>
+                <img src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w" alt="Utah Churches" class="h-10 w-auto" />
               </a>
             </div>
             

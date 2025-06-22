@@ -14,7 +14,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
-        <script src="/js/tailwind.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
             tailwind.config = {
