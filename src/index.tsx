@@ -27,6 +27,7 @@ import { createSession, deleteSession, verifyPassword, validateSession } from '.
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import bcrypt from 'bcryptjs';
+import yaml from 'js-yaml';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -140,15 +141,26 @@ app.get('/', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <a
-                href="/churches.json"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Data (JSON)
-              </a>
+              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
+                <a
+                  href="/churches.json"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  JSON
+                </a>
+                <a
+                  href="/churches.yaml"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  YAML
+                </a>
+              </div>
             </div>
           </div>
         </footer>
@@ -359,15 +371,26 @@ app.get('/networks', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <a
-                href="/churches.json"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Data (JSON)
-              </a>
+              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
+                <a
+                  href="/churches.json"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  JSON
+                </a>
+                <a
+                  href="/churches.yaml"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  YAML
+                </a>
+              </div>
             </div>
           </div>
         </footer>
@@ -645,15 +668,26 @@ app.get('/churches/:path', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <a
-                href="/churches.json"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Data (JSON)
-              </a>
+              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
+                <a
+                  href="/churches.json"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  JSON
+                </a>
+                <a
+                  href="/churches.yaml"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  YAML
+                </a>
+              </div>
             </div>
           </div>
         </footer>
@@ -919,8 +953,7 @@ app.get('/churches.json', async (c) => {
     gatheringAddress: churches.gatheringAddress,
     latitude: churches.latitude,
     longitude: churches.longitude,
-    countyName: counties.name,
-    countyPath: counties.path,
+    county: counties.name,
     serviceTimes: churches.serviceTimes,
     website: churches.website,
     statementOfFaith: churches.statementOfFaith,
@@ -980,6 +1013,86 @@ app.get('/churches.json', async (c) => {
   return c.json({
     total: churchesWithAffiliations.length,
     churches: churchesWithAffiliations,
+  });
+});
+
+app.get('/churches.yaml', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get all churches with their public fields and county names
+  const allChurches = await db.select({
+    id: churches.id,
+    name: churches.name,
+    path: churches.path,
+    status: churches.status,
+    lastUpdated: churches.lastUpdated,
+    gatheringAddress: churches.gatheringAddress,
+    latitude: churches.latitude,
+    longitude: churches.longitude,
+    county: counties.name,
+    serviceTimes: churches.serviceTimes,
+    website: churches.website,
+    statementOfFaith: churches.statementOfFaith,
+    phone: churches.phone,
+    email: churches.email,
+    facebook: churches.facebook,
+    instagram: churches.instagram,
+    youtube: churches.youtube,
+    spotify: churches.spotify,
+    notes: churches.publicNotes,
+  })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .orderBy(churches.name)
+    .all();
+  
+  // Get affiliations for each church
+  const churchIds = allChurches.map(c => c.id);
+  let churchAffiliationData = [];
+  
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db.select({
+      churchId: churchAffiliations.churchId,
+      affiliationId: churchAffiliations.affiliationId,
+      affiliationName: affiliations.name,
+      affiliationWebsite: affiliations.website,
+      affiliationPublicNotes: affiliations.publicNotes,
+      order: churchAffiliations.order,
+    })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
+  
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
+    if (!acc[item.churchId]) {
+      acc[item.churchId] = [];
+    }
+    acc[item.churchId].push({
+      id: item.affiliationId,
+      name: item.affiliationName,
+      website: item.affiliationWebsite,
+      notes: item.affiliationPublicNotes,
+    });
+    return acc;
+  }, {} as Record<number, any[]>);
+  
+  // Combine church data with affiliations
+  const churchesWithAffiliations = allChurches.map(church => ({
+    ...church,
+    affiliations: affiliationsByChurch[church.id] || [],
+  }));
+  
+  const yamlData = yaml.dump({
+    total: churchesWithAffiliations.length,
+    churches: churchesWithAffiliations,
+  });
+  
+  return c.text(yamlData, 200, {
+    'Content-Type': 'text/yaml',
   });
 });
 
