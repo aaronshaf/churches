@@ -477,6 +477,13 @@ app.get('/churches/:path', async (c) => {
   const db = createDb(c.env);
   const churchPath = c.req.param('path');
   
+  // Check for admin session (optional)
+  const sessionId = getCookie(c, 'session');
+  let user = null;
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
+  
   // Get church by path with county and affiliations
   const church = await db.select({
     id: churches.id,
@@ -572,7 +579,7 @@ app.get('/churches/:path', async (c) => {
   };
 
   return c.html(
-    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd}>
+    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Breadcrumb */}
@@ -800,15 +807,28 @@ app.get('/churches/:path', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <a
-                href="/data"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Data
-              </a>
+              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
+                {user && (
+                  <a
+                    href={`/admin/churches/${church.id}/edit`}
+                    class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500 transition-colors"
+                  >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </a>
+                )}
+                <a
+                  href="/data"
+                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Data
+                </a>
+              </div>
             </div>
           </div>
         </footer>
