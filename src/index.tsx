@@ -484,6 +484,19 @@ app.get('/churches/:path', async (c) => {
     user = await validateSession(sessionId, c.env);
   }
   
+  // Helper function to format URLs for display
+  const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
+    // Remove protocol
+    let displayUrl = url.replace(/^https?:\/\//i, '');
+    // Remove trailing slash
+    displayUrl = displayUrl.replace(/\/$/, '');
+    // Truncate if too long
+    if (displayUrl.length > maxLength) {
+      return displayUrl.substring(0, maxLength) + '...';
+    }
+    return displayUrl;
+  }
+  
   // Get church by path with county and affiliations
   const church = await db.select({
     id: churches.id,
@@ -709,7 +722,7 @@ app.get('/churches/:path', async (c) => {
                         rel="noopener noreferrer"
                         class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
                       >
-                        Visit Website
+                        {formatUrlForDisplay(church.website)}
                         <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -726,7 +739,7 @@ app.get('/churches/:path', async (c) => {
                         rel="noopener noreferrer"
                         class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
                       >
-                        View Statement
+                        {formatUrlForDisplay(church.statementOfFaith)}
                         <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
