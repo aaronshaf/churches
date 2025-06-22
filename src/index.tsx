@@ -1304,7 +1304,6 @@ app.get('/data', async (c) => {
                       <ul class="list-disc list-inside space-y-1">
                         <li>Data includes church details, locations, and affiliations</li>
                         <li>Updated regularly as new churches are added</li>
-                        <li>Available in multiple formats for different use cases</li>
                       </ul>
                     </div>
                   </div>
