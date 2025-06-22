@@ -722,27 +722,13 @@ app.get('/map', async (c) => {
   return c.html(
     <Layout title="Church Map - Utah Churches">
       <div class="min-h-screen">
-        {/* Header */}
-        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-8">
-              <h1 class="text-3xl font-bold text-white">
-                Church Map
-              </h1>
-              <p class="mt-2 text-primary-100">
-                Explore {churchesWithCoords.length} churches with location data
-              </p>
-            </div>
-          </div>
-        </div>
-        
         {/* Map Container */}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div id="map" class="w-full h-[600px]"></div>
+            <div id="map" class="w-full h-[calc(100vh-120px)]"></div>
           </div>
           
-          <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div class="flex">
               <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -751,7 +737,7 @@ app.get('/map', async (c) => {
               </div>
               <div class="ml-3">
                 <p class="text-sm text-blue-800">
-                  Click on markers to view church details. Blue marker indicates your current location.
+                  {churchesWithCoords.length} churches with location data. Click markers for details. Blue marker = your location.
                 </p>
               </div>
             </div>
