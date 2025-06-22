@@ -943,7 +943,7 @@ app.get('/map', async (c) => {
 app.get('/churches.json', async (c) => {
   const db = createDb(c.env);
   
-  // Get all churches with their public fields and county names
+  // Get all churches with their public fields and county names (excluding heretical)
   const allChurches = await db.select({
     id: churches.id,
     name: churches.name,
@@ -967,6 +967,7 @@ app.get('/churches.json', async (c) => {
   })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
   
@@ -1019,7 +1020,7 @@ app.get('/churches.json', async (c) => {
 app.get('/churches.yaml', async (c) => {
   const db = createDb(c.env);
   
-  // Get all churches with their public fields and county names
+  // Get all churches with their public fields and county names (excluding heretical)
   const allChurches = await db.select({
     id: churches.id,
     name: churches.name,
@@ -1043,6 +1044,7 @@ app.get('/churches.yaml', async (c) => {
   })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
   
