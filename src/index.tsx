@@ -934,7 +934,7 @@ app.get('/map', async (c) => {
       }} />
       
       <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap&libraries=marker,geometry">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrevT6H9J7oJBSW2_pnBCuBFrUYsEu1HE&callback=initMap&libraries=marker,geometry">
       </script>
     </Layout>
   );
