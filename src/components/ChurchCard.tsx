@@ -20,9 +20,9 @@ const statusStyles: Record<string, string> = {
   'Listed': 'bg-green-50 text-green-700 ring-green-600/20',
   'Ready to list': 'bg-blue-50 text-blue-700 ring-blue-600/20',
   'Assess': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-  'Needs data': 'bg-red-50 text-red-700 ring-red-600/20',
+  'Needs data': 'bg-orange-50 text-orange-700 ring-orange-600/20',
   'Unlisted': 'bg-gray-50 text-gray-700 ring-gray-600/20',
-  'Heretical': 'bg-red-900 text-white ring-red-900',
+  'Heretical': 'bg-red-50 text-red-700 ring-red-600/20',
   'Closed': 'bg-gray-800 text-white ring-gray-800',
 };
 

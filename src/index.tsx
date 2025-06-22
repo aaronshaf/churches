@@ -215,7 +215,7 @@ app.get('/counties/:path', async (c) => {
     );
   }
   
-  // Get all churches in this county
+  // Get all churches in this county (excluding heretical)
   const countyChurches = await db.select({
     id: churches.id,
     name: churches.name,
@@ -226,9 +226,13 @@ app.get('/counties/:path', async (c) => {
     publicNotes: churches.publicNotes,
   })
     .from(churches)
-    .where(eq(churches.countyId, county.id))
+    .where(sql`${churches.countyId} = ${county.id} AND ${churches.status} != 'Heretical'`)
     .orderBy(churches.name)
     .all();
+  
+  // Separate listed and unlisted churches
+  const listedChurches = countyChurches.filter(c => c.status === 'Listed');
+  const unlistedChurches = countyChurches.filter(c => c.status === 'Unlisted');
   
   return c.html(
     <Layout title={`${county.name} Churches - Utah Churches`}>
@@ -258,7 +262,7 @@ app.get('/counties/:path', async (c) => {
                     Churches in {county.name}
                   </h1>
                   <p class="mt-4 text-xl text-primary-100">
-                    {countyChurches.length} {countyChurches.length === 1 ? 'church' : 'churches'} in this county
+                    {listedChurches.length + unlistedChurches.length} {(listedChurches.length + unlistedChurches.length) === 1 ? 'church' : 'churches'}
                   </p>
                 </div>
               </div>
@@ -268,7 +272,22 @@ app.get('/counties/:path', async (c) => {
 
         {/* Churches Grid */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {countyChurches.length === 0 ? (
+          {/* Show unlisted checkbox */}
+          {unlistedChurches.length > 0 && (
+            <div class="mb-6">
+              <label class="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  id="show-unlisted"
+                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  onchange="toggleUnlisted()"
+                />
+                <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
+              </label>
+            </div>
+          )}
+          
+          {listedChurches.length === 0 && unlistedChurches.length === 0 ? (
             <div class="text-center py-12">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -283,13 +302,41 @@ app.get('/counties/:path', async (c) => {
             </div>
           ) : (
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {countyChurches.map((church) => (
-                <ChurchCard church={church} />
+              {/* Listed Churches */}
+              {listedChurches.map((church) => (
+                <div class="church-card listed-church">
+                  <ChurchCard church={church} />
+                </div>
+              ))}
+              
+              {/* Unlisted Churches (hidden by default) */}
+              {unlistedChurches.map((church) => (
+                <div class="church-card unlisted-church hidden">
+                  <ChurchCard church={church} />
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
+      
+      {/* JavaScript for toggling unlisted churches */}
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          function toggleUnlisted() {
+            const checkbox = document.getElementById('show-unlisted');
+            const unlistedChurches = document.querySelectorAll('.unlisted-church');
+            
+            unlistedChurches.forEach(church => {
+              if (checkbox.checked) {
+                church.classList.remove('hidden');
+              } else {
+                church.classList.add('hidden');
+              }
+            });
+          }
+        `
+      }} />
     </Layout>
   );
 });
