@@ -1475,21 +1475,45 @@ app.get('/data', async (c) => {
                 Export data for {churchCount?.count || 0} churches in various formats
               </p>
               
-              <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {/* XLSX Download */}
+                <a
+                  href="/churches.xlsx"
+                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-3">
+                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">Excel Format</h3>
+                    <p class="text-xs text-gray-600 mb-3">
+                      Multi-sheet workbook with churches, counties, and affiliations
+                    </p>
+                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                      Download XLSX
+                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+                
                 {/* CSV Download */}
                 <a
                   href="/churches.csv"
-                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
                 >
                   <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-4">
-                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-3">
+                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">CSV Format</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                      Spreadsheet-compatible format with church details and affiliations
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">CSV Format</h3>
+                    <p class="text-xs text-gray-600 mb-3">
+                      Spreadsheet-compatible format with church details
                     </p>
                     <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
                       Download CSV
@@ -1503,17 +1527,17 @@ app.get('/data', async (c) => {
                 {/* JSON Download */}
                 <a
                   href="/churches.json"
-                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
                 >
                   <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-4">
-                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-3">
+                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                       </svg>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON Format</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                      Developer-friendly format with complete church and affiliation data
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">JSON Format</h3>
+                    <p class="text-xs text-gray-600 mb-3">
+                      Developer-friendly format with complete data
                     </p>
                     <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
                       Download JSON
@@ -1527,44 +1551,20 @@ app.get('/data', async (c) => {
                 {/* YAML Download */}
                 <a
                   href="/churches.yaml"
-                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
                 >
                   <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-4">
-                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-3">
+                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">YAML Format</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                      Human-readable format ideal for configuration and documentation
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">YAML Format</h3>
+                    <p class="text-xs text-gray-600 mb-3">
+                      Human-readable format for documentation
                     </p>
                     <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
                       Download YAML
-                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-                
-                {/* XLSX Download */}
-                <a
-                  href="/churches.xlsx"
-                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
-                >
-                  <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-4">
-                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Excel Format</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                      Multi-sheet workbook with churches, counties, and affiliations
-                    </p>
-                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
-                      Download XLSX
                       <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
