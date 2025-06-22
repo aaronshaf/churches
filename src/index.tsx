@@ -41,6 +41,14 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('/api/*', cors());
 
+// Serve static files
+app.get('/js/*', async (c) => {
+  const path = c.req.path;
+  // @ts-ignore
+  const asset = c.env.ASSETS.fetch(c.req.raw);
+  return asset;
+});
+
 app.get('/', async (c) => {
   const db = createDb(c.env);
   
@@ -136,7 +144,7 @@ app.get('/', async (c) => {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col sm:flex-row justify-between items-center">
               <p class="text-gray-500 text-sm">
-                Utah Churches. Connecting communities with faith.
+                Utah Churches
               </p>
               <a
                 href="/churches.json"
