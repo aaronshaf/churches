@@ -1,0 +1,13 @@
+export const tableClass = 'table';
+export const tableHeaderClass = 'table-header';
+export const tableRowClass = 'table-row';
+export const badgeClass = 'badge';
+export const adminBadgeClass = 'admin-badge';
+export const contributorBadgeClass = 'contributor-badge';
+export const actionButtonClass = 'action-button';
+export const editButtonClass = 'edit-button';
+export const deleteButtonClass = 'delete-button';
+export const addButtonClass = 'add-button';
+export const modalOverlayClass = 'modal-overlay';
+export const modalContentClass = 'modal-content';
+export const statusBadgeClass = 'status-badge';

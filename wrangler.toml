@@ -1,0 +1,6 @@
+name = "utahchurches"
+main = "src/index.tsx"
+compatibility_date = "2025-01-19"
+
+[vars]
+# Add your non-sensitive configuration here

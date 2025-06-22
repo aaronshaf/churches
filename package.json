@@ -1,0 +1,35 @@
+{
+  "name": "churches",
+  "version": "1.0.0",
+  "description": "App for discovering churches in a region",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed-admin.ts",
+    "db:reset-admin": "tsx scripts/reset-admin-password.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Aaron Shafovaloff",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250619.0",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^24.0.3",
+    "dotenv": "^16.5.0",
+    "drizzle-kit": "^0.31.1",
+    "tsx": "^4.20.3",
+    "wrangler": "^4.20.3"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.9",
+    "bcryptjs": "^3.0.2",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.8.1"
+  }
+}
