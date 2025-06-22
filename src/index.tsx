@@ -307,7 +307,7 @@ app.get('/networks', async (c) => {
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
             <ul class="divide-y divide-gray-200">
               {listedAffiliations.map((affiliation) => (
-                <li class="p-6 hover:bg-gray-50 transition-colors">
+                <li class="px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div class="flex items-center justify-between">
                     <div>
                       <h3 class="text-lg font-medium text-gray-900">
