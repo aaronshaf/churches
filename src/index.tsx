@@ -1208,71 +1208,75 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
           </div>
           
           {/* Table */}
-          <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <table class="min-w-full divide-y divide-gray-300">
+              <thead>
                 <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
                     Name
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Status
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Website
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Public Notes
                   </th>
-                  <th scope="col" class="relative px-6 py-3">
+                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                     <span class="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                {allAffiliations.map((affiliation) => (
-                  <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="text-sm font-medium text-gray-900">{affiliation.name}</div>
+              <tbody class="divide-y divide-gray-200">
+                {allAffiliations.map((affiliation, index) => (
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                      {affiliation.name}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        affiliation.status === 'Listed' ? 'bg-green-100 text-green-800' :
-                        affiliation.status === 'Unlisted' ? 'bg-gray-100 text-gray-800' :
-                        affiliation.status === 'Heretical' ? 'bg-red-100 text-red-800' :
-                        'bg-green-100 text-green-800' // Default to Listed if not set
+                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                      <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                        affiliation.status === 'Listed' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                        affiliation.status === 'Unlisted' ? 'bg-gray-50 text-gray-600 ring-gray-500/10' :
+                        affiliation.status === 'Heretical' ? 'bg-red-50 text-red-700 ring-red-600/10' :
+                        'bg-green-50 text-green-700 ring-green-600/20' // Default to Listed if not set
                       }`}>
                         {affiliation.status || 'Listed'}
                       </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td class="px-3 py-4 text-sm text-gray-900">
                       {affiliation.website ? (
                         <a 
                           href={affiliation.website} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          class="text-primary-600 hover:text-primary-900"
+                          class="text-primary-600 hover:text-primary-900 underline underline-offset-2"
                         >
-                          {affiliation.website}
+                          Visit website
                         </a>
                       ) : (
-                        <span class="text-gray-400">-</span>
+                        <span class="text-gray-400">—</span>
                       )}
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">
-                      {affiliation.publicNotes || <span class="text-gray-400">-</span>}
+                    <td class="px-3 py-4 text-sm text-gray-600 max-w-xs truncate">
+                      {affiliation.publicNotes || <span class="text-gray-400">—</span>}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/admin/affiliations/${affiliation.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
-                        Edit
+                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                      <a 
+                        href={`/admin/affiliations/${affiliation.id}/edit`} 
+                        class="text-primary-600 hover:text-primary-900 pr-2"
+                      >
+                        Edit<span class="sr-only">, {affiliation.name}</span>
                       </a>
+                      <span class="text-gray-300">|</span>
                       <form method="POST" action={`/admin/affiliations/${affiliation.id}/delete`} class="inline">
                         <button 
                           type="submit"
-                          class="text-red-600 hover:text-red-900"
+                          class="text-red-600 hover:text-red-900 pl-2"
                           onclick="return confirm('Are you sure you want to delete this affiliation?')"
                         >
-                          Delete
+                          Delete<span class="sr-only">, {affiliation.name}</span>
                         </button>
                       </form>
                     </td>
@@ -1280,6 +1284,26 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 ))}
               </tbody>
             </table>
+            {allAffiliations.length === 0 && (
+              <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <h3 class="mt-2 text-sm font-semibold text-gray-900">No affiliations</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by creating a new affiliation.</p>
+                <div class="mt-6">
+                  <a
+                    href="/admin/affiliations/new"
+                    class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  >
+                    <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    New Affiliation
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
