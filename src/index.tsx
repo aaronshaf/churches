@@ -62,7 +62,7 @@ app.get('/', async (c) => {
   
   return c.html(
     <Layout>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="mb-8">
@@ -132,12 +132,14 @@ app.get('/', async (c) => {
         </div>
         
         {/* Footer */}
-        <footer class="bg-white border-t border-gray-200 mt-16">
+        <footer class="bg-white border-t border-gray-200 mt-auto">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col sm:flex-row justify-between items-center">
-              <p class="text-gray-500 text-sm">
-                Utah Churches
-              </p>
+              <div class="text-gray-600 text-sm text-center sm:text-left">
+                <p class="italic">"Peace be to you. The friends greet you.</p>
+                <p class="italic">Greet the friends, each by name."</p>
+                <p class="mt-1 text-gray-500">– 3 John 1:15</p>
+              </div>
               <a
                 href="/churches.json"
                 class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"

@@ -47,9 +47,11 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
       </head>
-      <body class="bg-gray-50 text-gray-900 antialiased">
+      <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <Navbar user={user} />
-        {children}
+        <main class="flex-grow">
+          {children}
+        </main>
       </body>
     </html>
   );
