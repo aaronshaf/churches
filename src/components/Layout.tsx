@@ -1,11 +1,13 @@
 import { FC } from 'hono/jsx';
+import { Navbar } from './Navbar';
 
 type LayoutProps = {
   title?: string;
   children: any;
+  user?: any;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user }) => {
   return (
     <html lang="en">
       <head>
@@ -46,6 +48,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children }) =
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased">
+        <Navbar user={user} />
         {children}
       </body>
     </html>

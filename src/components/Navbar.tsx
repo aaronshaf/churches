@@ -1,0 +1,152 @@
+import { FC } from 'hono/jsx';
+
+type NavbarProps = {
+  user?: any;
+};
+
+export const Navbar: FC<NavbarProps> = ({ user }) => {
+  return (
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            {/* Logo/Brand */}
+            <div class="flex-shrink-0 flex items-center">
+              <a href="/" class="flex items-center">
+                <svg class="h-8 w-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span class="ml-2 text-xl font-semibold text-gray-900">Utah Churches</span>
+              </a>
+            </div>
+            
+            {/* Primary Navigation */}
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <a
+                href="/"
+                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+              >
+                Home
+              </a>
+              <a
+                href="/map"
+                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+              >
+                Map
+              </a>
+              <a
+                href="/churches.json"
+                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+              >
+                API
+              </a>
+            </div>
+          </div>
+          
+          {/* Right side navigation */}
+          <div class="hidden sm:ml-6 sm:flex sm:items-center">
+            {user ? (
+              <div class="flex items-center space-x-4">
+                <a
+                  href="/admin"
+                  class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
+                >
+                  Dashboard
+                </a>
+                <div class="relative">
+                  <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-3">{user.username}</span>
+                    <a
+                      href="/logout"
+                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                    >
+                      Logout
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <a
+                href="/login"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+              >
+                Admin Login
+              </a>
+            )}
+          </div>
+          
+          {/* Mobile menu button */}
+          <div class="-mr-2 flex items-center sm:hidden">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              aria-controls="mobile-menu"
+              aria-expanded="false"
+              onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
+            >
+              <span class="sr-only">Open main menu</span>
+              <svg class="block h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile menu */}
+      <div class="hidden" id="mobile-menu">
+        <div class="pt-2 pb-3 space-y-1">
+          <a
+            href="/"
+            class="bg-primary-50 border-primary-500 text-primary-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+          >
+            Home
+          </a>
+          <a
+            href="/map"
+            class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+          >
+            Map
+          </a>
+          <a
+            href="/churches.json"
+            class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+          >
+            API
+          </a>
+        </div>
+        <div class="pt-4 pb-3 border-t border-gray-200">
+          {user ? (
+            <div class="space-y-1">
+              <div class="px-4 pb-2">
+                <div class="text-base font-medium text-gray-800">{user.username}</div>
+                <div class="text-sm font-medium text-gray-500">{user.email}</div>
+              </div>
+              <a
+                href="/admin"
+                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              >
+                Dashboard
+              </a>
+              <a
+                href="/logout"
+                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              >
+                Logout
+              </a>
+            </div>
+          ) : (
+            <div class="px-4">
+              <a
+                href="/login"
+                class="block w-full text-center px-4 py-2 border border-transparent rounded-md text-base font-medium text-white bg-primary-600 hover:bg-primary-700"
+              >
+                Admin Login
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};

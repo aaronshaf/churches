@@ -62,18 +62,18 @@ app.get('/', async (c) => {
   
   return c.html(
     <Layout>
-      <div class="min-h-screen bg-white">
+      <div class="min-h-screen">
         {/* Hero Section */}
         <div class="relative bg-gradient-to-br from-primary-600 to-primary-800">
           <div class="absolute inset-0 bg-black opacity-10"></div>
           <div class="relative">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
               <div class="text-center">
                 <h1 class="text-4xl md:text-6xl font-extrabold text-white tracking-tight">
-                  Utah Churches
+                  Discover Churches in Utah
                 </h1>
                 <p class="mt-6 max-w-2xl mx-auto text-xl text-primary-100">
-                  Discover and connect with {totalChurches} places of worship across Utah's communities
+                  Connect with {totalChurches} places of worship across Utah's communities
                 </p>
                 <div class="mt-10 flex justify-center gap-4">
                   <a
@@ -99,15 +99,11 @@ app.get('/', async (c) => {
               </div>
             </div>
           </div>
-          <div class="absolute bottom-0 left-0 right-0">
-            <svg class="w-full h-12 text-gray-50" preserveAspectRatio="none" viewBox="0 0 1440 48" fill="currentColor">
-              <path d="M0,48 L1440,48 L1440,0 C1440,0 1140,48 720,48 C300,48 0,0 0,0 L0,48 Z"></path>
-            </svg>
-          </div>
         </div>
 
         {/* Counties Section */}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+        <div class="bg-gray-50">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-gray-900">Browse by County</h2>
             <p class="mt-4 text-lg text-gray-600">
@@ -144,25 +140,16 @@ app.get('/', async (c) => {
               </a>
             ))}
           </div>
+          </div>
         </div>
 
         {/* Footer */}
-        <footer class="bg-gray-900">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-              <div class="text-center md:text-left">
-                <p class="text-gray-400">
-                  © {new Date().getFullYear()} Utah Churches. Connecting communities with faith.
-                </p>
-              </div>
-              <div class="mt-4 md:mt-0 flex space-x-6">
-                <a href="/login" class="text-gray-400 hover:text-white transition-colors">
-                  Admin Login
-                </a>
-                <a href="/churches.json" class="text-gray-400 hover:text-white transition-colors">
-                  API
-                </a>
-              </div>
+        <footer class="bg-white border-t border-gray-200">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center">
+              <p class="text-gray-500 text-sm">
+                © {new Date().getFullYear()} Utah Churches. Connecting communities with faith.
+              </p>
             </div>
           </div>
         </footer>
@@ -203,11 +190,11 @@ app.get('/county/:path', async (c) => {
   
   return c.html(
     <Layout title={`${county.name} County Churches - Utah Churches`}>
-      <div class="min-h-screen bg-white">
+      <div class="min-h-screen">
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-16 md:py-20">
+            <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
                   <nav class="flex" aria-label="Breadcrumb">
@@ -321,27 +308,43 @@ app.get('/map', async (c) => {
   
   return c.html(
     <Layout title="Church Map - Utah Churches">
-      <header class="site-header">
-        <div class="container">
-          <h1 class="site-title">Church Map</h1>
-          <p class="site-tagline">Find churches near you</p>
-          <div style="margin-top: 1rem;">
-            <a href="/" style="color: #4a5568; text-decoration: none; font-size: 0.875rem;">← Back to counties</a>
+      <div class="min-h-screen">
+        {/* Header */}
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-8">
+              <h1 class="text-3xl font-bold text-white">
+                Church Map
+              </h1>
+              <p class="mt-2 text-primary-100">
+                Explore {churchesWithCoords.length} churches with location data
+              </p>
+            </div>
           </div>
         </div>
-      </header>
-      
-      <main class="container" style="padding-bottom: 2rem;">
-        <div id="map-container">
-          <div id="map" style="width: 100%; height: 600px; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e2e8f0;"></div>
-        </div>
         
-        <div style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 0.5rem;">
-          <p style="font-size: 0.875rem; color: #4a5568;">
-            Showing {churchesWithCoords.length} churches with location data
-          </p>
+        {/* Map Container */}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div id="map" class="w-full h-[600px]"></div>
+          </div>
+          
+          <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-blue-800">
+                  Click on markers to view church details. Blue marker indicates your current location.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
       
       <script dangerouslySetInnerHTML={{
         __html: `
