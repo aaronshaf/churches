@@ -2,9 +2,10 @@ import { FC } from 'hono/jsx';
 
 type NavbarProps = {
   user?: any;
+  currentPath?: string;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,19 +22,31 @@ export const Navbar: FC<NavbarProps> = ({ user }) => {
             <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
               <a
                 href="/"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+                class={`${
+                  currentPath === '/' 
+                    ? 'border-primary-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
               >
                 Home
               </a>
               <a
                 href="/map"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+                class={`${
+                  currentPath === '/map' 
+                    ? 'border-primary-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
               >
                 Map
               </a>
               <a
                 href="/networks"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors"
+                class={`${
+                  currentPath === '/networks' 
+                    ? 'border-primary-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
               >
                 Networks
               </a>
@@ -88,19 +101,31 @@ export const Navbar: FC<NavbarProps> = ({ user }) => {
         <div class="pt-2 pb-3 space-y-1">
           <a
             href="/"
-            class="bg-primary-50 border-primary-500 text-primary-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+            class={`${
+              currentPath === '/'
+                ? 'bg-primary-50 border-primary-500 text-primary-700'
+                : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+            } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
           >
             Home
           </a>
           <a
             href="/map"
-            class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+            class={`${
+              currentPath === '/map'
+                ? 'bg-primary-50 border-primary-500 text-primary-700'
+                : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+            } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
           >
             Map
           </a>
           <a
             href="/networks"
-            class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+            class={`${
+              currentPath === '/networks'
+                ? 'bg-primary-50 border-primary-500 text-primary-700'
+                : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+            } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
           >
             Networks
           </a>

@@ -5,9 +5,10 @@ type LayoutProps = {
   title?: string;
   children: any;
   user?: any;
+  currentPath?: string;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath }) => {
   return (
     <html lang="en">
       <head>
@@ -48,7 +49,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        <Navbar user={user} />
+        <Navbar user={user} currentPath={currentPath} />
         <main class="flex-grow">
           {children}
         </main>

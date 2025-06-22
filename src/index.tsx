@@ -63,7 +63,7 @@ app.get('/', async (c) => {
   const totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
   
   return c.html(
-    <Layout>
+    <Layout currentPath="/">
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -142,26 +142,15 @@ app.get('/', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
-                <a
-                  href="/churches.json"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  JSON
-                </a>
-                <a
-                  href="/churches.yaml"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  YAML
-                </a>
-              </div>
+              <a
+                href="/data"
+                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Data
+              </a>
             </div>
           </div>
         </footer>
@@ -307,7 +296,7 @@ app.get('/networks', async (c) => {
     .all();
   
   return c.html(
-    <Layout title="Church Networks - Utah Churches">
+    <Layout title="Church Networks - Utah Churches" currentPath="/networks">
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -372,26 +361,15 @@ app.get('/networks', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
-                <a
-                  href="/churches.json"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  JSON
-                </a>
-                <a
-                  href="/churches.yaml"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  YAML
-                </a>
-              </div>
+              <a
+                href="/data"
+                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Data
+              </a>
             </div>
           </div>
         </footer>
@@ -669,26 +647,15 @@ app.get('/churches/:path', async (c) => {
                 <p class="italic">Greet the friends, each by name."</p>
                 <p class="mt-1 text-gray-500">– 3 John 1:15</p>
               </div>
-              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
-                <a
-                  href="/churches.json"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  JSON
-                </a>
-                <a
-                  href="/churches.yaml"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  YAML
-                </a>
-              </div>
+              <a
+                href="/data"
+                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Data
+              </a>
             </div>
           </div>
         </footer>
@@ -720,7 +687,7 @@ app.get('/map', async (c) => {
     .all();
   
   return c.html(
-    <Layout title="Church Map - Utah Churches">
+    <Layout title="Church Map - Utah Churches" currentPath="/map">
       <div class="min-h-screen">
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -824,25 +791,43 @@ app.get('/map', async (c) => {
         }
         
         function loadLocation() {
-          const loadingDiv = document.createElement('div');
-          loadingDiv.id = 'loading-indicator';
-          loadingDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 1rem; text-align: center; z-index: 1000;';
-          loadingDiv.textContent = 'Loading your location...';
-          document.body.appendChild(loadingDiv);
+          let loadingDiv = null;
+          let loadingTimeout = null;
+          
+          // Only show loading indicator if location takes more than 500ms
+          loadingTimeout = setTimeout(() => {
+            loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; z-index: 10; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);';
+            loadingDiv.innerHTML = '<div style="display: flex; align-items: center; gap: 0.5rem;"><svg style="animation: spin 1s linear infinite; width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span>Finding your location...</span></div>';
+            
+            // Add CSS animation for spinner
+            const style = document.createElement('style');
+            style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+            document.head.appendChild(style);
+            
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+              mapElement.appendChild(loadingDiv);
+            }
+          }, 500);
           
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
               (position) => {
+                clearTimeout(loadingTimeout);
+                if (loadingDiv) loadingDiv.remove();
                 processPosition(position);
-                loadingDiv.remove();
               },
               () => {
+                clearTimeout(loadingTimeout);
+                if (loadingDiv) loadingDiv.remove();
                 console.debug("Error fetching location");
-                loadingDiv.remove();
               }
             );
           } else {
-            loadingDiv.remove();
+            clearTimeout(loadingTimeout);
+            if (loadingDiv) loadingDiv.remove();
           }
         }
         
@@ -1096,6 +1081,241 @@ app.get('/churches.yaml', async (c) => {
   return c.text(yamlData, 200, {
     'Content-Type': 'text/yaml',
   });
+});
+
+app.get('/churches.csv', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get all churches with their public fields and county names (excluding heretical)
+  const allChurches = await db.select({
+    id: churches.id,
+    name: churches.name,
+    path: churches.path,
+    status: churches.status,
+    lastUpdated: churches.lastUpdated,
+    gatheringAddress: churches.gatheringAddress,
+    latitude: churches.latitude,
+    longitude: churches.longitude,
+    county: counties.name,
+    serviceTimes: churches.serviceTimes,
+    website: churches.website,
+    statementOfFaith: churches.statementOfFaith,
+    phone: churches.phone,
+    email: churches.email,
+    facebook: churches.facebook,
+    instagram: churches.instagram,
+    youtube: churches.youtube,
+    spotify: churches.spotify,
+    notes: churches.publicNotes,
+  })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .orderBy(churches.name)
+    .all();
+  
+  // Get affiliations for each church
+  const churchIds = allChurches.map(c => c.id);
+  let churchAffiliationData = [];
+  
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db.select({
+      churchId: churchAffiliations.churchId,
+      affiliationName: affiliations.name,
+    })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
+  
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
+    if (!acc[item.churchId]) {
+      acc[item.churchId] = [];
+    }
+    acc[item.churchId].push(item.affiliationName);
+    return acc;
+  }, {} as Record<number, string[]>);
+  
+  // Helper function to escape CSV values
+  const escapeCSV = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    // Escape quotes and wrap in quotes if contains comma, quote, or newline
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  
+  // Create CSV header
+  const headers = [
+    'Name',
+    'Status',
+    'Address',
+    'County',
+    'Service Times',
+    'Website',
+    'Phone',
+    'Email',
+    'Affiliations',
+    'Notes',
+    'Last Updated'
+  ];
+  
+  // Create CSV rows
+  const rows = allChurches.map(church => {
+    const affiliations = affiliationsByChurch[church.id]?.join('; ') || '';
+    return [
+      church.name,
+      church.status || '',
+      church.gatheringAddress || '',
+      church.county || '',
+      church.serviceTimes || '',
+      church.website || '',
+      church.phone || '',
+      church.email || '',
+      affiliations,
+      church.notes || '',
+      church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : ''
+    ].map(escapeCSV);
+  });
+  
+  // Combine header and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  return c.text(csvContent, 200, {
+    'Content-Type': 'text/csv',
+    'Content-Disposition': 'attachment; filename="utah-churches.csv"'
+  });
+});
+
+app.get('/data', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get count of churches (excluding heretical)
+  const churchCount = await db.select({
+    count: sql<number>`COUNT(*)`.as('count')
+  })
+    .from(churches)
+    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .get();
+  
+  return c.html(
+    <Layout title="Download Data - Utah Churches" currentPath="/data">
+      <div class="bg-gray-50 min-h-screen">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-8 sm:p-10">
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">Download Church Data</h1>
+              <p class="text-lg text-gray-600 mb-8">
+                Export data for {churchCount?.count || 0} churches in various formats
+              </p>
+              
+              <div class="grid gap-6 md:grid-cols-3">
+                {/* CSV Download */}
+                <a
+                  href="/churches.csv"
+                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-4">
+                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">CSV Format</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                      Spreadsheet-compatible format with church details and affiliations
+                    </p>
+                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                      Download CSV
+                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+                
+                {/* JSON Download */}
+                <a
+                  href="/churches.json"
+                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-4">
+                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">JSON Format</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                      Developer-friendly format with complete church and affiliation data
+                    </p>
+                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                      Download JSON
+                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+                
+                {/* YAML Download */}
+                <a
+                  href="/churches.yaml"
+                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-4">
+                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">YAML Format</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                      Human-readable format ideal for configuration and documentation
+                    </p>
+                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                      Download YAML
+                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+              </div>
+              
+              <div class="mt-10 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">About the data</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                      <ul class="list-disc list-inside space-y-1">
+                        <li>Churches marked as "Heretical" are excluded from exports</li>
+                        <li>Data includes church details, locations, and affiliations</li>
+                        <li>Updated regularly as new churches are added</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
 });
 
 // Login routes
