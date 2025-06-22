@@ -1644,7 +1644,7 @@ app.get('/data', async (c) => {
                     </div>
                     <h3 class="text-base font-semibold text-gray-900 mb-1">YAML Format</h3>
                     <p class="text-xs text-gray-600 mb-3">
-                      Human-readable format for documentation
+                      Readable format for documentation and LLMs
                     </p>
                     <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
                       Download YAML
