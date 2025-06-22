@@ -2482,15 +2482,15 @@ app.post('/admin/affiliations/:id/delete', adminMiddleware, async (c) => {
 
 // Church management routes
 app.get('/admin/churches', adminMiddleware, async (c) => {
-  const db = createDb(c.env);
-  const user = c.get('user');
-  const allChurches = await db.select({
+  try {
+    const db = createDb(c.env);
+    const user = c.get('user');
+    const allChurches = await db.select({
     id: churches.id,
     name: churches.name,
     path: churches.path,
     status: churches.status,
     gatheringAddress: churches.gatheringAddress,
-    serviceTimes: churches.serviceTimes,
     countyName: counties.name,
   })
     .from(churches)
@@ -2617,6 +2617,18 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
       </div>
     </Layout>
   );
+  } catch (error) {
+    console.error('Error loading churches:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches" user={user}>
+        <ErrorPage 
+          error={error.message || 'Failed to load churches'} 
+          statusCode={500}
+        />
+      </Layout>,
+      500
+    );
+  }
 });
 
 // Create new church
