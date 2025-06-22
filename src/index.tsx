@@ -30,6 +30,7 @@ import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import bcrypt from 'bcryptjs';
 import yaml from 'js-yaml';
+import * as XLSX from 'xlsx';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -1330,6 +1331,128 @@ app.get('/churches.csv', async (c) => {
   });
 });
 
+app.get('/churches.xlsx', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get all churches (excluding heretical)
+  const allChurches = await db.select({
+    id: churches.id,
+    name: churches.name,
+    path: churches.path,
+    status: churches.status,
+    lastUpdated: churches.lastUpdated,
+    gatheringAddress: churches.gatheringAddress,
+    latitude: churches.latitude,
+    longitude: churches.longitude,
+    county: counties.name,
+    website: churches.website,
+    statementOfFaith: churches.statementOfFaith,
+    phone: churches.phone,
+    email: churches.email,
+    facebook: churches.facebook,
+    instagram: churches.instagram,
+    youtube: churches.youtube,
+    spotify: churches.spotify,
+    notes: churches.publicNotes,
+  })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .orderBy(churches.name)
+    .all();
+  
+  // Get all counties
+  const allCounties = await db.select({
+    name: counties.name,
+    path: counties.path,
+    description: counties.description,
+    population: counties.population,
+  })
+    .from(counties)
+    .orderBy(counties.name)
+    .all();
+  
+  // Get all listed affiliations
+  const allAffiliations = await db.select({
+    name: affiliations.name,
+    status: affiliations.status,
+    website: affiliations.website,
+    publicNotes: affiliations.publicNotes,
+  })
+    .from(affiliations)
+    .where(eq(affiliations.status, 'Listed'))
+    .orderBy(affiliations.name)
+    .all();
+  
+  // Get affiliations for each church
+  const churchIds = allChurches.map(c => c.id);
+  let churchAffiliationData = [];
+  
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db.select({
+      churchId: churchAffiliations.churchId,
+      affiliationId: churchAffiliations.affiliationId,
+      affiliationName: affiliations.name,
+      order: churchAffiliations.order,
+    })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
+  
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
+    if (!acc[item.churchId]) {
+      acc[item.churchId] = [];
+    }
+    acc[item.churchId].push(item.affiliationName);
+    return acc;
+  }, {} as Record<number, string[]>);
+  
+  // Prepare church data for Excel
+  const churchData = allChurches.map(church => ({
+    'Name': church.name,
+    'Status': church.status || '',
+    'Address': church.gatheringAddress || '',
+    'County': church.county || '',
+    'Website': church.website || '',
+    'Phone': church.phone || '',
+    'Email': church.email || '',
+    'Affiliations': affiliationsByChurch[church.id]?.join('; ') || '',
+    'Facebook': church.facebook || '',
+    'Instagram': church.instagram || '',
+    'YouTube': church.youtube || '',
+    'Spotify': church.spotify || '',
+    'Notes': church.notes || '',
+    'Last Updated': church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : ''
+  }));
+  
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  
+  // Add Churches sheet
+  const churchesWs = XLSX.utils.json_to_sheet(churchData);
+  XLSX.utils.book_append_sheet(wb, churchesWs, 'Churches');
+  
+  // Add Counties sheet
+  const countiesWs = XLSX.utils.json_to_sheet(allCounties);
+  XLSX.utils.book_append_sheet(wb, countiesWs, 'Counties');
+  
+  // Add Affiliations sheet
+  const affiliationsWs = XLSX.utils.json_to_sheet(allAffiliations);
+  XLSX.utils.book_append_sheet(wb, affiliationsWs, 'Affiliations');
+  
+  // Generate buffer
+  const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+  
+  return c.body(xlsxBuffer, 200, {
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': 'attachment; filename="utah-churches.xlsx"'
+  });
+});
+
 app.get('/data', async (c) => {
   const db = createDb(c.env);
   
@@ -1352,7 +1475,7 @@ app.get('/data', async (c) => {
                 Export data for {churchCount?.count || 0} churches in various formats
               </p>
               
-              <div class="grid gap-6 md:grid-cols-3">
+              <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {/* CSV Download */}
                 <a
                   href="/churches.csv"
@@ -1418,6 +1541,30 @@ app.get('/data', async (c) => {
                     </p>
                     <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
                       Download YAML
+                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+                
+                {/* XLSX Download */}
+                <a
+                  href="/churches.xlsx"
+                  class="relative group bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                >
+                  <div class="flex flex-col items-center text-center">
+                    <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-4">
+                      <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Excel Format</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                      Multi-sheet workbook with churches, counties, and affiliations
+                    </p>
+                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                      Download XLSX
                       <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
