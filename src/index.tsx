@@ -136,7 +136,7 @@ app.get('/', async (c) => {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col sm:flex-row justify-between items-center">
               <p class="text-gray-500 text-sm">
-                © {new Date().getFullYear()} Utah Churches. Connecting communities with faith.
+                Utah Churches. Connecting communities with faith.
               </p>
               <a
                 href="/churches.json"
@@ -667,30 +667,244 @@ app.get('/logout', async (c) => {
 app.get('/admin', adminMiddleware, async (c) => {
   const user = c.get('user');
   const db = createDb(c.env);
+  
+  // Get statistics
   const allChurches = await db.select().from(churches).all();
-  const churchCount = allChurches.length;
+  const allCounties = await db.select().from(counties).all();
+  const allAffiliations = await db.select().from(affiliations).all();
+  const allUsers = await db.select().from(users).all();
+  
+  const listedChurches = allChurches.filter(c => c.status === 'Listed').length;
+  const needsDataChurches = allChurches.filter(c => c.status === 'Needs data').length;
   
   return c.html(
-    <Layout title="Admin - Utah Churches">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Admin Dashboard</h1>
-        <div>
-          <span style="margin-right: 1rem;">Welcome, {user.username}</span>
-          <a href="/logout" style="color: #dc2626;">Logout</a>
+    <Layout title="Admin Dashboard - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Admin Dashboard
+              </h1>
+            </div>
+          </div>
+          
+          {/* Stats Grid */}
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Total Churches</dt>
+                      <dd class="text-lg font-semibold text-gray-900">{allChurches.length}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                  <a href="/admin/churches" class="font-medium text-primary-600 hover:text-primary-500">
+                    View all
+                  </a>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Listed Churches</dt>
+                      <dd class="text-lg font-semibold text-gray-900">{listedChurches}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm text-gray-500">
+                  {Math.round((listedChurches / allChurches.length) * 100)}% of total
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Needs Data</dt>
+                      <dd class="text-lg font-semibold text-gray-900">{needsDataChurches}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm text-gray-500">
+                  Churches requiring updates
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                    </svg>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Counties</dt>
+                      <dd class="text-lg font-semibold text-gray-900">{allCounties.length}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                  <a href="/admin/counties" class="font-medium text-primary-600 hover:text-primary-500">
+                    Manage
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Actions */}
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+              <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Actions</h2>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <a
+                  href="/admin/churches"
+                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Churches
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Add, edit, or remove church listings
+                    </p>
+                  </div>
+                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
+                
+                <a
+                  href="/admin/affiliations"
+                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Affiliations
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Manage denominations and networks
+                    </p>
+                  </div>
+                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
+                
+                <a
+                  href="/admin/counties"
+                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Counties
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Manage Utah county information
+                    </p>
+                  </div>
+                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
+                
+                <a
+                  href="/admin/users"
+                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Users
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Manage admin access and permissions
+                    </p>
+                  </div>
+                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h2 style="margin-bottom: 1rem;">Statistics</h2>
-        <p>Total churches: {churchCount}</p>
-        
-        <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Quick Actions</h2>
-        <ul>
-          <li><a href="/admin/churches">Manage Churches</a></li>
-          <li><a href="/admin/affiliations">Manage Affiliations</a></li>
-          <li><a href="/admin/counties">Manage Counties</a></li>
-          <li><a href="/admin/users">Manage Users</a></li>
-        </ul>
       </div>
     </Layout>
   );
@@ -699,63 +913,111 @@ app.get('/admin', adminMiddleware, async (c) => {
 // Admin user management routes
 app.get('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const allUsers = await db.select().from(users).all();
   
   return c.html(
-    <Layout title="Manage Users - Utah Churches">
-      <div style="margin-bottom: 2rem;">
-        <h1 style="margin-bottom: 1rem;">Manage Users</h1>
-        <a href="/admin" style="color: #3b82f6; margin-right: 1rem;">← Back to Admin</a>
+    <Layout title="Manage Users - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                  <li>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
+                  </li>
+                  <li>
+                    <span class="mx-2 text-gray-400">/</span>
+                  </li>
+                  <li>
+                    <span class="text-gray-900">Users</span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Manage Users
+              </h1>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+              <a
+                href="/admin/users/new"
+                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New User
+              </a>
+            </div>
+          </div>
+          
+          {/* Table */}
+          <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {allUsers.map((user) => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">{user.username}</div>
+                        <div class="text-sm text-gray-500">{user.email}</div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.userType === 'admin' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.userType}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/admin/users/${user.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                        Edit
+                      </a>
+                      {user.username !== 'admin' && (
+                        <form method="POST" action={`/admin/users/${user.id}/delete`} class="inline">
+                          <button 
+                            type="submit"
+                            class="text-red-600 hover:text-red-900"
+                            onclick="return confirm('Are you sure you want to delete this user?')"
+                          >
+                            Delete
+                          </button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      
-      <button class={addButtonClass} onclick="window.location.href='/admin/users/new'">
-        Add New User
-      </button>
-      
-      <table class={tableClass}>
-        <thead class={tableHeaderClass}>
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>User Type</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allUsers.map((user) => (
-            <tr class={tableRowClass}>
-              <td>{user.username}</td>
-              <td>{user.email}</td>
-              <td>
-                <span class={user.userType === 'admin' ? adminBadgeClass : contributorBadgeClass}>
-                  {user.userType}
-                </span>
-              </td>
-              <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-              <td>
-                <button 
-                  class={editButtonClass}
-                  onclick={`window.location.href='/admin/users/${user.id}/edit'`}
-                >
-                  Edit
-                </button>
-                {user.username !== 'admin' && (
-                  <form method="POST" action={`/admin/users/${user.id}/delete`} style="display: inline;">
-                    <button 
-                      type="submit"
-                      class={deleteButtonClass}
-                      onclick="return confirm('Are you sure you want to delete this user?')"
-                    >
-                      Delete
-                    </button>
-                  </form>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </Layout>
   );
 });
@@ -900,72 +1162,123 @@ app.post('/admin/users/:id/delete', requireAdminMiddleware, async (c) => {
 // Affiliation management routes
 app.get('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const allAffiliations = await db.select()
     .from(affiliations)
     .orderBy(affiliations.name)
     .all();
   
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches">
-      <div style="margin-bottom: 2rem;">
-        <h1 style="margin-bottom: 1rem;">Manage Affiliations</h1>
-        <a href="/admin" style="color: #3b82f6; margin-right: 1rem;">← Back to Admin</a>
+    <Layout title="Manage Affiliations - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                  <li>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
+                  </li>
+                  <li>
+                    <span class="mx-2 text-gray-400">/</span>
+                  </li>
+                  <li>
+                    <span class="text-gray-900">Affiliations</span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Manage Affiliations
+              </h1>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+              <a
+                href="/admin/affiliations/new"
+                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Affiliation
+              </a>
+            </div>
+          </div>
+          
+          {/* Table */}
+          <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Website
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Public Notes
+                  </th>
+                  <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {allAffiliations.map((affiliation) => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">{affiliation.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {affiliation.website ? (
+                        <a 
+                          href={affiliation.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          class="text-primary-600 hover:text-primary-900"
+                        >
+                          {affiliation.website}
+                        </a>
+                      ) : (
+                        <span class="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                      {affiliation.publicNotes || <span class="text-gray-400">-</span>}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/admin/affiliations/${affiliation.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                        Edit
+                      </a>
+                      <form method="POST" action={`/admin/affiliations/${affiliation.id}/delete`} class="inline">
+                        <button 
+                          type="submit"
+                          class="text-red-600 hover:text-red-900"
+                          onclick="return confirm('Are you sure you want to delete this affiliation?')"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      
-      <button class={addButtonClass} onclick="window.location.href='/admin/affiliations/new'">
-        Add New Affiliation
-      </button>
-      
-      <table class={tableClass}>
-        <thead class={tableHeaderClass}>
-          <tr>
-            <th>Name</th>
-            <th>Website</th>
-            <th>Public Notes</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allAffiliations.map((affiliation) => (
-            <tr class={tableRowClass}>
-              <td>{affiliation.name}</td>
-              <td>
-                {affiliation.website ? (
-                  <a href={affiliation.website} target="_blank" rel="noopener noreferrer" style="color: #3b82f6;">
-                    {affiliation.website}
-                  </a>
-                ) : '-'}
-              </td>
-              <td>{affiliation.publicNotes || '-'}</td>
-              <td>
-                <button 
-                  class={editButtonClass}
-                  onclick={`window.location.href='/admin/affiliations/${affiliation.id}/edit'`}
-                >
-                  Edit
-                </button>
-                <form method="POST" action={`/admin/affiliations/${affiliation.id}/delete`} style="display: inline;">
-                  <button 
-                    type="submit"
-                    class={deleteButtonClass}
-                    onclick="return confirm('Are you sure you want to delete this affiliation?')"
-                  >
-                    Delete
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </Layout>
   );
 });
 
 // Create new affiliation
 app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
+  const user = c.get('user');
   return c.html(
-    <Layout title="Create Affiliation - Utah Churches">
+    <Layout title="Create Affiliation - Utah Churches" user={user}>
       <div style="max-width: 600px; margin: 0 auto;">
         <AffiliationForm action="/admin/affiliations" isNew={true} />
       </div>
@@ -976,6 +1289,7 @@ app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
 app.post('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
+  const user = c.get('user');
   
   const name = body.name as string;
   const website = body.website as string;
@@ -986,7 +1300,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
   if (existing) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches">
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
         <div style="max-width: 600px; margin: 0 auto;">
           <AffiliationForm 
             action="/admin/affiliations" 
@@ -1013,6 +1327,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
 app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
+  const user = c.get('user');
   const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, Number(id))).get();
   
   if (!affiliation) {
@@ -1020,7 +1335,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   }
   
   return c.html(
-    <Layout title="Edit Affiliation - Utah Churches">
+    <Layout title="Edit Affiliation - Utah Churches" user={user}>
       <div style="max-width: 600px; margin: 0 auto;">
         <AffiliationForm action={`/admin/affiliations/${id}`} affiliation={affiliation} />
       </div>
@@ -1064,6 +1379,7 @@ app.post('/admin/affiliations/:id/delete', adminMiddleware, async (c) => {
 // Church management routes
 app.get('/admin/churches', adminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const allChurches = await db.select({
     id: churches.id,
     name: churches.name,
@@ -1079,7 +1395,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     .all();
   
   return c.html(
-    <Layout title="Manage Churches - Utah Churches">
+    <Layout title="Manage Churches - Utah Churches" user={user}>
       <div style="margin-bottom: 2rem;">
         <h1 style="margin-bottom: 1rem;">Manage Churches</h1>
         <a href="/admin" style="color: #3b82f6; margin-right: 1rem;">← Back to Admin</a>
@@ -1346,68 +1662,118 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
 // County management routes
 app.get('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const user = c.get('user');
   const allCounties = await db.select()
     .from(counties)
     .orderBy(counties.name)
     .all();
   
   return c.html(
-    <Layout title="Manage Counties - Utah Churches">
-      <div style="margin-bottom: 2rem;">
-        <h1 style="margin-bottom: 1rem;">Manage Counties</h1>
-        <a href="/admin" style="color: #3b82f6; margin-right: 1rem;">← Back to Admin</a>
+    <Layout title="Manage Counties - Utah Churches" user={user}>
+      <div class="min-h-screen bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                  <li>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
+                  </li>
+                  <li>
+                    <span class="mx-2 text-gray-400">/</span>
+                  </li>
+                  <li>
+                    <span class="text-gray-900">Counties</span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Manage Counties
+              </h1>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+              <a
+                href="/admin/counties/new"
+                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New County
+              </a>
+            </div>
+          </div>
+          
+          {/* Table */}
+          <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Path
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Population
+                  </th>
+                  <th scope="col" class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {allCounties.map((county) => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">{county.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {county.path || <span class="text-gray-400">-</span>}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                      {county.description || <span class="text-gray-400">-</span>}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {county.population ? county.population.toLocaleString() : <span class="text-gray-400">-</span>}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href={`/admin/counties/${county.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                        Edit
+                      </a>
+                      <form method="POST" action={`/admin/counties/${county.id}/delete`} class="inline">
+                        <button 
+                          type="submit"
+                          class="text-red-600 hover:text-red-900"
+                          onclick="return confirm('Are you sure you want to delete this county?')"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      
-      <button class={addButtonClass} onclick="window.location.href='/admin/counties/new'">
-        Add New County
-      </button>
-      
-      <table class={tableClass}>
-        <thead class={tableHeaderClass}>
-          <tr>
-            <th>Name</th>
-            <th>Path</th>
-            <th>Description</th>
-            <th>Population</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {allCounties.map((county) => (
-            <tr class={tableRowClass}>
-              <td>{county.name}</td>
-              <td style="font-size: 0.875rem; color: #6b7280;">{county.path || '-'}</td>
-              <td>{county.description || '-'}</td>
-              <td>{county.population ? county.population.toLocaleString() : '-'}</td>
-              <td>
-                <button 
-                  class={editButtonClass}
-                  onclick={`window.location.href='/admin/counties/${county.id}/edit'`}
-                >
-                  Edit
-                </button>
-                <form method="POST" action={`/admin/counties/${county.id}/delete`} style="display: inline;">
-                  <button 
-                    type="submit"
-                    class={deleteButtonClass}
-                    onclick="return confirm('Are you sure you want to delete this county?')"
-                  >
-                    Delete
-                  </button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </Layout>
   );
 });
 
 // Create new county
 app.get('/admin/counties/new', adminMiddleware, async (c) => {
+  const user = c.get('user');
   return c.html(
-    <Layout title="Create County - Utah Churches">
+    <Layout title="Create County - Utah Churches" user={user}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action="/admin/counties" isNew={true} />
       </div>
@@ -1418,6 +1784,7 @@ app.get('/admin/counties/new', adminMiddleware, async (c) => {
 app.post('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
+  const user = c.get('user');
   
   const name = body.name as string;
   const path = body.path as string;
@@ -1428,7 +1795,7 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
   const existing = await db.select().from(counties).where(eq(counties.name, name)).get();
   if (existing) {
     return c.html(
-      <Layout title="Create County - Utah Churches">
+      <Layout title="Create County - Utah Churches" user={user}>
         <div style="max-width: 600px; margin: 0 auto;">
           <CountyForm 
             action="/admin/counties" 
@@ -1455,6 +1822,7 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
 app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
+  const user = c.get('user');
   const county = await db.select().from(counties).where(eq(counties.id, Number(id))).get();
   
   if (!county) {
@@ -1462,7 +1830,7 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   }
   
   return c.html(
-    <Layout title="Edit County - Utah Churches">
+    <Layout title="Edit County - Utah Churches" user={user}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action={`/admin/counties/${id}`} county={county} />
       </div>
