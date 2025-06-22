@@ -4,3 +4,7 @@ compatibility_date = "2025-01-19"
 
 [vars]
 # Add your non-sensitive configuration here
+# For production, set the following secrets using wrangler:
+# wrangler secret put TURSO_DATABASE_URL
+# wrangler secret put TURSO_AUTH_TOKEN
+# wrangler secret put GOOGLE_MAPS_API_KEY
