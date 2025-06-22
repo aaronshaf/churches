@@ -97,7 +97,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
         </div>
         
         {/* Status Badge */}
-        {church.status && (
+        {church.status && church.status !== 'Listed' && (
           <div class="mt-4">
             <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle}`}>
               {church.status}
