@@ -488,6 +488,8 @@ app.get('/churches/:path', async (c) => {
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
     // Remove protocol
     let displayUrl = url.replace(/^https?:\/\//i, '');
+    // Remove www.
+    displayUrl = displayUrl.replace(/^www\./i, '');
     // Remove trailing slash
     displayUrl = displayUrl.replace(/\/$/, '');
     // Truncate if too long
