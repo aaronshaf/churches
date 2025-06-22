@@ -181,21 +181,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                 <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Service Information</h3>
               </div>
 
-              <div class="sm:col-span-6">
-                <label for="serviceTimes" class="block text-sm font-medium leading-6 text-gray-900">
-                  Service Times
-                </label>
-                <div class="mt-2">
-                  <input
-                    type="text"
-                    name="serviceTimes"
-                    id="serviceTimes"
-                    value={church?.serviceTimes || ''}
-                    placeholder="e.g., Sunday 9:00 AM & 11:00 AM"
-                    class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
-              </div>
 
               {/* Gatherings */}
               <div class="sm:col-span-6">

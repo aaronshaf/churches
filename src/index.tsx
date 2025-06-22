@@ -12,6 +12,7 @@ import { UserForm } from './components/UserForm';
 import { AffiliationForm } from './components/AffiliationForm';
 import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
+import { NotFound } from './components/NotFound';
 import { churchGridClass } from './styles/components';
 import { 
   tableClass, 
@@ -171,7 +172,12 @@ app.get('/counties/:path', async (c) => {
     .get();
   
   if (!county) {
-    return c.text('County not found', 404);
+    return c.html(
+      <Layout title="Page Not Found - Utah Churches">
+        <NotFound />
+      </Layout>,
+      404
+    );
   }
   
   // Get all churches in this county
@@ -181,7 +187,6 @@ app.get('/counties/:path', async (c) => {
     path: churches.path,
     status: churches.status,
     gatheringAddress: churches.gatheringAddress,
-    serviceTimes: churches.serviceTimes,
     website: churches.website,
     publicNotes: churches.publicNotes,
   })
@@ -284,10 +289,19 @@ app.get('/api/churches/:id', async (c) => {
 app.get('/networks', async (c) => {
   const db = createDb(c.env);
   
-  // Get all listed affiliations
-  const listedAffiliations = await db.select()
+  // Get all listed affiliations with church count
+  const listedAffiliations = await db.select({
+    id: affiliations.id,
+    name: affiliations.name,
+    website: affiliations.website,
+    publicNotes: affiliations.publicNotes,
+    churchCount: sql<number>`COUNT(DISTINCT ${churchAffiliations.churchId})`.as('churchCount')
+  })
     .from(affiliations)
+    .leftJoin(churchAffiliations, eq(affiliations.id, churchAffiliations.affiliationId))
     .where(eq(affiliations.status, 'Listed'))
+    .groupBy(affiliations.id)
+    .having(sql`COUNT(DISTINCT ${churchAffiliations.churchId}) > 0`)
     .orderBy(affiliations.name)
     .all();
   
@@ -316,10 +330,10 @@ app.get('/networks', async (c) => {
                             rel="noopener noreferrer"
                             class="text-primary-600 hover:text-primary-900 hover:underline"
                           >
-                            {affiliation.name}
+                            {affiliation.name} ({affiliation.churchCount})
                           </a>
                         ) : (
-                          <span>{affiliation.name}</span>
+                          <span>{affiliation.name} ({affiliation.churchCount})</span>
                         )}
                       </h3>
                       {affiliation.publicNotes && (
@@ -393,7 +407,6 @@ app.get('/churches/:path', async (c) => {
     countyId: churches.countyId,
     countyName: counties.name,
     countyPath: counties.path,
-    serviceTimes: churches.serviceTimes,
     website: churches.website,
     statementOfFaith: churches.statementOfFaith,
     phone: churches.phone,
@@ -500,13 +513,6 @@ app.get('/churches/:path', async (c) => {
                           </svg>
                         </a>
                       )}
-                    </div>
-                  )}
-                  
-                  {church.serviceTimes && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Service Times</h3>
-                      <p class="mt-1 text-sm text-gray-900">{church.serviceTimes}</p>
                     </div>
                   )}
                   
@@ -686,8 +692,8 @@ app.get('/churches/:path', async (c) => {
 app.get('/map', async (c) => {
   const db = createDb(c.env);
   
-  // Get all churches with coordinates
-  const churchesWithCoords = await db.select({
+  // Get all churches with coordinates (excluding heretical)
+  const allChurchesWithCoords = await db.select({
     id: churches.id,
     name: churches.name,
     path: churches.path,
@@ -696,14 +702,17 @@ app.get('/map', async (c) => {
     gatheringAddress: churches.gatheringAddress,
     countyName: counties.name,
     website: churches.website,
-    serviceTimes: churches.serviceTimes,
     status: churches.status,
     publicNotes: churches.publicNotes,
   })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL`)
+    .where(sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`)
     .all();
+  
+  // Separate listed and unlisted churches
+  const listedChurches = allChurchesWithCoords.filter(c => c.status === 'Listed');
+  const unlistedChurches = allChurchesWithCoords.filter(c => c.status === 'Unlisted');
   
   return c.html(
     <Layout title="Church Map - Utah Churches" currentPath="/map">
@@ -711,20 +720,37 @@ app.get('/map', async (c) => {
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div id="map" class="w-full h-[calc(100vh-120px)]"></div>
+            <div id="map" class="w-full h-[calc(100vh-180px)]"></div>
           </div>
           
-          <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-blue-800">
-                  {churchesWithCoords.length} churches with location data. Click markers for details. Blue marker = your location.
-                </p>
+          <div class="mt-4 space-y-3">
+            {/* Checkbox for unlisted churches */}
+            <div class="bg-white border border-gray-200 rounded-lg p-3">
+              <label class="flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  id="showUnlisted"
+                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <span class="ml-2 text-sm text-gray-700">
+                  Show unlisted churches ({unlistedChurches.length} unlisted)
+                </span>
+              </label>
+            </div>
+            
+            {/* Info box */}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-blue-800">
+                    <span id="church-count">{listedChurches.length}</span> churches shown. Click markers for details. Blue marker = your location.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -733,10 +759,13 @@ app.get('/map', async (c) => {
       
       <script dangerouslySetInnerHTML={{
         __html: `
-        const churches = ${JSON.stringify(churchesWithCoords)};
+        const listedChurches = ${JSON.stringify(listedChurches)};
+        const unlistedChurches = ${JSON.stringify(unlistedChurches)};
+        let listedMarkers = [];
+        let unlistedMarkers = [];
         let map;
-        let markers = [];
         let currentInfoWindow = null;
+        let userMarker = null;
         
         async function initMap() {
           const { Map } = await google.maps.importLibrary("maps");
@@ -753,15 +782,11 @@ app.get('/map', async (c) => {
             streetViewControl: false,
           });
           
-          // Add markers for each church
-          churches.forEach((church) => {
+          // Add markers for listed churches
+          listedChurches.forEach((church) => {
             if (!church.latitude || !church.longitude) return;
             
-            const pin = new PinElement({
-              background: church.status === 'Unlisted' ? '#F3A298' : undefined,
-              borderColor: church.status === 'Unlisted' ? '#C5221F' : undefined,
-              glyphColor: church.status === 'Unlisted' ? '#B31512' : undefined,
-            });
+            const pin = new PinElement();
             
             const marker = new AdvancedMarkerElement({
               position: { lat: church.latitude, lng: church.longitude },
@@ -770,7 +795,7 @@ app.get('/map', async (c) => {
               content: pin.element,
             });
             
-            markers.push(marker);
+            listedMarkers.push(marker);
             
             // Create info window content
             const infoContent = createInfoContent(church);
@@ -787,6 +812,56 @@ app.get('/map', async (c) => {
             });
           });
           
+          // Create markers for unlisted churches (but don't show them yet)
+          unlistedChurches.forEach((church) => {
+            if (!church.latitude || !church.longitude) return;
+            
+            const pin = new PinElement({
+              background: '#F3A298',
+              borderColor: '#C5221F',
+              glyphColor: '#B31512',
+            });
+            
+            const marker = new AdvancedMarkerElement({
+              position: { lat: church.latitude, lng: church.longitude },
+              map: null, // Not shown initially
+              title: church.name,
+              content: pin.element,
+            });
+            
+            unlistedMarkers.push(marker);
+            
+            // Create info window content
+            const infoContent = createInfoContent(church);
+            const infoWindow = new google.maps.InfoWindow({
+              content: infoContent,
+            });
+            
+            marker.addListener('click', () => {
+              if (currentInfoWindow) {
+                currentInfoWindow.close();
+              }
+              infoWindow.open(map, marker);
+              currentInfoWindow = infoWindow;
+            });
+          });
+          
+          // Set up checkbox listener
+          document.getElementById('showUnlisted').addEventListener('change', function(e) {
+            const show = e.target.checked;
+            const countSpan = document.getElementById('church-count');
+            
+            if (show) {
+              // Show unlisted markers
+              unlistedMarkers.forEach(marker => marker.map = map);
+              countSpan.textContent = listedChurches.length + unlistedChurches.length;
+            } else {
+              // Hide unlisted markers
+              unlistedMarkers.forEach(marker => marker.map = null);
+              countSpan.textContent = listedChurches.length;
+            }
+          });
+          
           // Try to get user location
           loadLocation();
         }
@@ -800,7 +875,6 @@ app.get('/map', async (c) => {
             <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem; font-weight: 600;">\${church.name}</h3>
             \${church.gatheringAddress ? \`<div style="margin-bottom: 0.5rem;">📍 \${church.gatheringAddress}</div>\` : ''}
             \${church.countyName ? \`<div style="margin-bottom: 0.5rem; color: #718096;">📌 \${church.countyName} County</div>\` : ''}
-            \${church.serviceTimes ? \`<div style="margin-bottom: 0.5rem;">🕐 Service times: \${church.serviceTimes}</div>\` : ''}
             \${church.website ? \`<div style="margin-bottom: 0.5rem;"><a href="\${church.website}" target="_blank" style="color: #4299e1;">Website</a></div>\` : ''}
             \${church.publicNotes ? \`<div style="margin-top: 0.5rem; font-style: italic; color: #718096;">\${church.publicNotes}</div>\` : ''}
             \${church.path ? \`<div style="margin-top: 0.5rem;"><a href="/churches/\${church.path}" style="color: #4299e1;">View Details →</a></div>\` : ''}
@@ -886,8 +960,12 @@ app.get('/map', async (c) => {
           const bounds = new google.maps.LatLngBounds();
           bounds.extend(userLocation);
           
-          // Calculate distances to all markers
-          const distances = markers.map((marker) => ({
+          // Get all currently visible markers
+          const showUnlisted = document.getElementById('showUnlisted').checked;
+          const visibleMarkers = showUnlisted ? [...listedMarkers, ...unlistedMarkers] : listedMarkers;
+          
+          // Calculate distances to all visible markers
+          const distances = visibleMarkers.map((marker) => ({
             marker,
             distance: google.maps.geometry.spherical.computeDistanceBetween(
               userLocation,
@@ -945,7 +1023,6 @@ app.get('/churches.json', async (c) => {
     latitude: churches.latitude,
     longitude: churches.longitude,
     county: counties.name,
-    serviceTimes: churches.serviceTimes,
     website: churches.website,
     statementOfFaith: churches.statementOfFaith,
     phone: churches.phone,
@@ -1022,7 +1099,6 @@ app.get('/churches.yaml', async (c) => {
     latitude: churches.latitude,
     longitude: churches.longitude,
     county: counties.name,
-    serviceTimes: churches.serviceTimes,
     website: churches.website,
     statementOfFaith: churches.statementOfFaith,
     phone: churches.phone,
@@ -1116,7 +1192,6 @@ app.get('/churches.csv', async (c) => {
     latitude: churches.latitude,
     longitude: churches.longitude,
     county: counties.name,
-    serviceTimes: churches.serviceTimes,
     website: churches.website,
     statementOfFaith: churches.statementOfFaith,
     phone: churches.phone,
@@ -1175,7 +1250,6 @@ app.get('/churches.csv', async (c) => {
     'Status',
     'Address',
     'County',
-    'Service Times',
     'Website',
     'Phone',
     'Email',
@@ -1192,7 +1266,6 @@ app.get('/churches.csv', async (c) => {
       church.status || '',
       church.gatheringAddress || '',
       church.county || '',
-      church.serviceTimes || '',
       church.website || '',
       church.phone || '',
       church.email || '',
@@ -2265,9 +2338,6 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                         {church.path && (
                           <div class="text-sm text-gray-500">/{church.path}</div>
                         )}
-                        {church.serviceTimes && (
-                          <div class="text-sm text-gray-500 mt-1">🕐 {church.serviceTimes}</div>
-                        )}
                       </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -2387,7 +2457,6 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
         latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
         longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
         countyId: body.countyId ? Number(body.countyId) : undefined,
-        serviceTimes: body.serviceTimes as string || undefined,
         website: body.website as string || undefined,
         statementOfFaith: body.statementOfFaith as string || undefined,
         phone: body.phone as string || undefined,
@@ -2540,7 +2609,6 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
         longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
         countyId: body.countyId ? Number(body.countyId) : undefined,
-        serviceTimes: body.serviceTimes as string || undefined,
         website: body.website as string || undefined,
         statementOfFaith: body.statementOfFaith as string || undefined,
         phone: body.phone as string || undefined,
@@ -2831,6 +2899,15 @@ app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
   await db.delete(counties).where(eq(counties.id, Number(id)));
   
   return c.redirect('/admin/counties');
+});
+
+// 404 catch-all route
+app.get('*', (c) => {
+  return c.html(
+    <Layout title="Page Not Found - Utah Churches">
+      <NotFound />
+    </Layout>
+  );
 });
 
 export default app;

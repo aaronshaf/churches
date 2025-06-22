@@ -12,7 +12,6 @@ export const churches = sqliteTable('churches', {
   latitude: real('latitude'),
   longitude: real('longitude'),
   countyId: integer('county_id').references(() => counties.id),
-  serviceTimes: text('service_times'),
   website: text('website'),
   statementOfFaith: text('statement_of_faith'),
   phone: text('phone'),

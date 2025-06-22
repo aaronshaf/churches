@@ -9,24 +9,24 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            {/* Logo/Brand */}
-            <div class="flex-shrink-0 flex items-center">
-              <a href="/" class="flex items-center">
-                <img src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w" alt="Utah Churches" class="h-10 w-auto" />
-              </a>
-            </div>
-            
-            {/* Primary Navigation */}
-            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+        <div class="flex justify-between h-16 sm:h-20">
+          {/* Logo/Brand - Left side */}
+          <div class="flex-shrink-0 flex items-center">
+            <a href="/" class="flex items-center">
+              <img src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w" alt="Utah Churches" class="h-10 sm:h-12 w-auto" />
+            </a>
+          </div>
+          
+          {/* Primary Navigation - Right side */}
+          <div class="flex items-center">
+            <div class="hidden sm:flex sm:space-x-8">
               <a
                 href="/"
                 class={`${
                   currentPath === '/' 
                     ? 'border-primary-500 text-gray-900' 
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
                 Home
               </a>
@@ -36,7 +36,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                   currentPath === '/map' 
                     ? 'border-primary-500 text-gray-900' 
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
                 Map
               </a>
@@ -46,25 +46,23 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                   currentPath === '/networks' 
                     ? 'border-primary-500 text-gray-900' 
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
                 Networks
               </a>
-            </div>
-          </div>
-          
-          {/* Right side navigation */}
-          <div class="hidden sm:ml-6 sm:flex sm:items-center">
-            {user ? (
-              <div class="flex items-center space-x-4">
-                <a
-                  href="/admin"
-                  class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
-                >
-                  Dashboard
-                </a>
-                <div class="relative">
-                  <div class="flex items-center">
+              {user && (
+                <>
+                  <a
+                    href="/admin"
+                    class={`${
+                      currentPath === '/admin' 
+                        ? 'border-primary-500 text-gray-900' 
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                  >
+                    Dashboard
+                  </a>
+                  <div class="flex items-center ml-6">
                     <span class="text-sm text-gray-700 mr-3">{user.username}</span>
                     <a
                       href="/logout"
@@ -73,9 +71,9 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                       Logout
                     </a>
                   </div>
-                </div>
-              </div>
-            ) : null}
+                </>
+              )}
+            </div>
           </div>
           
           {/* Mobile menu button */}
