@@ -6,9 +6,10 @@ type LayoutProps = {
   children: any;
   user?: any;
   currentPath?: string;
+  jsonLd?: any;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd }) => {
   return (
     <html lang="en">
       <head>
@@ -47,6 +48,9 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+        {jsonLd && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        )}
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <Navbar user={user} currentPath={currentPath} />

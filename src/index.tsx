@@ -443,8 +443,51 @@ app.get('/churches/:path', async (c) => {
     .orderBy(churchGatherings.id)
     .all();
   
+  // Build JSON-LD structured data
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Church",
+    "name": church.name,
+    ...(church.gatheringAddress && {
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": church.gatheringAddress,
+        "addressLocality": church.countyName ? church.countyName.replace(' County', '') : undefined,
+        "addressRegion": "UT",
+        "addressCountry": "US"
+      }
+    }),
+    ...(church.latitude && church.longitude && {
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": church.latitude,
+        "longitude": church.longitude
+      }
+    }),
+    ...(church.phone && { "telephone": church.phone }),
+    ...(church.email && { "email": church.email }),
+    ...(church.website && { "url": church.website }),
+    ...(churchGatheringsList.length > 0 && {
+      "openingHours": churchGatheringsList.map(g => g.time).join(', ')
+    }),
+    ...(church.publicNotes && { "description": church.publicNotes }),
+    ...(churchAffiliationsList.length > 0 && {
+      "memberOf": churchAffiliationsList.map(a => ({
+        "@type": "Organization",
+        "name": a.name,
+        ...(a.website && { "url": a.website })
+      }))
+    }),
+    "sameAs": [
+      church.facebook,
+      church.instagram,
+      church.youtube,
+      church.spotify
+    ].filter(Boolean)
+  };
+
   return c.html(
-    <Layout title={`${church.name} - Utah Churches`}>
+    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Breadcrumb */}
