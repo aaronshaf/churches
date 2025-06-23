@@ -51,13 +51,130 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
         {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+// Client-side form validation
+(function() {
+  'use strict';
+  const validators = {
+    email: function(value) {
+      if (!value.trim()) return { valid: false, message: 'Email is required' };
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value)) return { valid: false, message: 'Invalid email format' };
+      if (value.length > 255) return { valid: false, message: 'Email too long' };
+      return { valid: true };
+    },
+    url: function(value) {
+      if (!value.trim()) return { valid: true };
+      try { new URL(value); return { valid: true }; } 
+      catch { return { valid: false, message: 'Invalid URL format' }; }
+    },
+    phone: function(value) {
+      if (!value.trim()) return { valid: true };
+      const phoneRegex = /^[\\+]?[1-9][\\d]{0,15}$/;
+      if (!phoneRegex.test(value.replace(/[\\s\\-\\(\\)]/g, ''))) {
+        return { valid: false, message: 'Invalid phone number format' };
+      }
+      return { valid: true };
+    },
+    path: function(value) {
+      if (!value.trim()) return { valid: false, message: 'Path is required' };
+      if (value.length > 100) return { valid: false, message: 'Path too long' };
+      if (!/^[a-z0-9-]+$/.test(value)) return { valid: false, message: 'Path must be lowercase with hyphens only' };
+      if (value.startsWith('-') || value.endsWith('-')) return { valid: false, message: 'Path cannot start or end with hyphen' };
+      return { valid: true };
+    },
+    username: function(value) {
+      if (!value.trim()) return { valid: false, message: 'Username is required' };
+      if (value.length < 3) return { valid: false, message: 'Username must be at least 3 characters' };
+      if (value.length > 50) return { valid: false, message: 'Username too long' };
+      if (!/^[a-zA-Z0-9_-]+$/.test(value)) return { valid: false, message: 'Username can only contain letters, numbers, hyphens, and underscores' };
+      return { valid: true };
+    },
+    required: function(value) {
+      if (!value.trim()) return { valid: false, message: 'This field is required' };
+      return { valid: true };
+    }
+  };
+
+  function showError(field, message) {
+    let errorDiv = field.parentElement.querySelector('.field-error');
+    if (!errorDiv) {
+      errorDiv = document.createElement('div');
+      errorDiv.className = 'field-error text-red-600 text-sm mt-1';
+      field.parentElement.appendChild(errorDiv);
+    }
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    field.classList.add('border-red-500');
+    field.classList.remove('border-gray-300');
+  }
+
+  function hideError(field) {
+    const errorDiv = field.parentElement.querySelector('.field-error');
+    if (errorDiv) errorDiv.style.display = 'none';
+    field.classList.remove('border-red-500');
+    field.classList.add('border-gray-300');
+  }
+
+  function validateField(field) {
+    const validationType = field.dataset.validate;
+    if (!validationType) return true;
+    const validator = validators[validationType];
+    if (!validator) return true;
+    const result = validator(field.value);
+    if (result.valid) {
+      hideError(field);
+      return true;
+    } else {
+      showError(field, result.message);
+      return false;
+    }
+  }
+
+  function initValidation() {
+    document.querySelectorAll('[data-validate]').forEach(field => {
+      field.addEventListener('blur', () => validateField(field));
+      field.addEventListener('input', () => hideError(field));
+    });
+
+    document.querySelectorAll('form[data-validate-form]').forEach(form => {
+      form.addEventListener('submit', function(e) {
+        let isValid = true;
+        form.querySelectorAll('[data-validate]').forEach(field => {
+          if (!validateField(field)) isValid = false;
+        });
+        if (!isValid) {
+          e.preventDefault();
+          const firstError = form.querySelector('.field-error[style*="block"]');
+          if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initValidation);
+  } else {
+    initValidation();
+  }
+})();
+          `,
+          }}
+        />
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md" data-testid="skip-link">
+        <a
+          href="#main-content"
+          class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md"
+          data-testid="skip-link"
+        >
           Skip to main content
         </a>
         <Navbar user={user} currentPath={currentPath} />
-        <main id="main-content" class="flex-grow" role="main" data-testid="main-content">{children}</main>
+        <main id="main-content" class="flex-grow" data-testid="main-content">
+          {children}
+        </main>
       </body>
     </html>
   );

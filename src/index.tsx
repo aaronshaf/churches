@@ -19,7 +19,18 @@ import { affiliations, churchAffiliations, churches, churchGatherings, counties,
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { churchWithGatheringsSchema } from './utils/validation';
+import {
+  affiliationSchema,
+  churchWithGatheringsSchema,
+  countySchema,
+  loginSchema,
+  parseAffiliationsFromForm,
+  parseFormBody,
+  parseGatheringsFromForm,
+  prepareChurchDataFromForm,
+  userSchema,
+  validateFormData,
+} from './utils/validation';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -630,9 +641,13 @@ app.get('/churches/:path', async (c) => {
             <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
-                  <h1 class="text-4xl font-bold text-white md:text-5xl" data-testid="church-name">{church.name}</h1>
+                  <h1 class="text-4xl font-bold text-white md:text-5xl" data-testid="church-name">
+                    {church.name}
+                  </h1>
                   {church.gatheringAddress && (
-                    <p class="mt-4 text-xl text-primary-100" data-testid="church-address">{church.gatheringAddress}</p>
+                    <p class="mt-4 text-xl text-primary-100" data-testid="church-address">
+                      {church.gatheringAddress}
+                    </p>
                   )}
                   {church.status && church.status !== 'Listed' && (
                     <div class="mt-4">
@@ -1918,8 +1933,19 @@ app.get('/login', async (c) => {
 app.post('/login', async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  const username = body.username as string;
-  const password = body.password as string;
+
+  // Validate input
+  const validation = validateFormData(loginSchema, parseFormBody(body));
+
+  if (!validation.success) {
+    return c.html(
+      <Layout title="Login - Utah Churches">
+        <LoginForm error={validation.message} />
+      </Layout>
+    );
+  }
+
+  const { username, password } = validation.data;
 
   // Find user
   const user = await db.select().from(users).where(eq(users.username, username)).get();
@@ -2383,11 +2409,22 @@ app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
 app.post('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
+  const parsedBody = parseFormBody(body);
 
-  const username = body.username as string;
-  const email = body.email as string;
-  const password = body.password as string;
-  const userType = body.userType as string;
+  // Validate input
+  const validation = validateFormData(userSchema, parsedBody);
+
+  if (!validation.success) {
+    return c.html(
+      <Layout title="Create User - Utah Churches">
+        <div style="max-width: 600px; margin: 0 auto;">
+          <UserForm action="/admin/users" isNew={true} error={validation.message} user={parsedBody} />
+        </div>
+      </Layout>
+    );
+  }
+
+  const { username, email, password, userType } = validation.data;
 
   // Check if username already exists
   const existing = await db.select().from(users).where(eq(users.username, username)).get();
@@ -2722,12 +2759,30 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
+  const parsedBody = parseFormBody(body);
 
-  const name = body.name as string;
-  const status = body.status as string;
-  const website = body.website as string;
-  const publicNotes = body.publicNotes as string;
-  const privateNotes = body.privateNotes as string;
+  // Validate input
+  const validation = validateFormData(affiliationSchema, parsedBody);
+
+  if (!validation.success) {
+    return c.html(
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
+        <div class="min-h-screen bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
+                <p class="text-red-700">{validation.message}</p>
+              </div>
+              <AffiliationForm action="/admin/affiliations" isNew={true} affiliation={parsedBody} />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const { name, status, website, publicNotes, privateNotes } = validation.data;
 
   // Check if name already exists
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
@@ -3079,64 +3134,58 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const body = await c.req.parseBody();
+    const parsedBody = parseFormBody(body);
 
-    // Parse gatherings from form data
-    const gatherings = [];
-    let index = 0;
-    while (body[`gatherings[${index}][time]`]) {
-      gatherings.push({
-        time: body[`gatherings[${index}][time]`] as string,
-        notes: (body[`gatherings[${index}][notes]`] as string) || undefined,
-      });
-      index++;
-    }
+    // Parse complex form data
+    const gatherings = parseGatheringsFromForm(parsedBody);
+    const affiliations = parseAffiliationsFromForm(parsedBody);
+    const churchData = prepareChurchDataFromForm(parsedBody);
 
     // Validate input
-    const validationResult = churchWithGatheringsSchema.safeParse({
-      church: {
-        name: body.name as string,
-        path: (body.path as string) || undefined,
-        status: (body.status as string) || undefined,
-        gatheringAddress: (body.gatheringAddress as string) || undefined,
-        latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
-        longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
-        countyId: body.countyId ? Number(body.countyId) : undefined,
-        website: (body.website as string) || undefined,
-        statementOfFaith: (body.statementOfFaith as string) || undefined,
-        phone: (body.phone as string) || undefined,
-        email: (body.email as string) || undefined,
-        facebook: (body.facebook as string) || undefined,
-        instagram: (body.instagram as string) || undefined,
-        youtube: (body.youtube as string) || undefined,
-        spotify: (body.spotify as string) || undefined,
-        language: (body.language as string) || 'English',
-        privateNotes: (body.privateNotes as string) || undefined,
-        publicNotes: (body.publicNotes as string) || undefined,
-      },
+    const validation = validateFormData(churchWithGatheringsSchema, {
+      church: churchData,
       gatherings,
-      affiliations: body.affiliations
-        ? Array.isArray(body.affiliations)
-          ? body.affiliations.map(Number)
-          : [Number(body.affiliations)]
-        : [],
+      affiliations,
     });
 
-    if (!validationResult.success) {
-      const errors = validationResult.error.flatten();
-      return c.text(`Validation error: ${JSON.stringify(errors)}`, 400);
+    if (!validation.success) {
+      // Return a more user-friendly error response
+      return c.html(
+        <Layout title="Error - Utah Churches">
+          <div class="max-w-2xl mx-auto px-4 py-8">
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+              <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
+              <p class="text-red-700 mb-4">{validation.message}</p>
+              <ul class="text-sm text-red-600 space-y-1">
+                {Object.entries(validation.errors).map(([field, errors]) => (
+                  <li key={field}>
+                    <strong>{field}:</strong> {errors.join(', ')}
+                  </li>
+                ))}
+              </ul>
+              <div class="mt-4">
+                <a href="/admin/churches/new" class="text-red-800 hover:text-red-900 font-medium">
+                  ← Go back and try again
+                </a>
+              </div>
+            </div>
+          </div>
+        </Layout>,
+        400
+      );
     }
 
     const {
-      church: churchData,
+      church: validatedChurchData,
       gatherings: validatedGatherings,
       affiliations: selectedAffiliations,
-    } = validationResult.data;
+    } = validation.data;
 
     // Create church
     const result = await db
       .insert(churches)
       .values({
-        ...churchData,
+        ...validatedChurchData,
         lastUpdated: new Date(),
       })
       .returning({ id: churches.id });
@@ -3501,11 +3550,26 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
+  const parsedBody = parseFormBody(body);
 
-  const name = body.name as string;
-  const path = body.path as string;
-  const description = body.description as string;
-  const population = body.population ? parseInt(body.population as string) : null;
+  // Validate input
+  const validation = validateFormData(countySchema, parsedBody);
+
+  if (!validation.success) {
+    return c.html(
+      <Layout title="Create County - Utah Churches" user={user}>
+        <div style="max-width: 600px; margin: 0 auto;">
+          <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
+            <p class="text-red-700">{validation.message}</p>
+          </div>
+          <CountyForm action="/admin/counties" isNew={true} county={parsedBody} />
+        </div>
+      </Layout>
+    );
+  }
+
+  const { name, path, description, population } = validation.data;
 
   // Check if name already exists
   const existing = await db.select().from(counties).where(eq(counties.name, name)).get();

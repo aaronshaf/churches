@@ -23,7 +23,7 @@ export const LoginForm: FC<LoginFormProps> = ({ error }) => {
           <p class="mt-2 text-center text-sm text-gray-600">Access the admin dashboard</p>
         </div>
 
-        <form class="mt-8 space-y-6" method="POST">
+        <form class="mt-8 space-y-6" method="POST" data-validate-form>
           {error && (
             <div class="rounded-md bg-red-50 p-4">
               <div class="flex">
@@ -55,6 +55,7 @@ export const LoginForm: FC<LoginFormProps> = ({ error }) => {
                 type="text"
                 autocomplete="username"
                 required
+                data-validate="username"
                 class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                 placeholder="Username"
               />
@@ -69,6 +70,7 @@ export const LoginForm: FC<LoginFormProps> = ({ error }) => {
                 type="password"
                 autocomplete="current-password"
                 required
+                data-validate="required"
                 class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
