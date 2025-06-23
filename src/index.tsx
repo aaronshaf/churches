@@ -1081,6 +1081,28 @@ app.get('/networks/:id', async (c) => {
   const db = createDb(c.env);
   const affiliationId = c.req.param('id');
 
+  // Check for user session
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
+
+  // Helper function to format URLs for display
+  const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
+    // Remove protocol
+    let displayUrl = url.replace(/^https?:\/\//i, '');
+    // Remove www.
+    displayUrl = displayUrl.replace(/^www\./i, '');
+    // Remove trailing slash
+    displayUrl = displayUrl.replace(/\/$/, '');
+    // Truncate if too long
+    if (displayUrl.length > maxLength) {
+      return `${displayUrl.substring(0, maxLength)}...`;
+    }
+    return displayUrl;
+  };
+
   // Get affiliation details
   const affiliation = await db
     .select()
@@ -1117,7 +1139,7 @@ app.get('/networks/:id', async (c) => {
   const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
 
   return c.html(
-    <Layout title={`${affiliation.name} - Utah Churches`}>
+    <Layout title={`${affiliation.name} - Utah Churches`} user={user}>
       <div class="min-h-screen">
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
