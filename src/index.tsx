@@ -532,6 +532,13 @@ app.get('/api/churches/:id', async (c) => {
 app.get('/networks', async (c) => {
   const db = createDb(c.env);
 
+  // Check for user session
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
+
   // Get all listed affiliations with church count
   const listedAffiliations = await db
     .select({
@@ -550,7 +557,7 @@ app.get('/networks', async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Church Networks - Utah Churches" currentPath="/networks">
+    <Layout title="Church Networks - Utah Churches" currentPath="/networks" user={user}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -816,30 +823,32 @@ app.get('/churches/:path', async (c) => {
                   <div class="space-y-4" data-testid="church-details">
                     {church.gatheringAddress && (
                       <div data-testid="church-directions">
-                        <h3 class="text-sm font-medium text-gray-500">Directions</h3>
+                        <h3 class="text-base font-medium text-gray-500">Directions</h3>
                         {church.latitude && church.longitude && (
-                          <div class="flex flex-col gap-2 mt-3">
+                          <div class="flex gap-2 mt-3">
                             <a
                               href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                              class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                             >
-                              <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                               </svg>
-                              View on Google Maps
+                              <span class="hidden sm:inline">Google Maps</span>
+                              <span class="sm:hidden">Google</span>
                             </a>
                             <a
                               href={`https://maps.apple.com/?ll=${church.latitude},${church.longitude}&q=${encodeURIComponent(church.name)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                              class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                             >
-                              <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                              <svg class="w-5 h-5 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
                               </svg>
-                              View on Apple Maps
+                              <span class="hidden sm:inline">Apple Maps</span>
+                              <span class="sm:hidden">Apple</span>
                             </a>
                           </div>
                         )}
@@ -848,10 +857,10 @@ app.get('/churches/:path', async (c) => {
 
                     {churchGatheringsList.length > 0 && (
                       <div>
-                        <h3 class="text-sm font-medium text-gray-500">Services</h3>
+                        <h3 class="text-base font-medium text-gray-500">Services</h3>
                         <div class="mt-1 space-y-1">
                           {churchGatheringsList.map((gathering) => (
-                            <div class="text-sm text-gray-900">
+                            <div class="text-base text-gray-900">
                               <span class="font-medium">{gathering.time}</span>
                               {gathering.notes && <span class="text-gray-600"> – {gathering.notes}</span>}
                             </div>
@@ -862,8 +871,8 @@ app.get('/churches/:path', async (c) => {
 
                     {church.phone && (
                       <div data-testid="church-phone">
-                        <h3 class="text-sm font-medium text-gray-500">Phone</h3>
-                        <a href={`tel:${church.phone}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
+                        <h3 class="text-base font-medium text-gray-500">Phone</h3>
+                        <a href={`tel:${church.phone}`} class="mt-1 text-base text-primary-600 hover:text-primary-500">
                           {formatPhoneNumber(church.phone)}
                         </a>
                       </div>
@@ -871,8 +880,8 @@ app.get('/churches/:path', async (c) => {
 
                     {church.email && (
                       <div data-testid="church-email">
-                        <h3 class="text-sm font-medium text-gray-500">Email</h3>
-                        <a href={`mailto:${church.email}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
+                        <h3 class="text-base font-medium text-gray-500">Email</h3>
+                        <a href={`mailto:${church.email}`} class="mt-1 text-base text-primary-600 hover:text-primary-500">
                           {church.email}
                         </a>
                       </div>
@@ -882,11 +891,11 @@ app.get('/churches/:path', async (c) => {
                   <div class="space-y-4">
                     {church.website && (
                       <div data-testid="church-website">
-                        <h3 class="text-sm font-medium text-gray-500">Website</h3>
+                        <h3 class="text-base font-medium text-gray-500">Website</h3>
                         <a
                           href={church.website}
                           rel="noopener noreferrer"
-                          class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
+                          class="inline-flex items-center mt-1 text-base text-primary-600 hover:text-primary-500"
                         >
                           {formatUrlForDisplay(church.website)}
                           <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -903,11 +912,11 @@ app.get('/churches/:path', async (c) => {
 
                     {church.statementOfFaith && (
                       <div data-testid="church-statement-of-faith">
-                        <h3 class="text-sm font-medium text-gray-500">Statement of Faith</h3>
+                        <h3 class="text-base font-medium text-gray-500">Statement of Faith</h3>
                         <a
                           href={church.statementOfFaith}
                           rel="noopener noreferrer"
-                          class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
+                          class="inline-flex items-center mt-1 text-base text-primary-600 hover:text-primary-500"
                         >
                           {formatUrlForDisplay(church.statementOfFaith)}
                           <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1141,7 +1150,7 @@ app.get('/networks/:id', async (c) => {
                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   />
                 </svg>
-                Visit official website
+                {formatUrlForDisplay(affiliation.website)}
               </a>
             </div>
           )}
@@ -1156,16 +1165,11 @@ app.get('/networks/:id', async (c) => {
           {listedChurches.length > 0 ? (
             <>
               <h2 class="text-2xl font-bold text-gray-900 mb-6">Churches</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {listedChurches.map((church) => (
-                  <a
-                    href={`/churches/${church.path || church.id}`}
-                    class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-primary-500 transition-all duration-200"
-                  >
-                    <h3 class="font-semibold text-gray-900">{church.name}</h3>
-                    {church.gatheringAddress && <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>}
-                    {church.countyName && <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>}
-                  </a>
+                  <div class="church-card listed-church">
+                    <ChurchCard church={church} />
+                  </div>
                 ))}
               </div>
             </>
@@ -1187,17 +1191,10 @@ app.get('/networks/:id', async (c) => {
 
               <div id="unlisted-churches" class="hidden mt-6">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Unlisted Churches</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {unlistedChurches.map((church) => (
                     <div class="church-card unlisted-church">
-                      <a
-                        href={`/churches/${church.path || church.id}`}
-                        class="bg-gray-50 rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-gray-400 transition-all duration-200 block"
-                      >
-                        <h3 class="font-semibold text-gray-700">{church.name}</h3>
-                        {church.gatheringAddress && <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>}
-                        {church.countyName && <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>}
-                      </a>
+                      <ChurchCard church={church} />
                     </div>
                   ))}
                 </div>
