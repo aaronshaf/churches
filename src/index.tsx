@@ -2132,45 +2132,56 @@ app.get('/admin', adminMiddleware, async (c) => {
             </div>
           </div>
 
-          {/* Oldest Church Card */}
+          {/* To Review Section */}
           {oldestNonClosedChurch && (
-            <div class="bg-white shadow rounded-lg mb-8">
-              <div class="px-4 py-5 sm:p-6">
-                <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Needs Attention</h2>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div class="flex">
-                    <div class="flex-shrink-0">
-                      <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+            <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-6 mb-8 border border-gray-200">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900">To Review</h2>
+                  <p class="text-sm text-gray-600 mt-1">Churches that haven't been updated recently</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                  Needs update
+                </span>
+              </div>
+              
+              <div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div class="p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <h3 class="text-base font-medium text-gray-900">
+                        {oldestNonClosedChurch.name}
+                      </h3>
+                      <div class="mt-2 flex items-center text-sm text-gray-500">
+                        <svg class="mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Last updated: {oldestNonClosedChurch.lastUpdated
+                          ? new Date(oldestNonClosedChurch.lastUpdated).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })
+                          : 'Never updated'}
+                      </div>
+                    </div>
+                    <a
+                      href={`/admin/churches/${oldestNonClosedChurch.id}/edit`}
+                      class="ml-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      Review
+                      <svg class="ml-1.5 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
-                    </div>
-                    <div class="ml-3 flex-1">
-                      <h3 class="text-sm font-medium text-yellow-800">Oldest Non-Closed Church</h3>
-                      <div class="mt-2 text-sm text-yellow-700">
-                        <p class="font-semibold">{oldestNonClosedChurch.name}</p>
-                        <p class="mt-1">
-                          Last updated:{' '}
-                          {oldestNonClosedChurch.lastUpdated
-                            ? new Date(oldestNonClosedChurch.lastUpdated).toLocaleDateString()
-                            : 'Never'}
-                        </p>
-                      </div>
-                      <div class="mt-3">
-                        <a
-                          href={`/admin/churches/${oldestNonClosedChurch.id}/edit`}
-                          class="text-sm font-medium text-yellow-800 hover:text-yellow-900"
-                        >
-                          Update church →
-                        </a>
-                      </div>
-                    </div>
+                    </a>
                   </div>
                 </div>
+              </div>
+              
+              <div class="mt-4 text-sm text-gray-600">
+                <a href="/admin/churches?sort=oldest" class="hover:text-gray-900 underline">
+                  View all churches needing review →
+                </a>
               </div>
             </div>
           )}
