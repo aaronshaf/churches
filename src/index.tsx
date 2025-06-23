@@ -243,19 +243,7 @@ app.get('/counties/:path', async (c) => {
             <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
-                  <nav class="flex" aria-label="Breadcrumb">
-                    <ol class="flex items-center space-x-2">
-                      <li>
-                        <a href="/" class="text-primary-200 hover:text-white transition-colors">
-                          Churches
-                        </a>
-                      </li>
-                      <li>
-                        <span class="mx-2 text-primary-300">/</span>
-                      </li>
-                    </ol>
-                  </nav>
-                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">{county.name}</h1>
+                  <h1 class="text-4xl font-bold text-white md:text-5xl">{county.name}</h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {listedChurches.length + unlistedChurches.length}{' '}
                     {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'}
@@ -642,34 +630,10 @@ app.get('/churches/:path', async (c) => {
             <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
-                  <nav class="flex" aria-label="Breadcrumb">
-                    <ol class="flex items-center space-x-2">
-                      <li>
-                        <a href="/" class="text-primary-200 hover:text-white transition-colors">
-                          Churches
-                        </a>
-                      </li>
-                      {church.countyName && church.countyPath && (
-                        <>
-                          <li>
-                            <span class="mx-2 text-primary-300">/</span>
-                          </li>
-                          <li>
-                            <a
-                              href={`/counties/${church.countyPath}`}
-                              class="text-primary-200 hover:text-white transition-colors"
-                            >
-                              {church.countyName}
-                            </a>
-                          </li>
-                          <li>
-                            <span class="mx-2 text-primary-300">/</span>
-                          </li>
-                        </>
-                      )}
-                    </ol>
-                  </nav>
-                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
+                  <h1 class="text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
+                  {church.gatheringAddress && (
+                    <p class="mt-2 text-xl text-primary-100">{church.gatheringAddress}</p>
+                  )}
                   {church.status && church.status !== 'Listed' && (
                     <div class="mt-4">
                       <span
@@ -701,8 +665,7 @@ app.get('/churches/:path', async (c) => {
                   <div class="space-y-4">
                     {church.gatheringAddress && (
                       <div>
-                        <h3 class="text-sm font-medium text-gray-500">Address</h3>
-                        <p class="mt-1 text-sm text-gray-900">{church.gatheringAddress}</p>
+                        <h3 class="text-sm font-medium text-gray-500">Directions</h3>
                         {church.latitude && church.longitude && (
                           <div class="flex flex-col gap-1 mt-1">
                             <a
