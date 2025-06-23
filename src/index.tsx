@@ -67,6 +67,13 @@ app.onError((err, c) => {
 app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
+    
+    // Check for user session
+    let user = null;
+    const sessionId = getCookie(c, 'session');
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
 
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
@@ -87,7 +94,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout currentPath="/">
+      <Layout currentPath="/" user={user}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
