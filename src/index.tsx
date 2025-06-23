@@ -230,6 +230,12 @@ app.get('/', async (c) => {
                 
                 // Re-append cards in new order
                 cards.forEach(card => grid.appendChild(card));
+                
+                // Update aria-checked attributes
+                const group = popBtn.parentElement;
+                group.querySelectorAll('button').forEach(btn => {
+                  btn.setAttribute('aria-checked', btn.classList.contains('bg-primary-600') ? 'true' : 'false');
+                });
               }
             `,
             }}
@@ -2954,6 +2960,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
         status: churches.status,
         gatheringAddress: churches.gatheringAddress,
         countyName: counties.name,
+        lastUpdated: churches.lastUpdated,
       })
       .from(churches)
       .leftJoin(counties, eq(churches.countyId, counties.id))
@@ -3025,6 +3032,42 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
               </div>
             </div>
 
+            {/* Sorting controls */}
+            <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div class="text-sm text-gray-700 mb-2 sm:mb-0">
+                {allChurches.length} {allChurches.length === 1 ? 'church' : 'churches'}
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-700">Sort by:</span>
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                  <button
+                    type="button"
+                    id="sort-name"
+                    class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                    onclick="sortChurches('name')"
+                  >
+                    Name
+                  </button>
+                  <button
+                    type="button"
+                    id="sort-updated"
+                    class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                    onclick="sortChurches('updated-desc')"
+                  >
+                    Recently Updated
+                  </button>
+                  <button
+                    type="button"
+                    id="sort-oldest"
+                    class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                    onclick="sortChurches('updated-asc')"
+                  >
+                    Needs Update
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Table */}
             <div class="bg-white shadow overflow-hidden sm:rounded-md">
               <table class="min-w-full divide-y divide-gray-200">
@@ -3055,7 +3098,12 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   {allChurches.map((church) => (
-                    <tr class="hover:bg-gray-50 transition-all duration-300" id={`church-row-${church.id}`}>
+                    <tr 
+                      class="church-row hover:bg-gray-50 transition-all duration-300" 
+                      id={`church-row-${church.id}`}
+                      data-name={church.name}
+                      data-updated={church.lastUpdated || 0}
+                    >
                       <td class="px-6 py-4">
                         <div>
                           <div class="text-sm font-medium text-gray-900 church-name">{church.name}</div>
@@ -3135,6 +3183,73 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
             </div>
           </div>
         </div>
+        
+        {/* Sorting Script */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            function sortChurches(sortBy) {
+              const tbody = document.querySelector('tbody');
+              const rows = Array.from(document.querySelectorAll('.church-row'));
+              
+              // Update button styles
+              const nameBtn = document.getElementById('sort-name');
+              const updatedBtn = document.getElementById('sort-updated');
+              const oldestBtn = document.getElementById('sort-oldest');
+              
+              // Reset all buttons to default style
+              [nameBtn, updatedBtn, oldestBtn].forEach(btn => {
+                btn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+              });
+              
+              // Style the active button
+              if (sortBy === 'name') {
+                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                
+                // Sort by name
+                rows.sort((a, b) => {
+                  const nameA = a.dataset.name.toLowerCase();
+                  const nameB = b.dataset.name.toLowerCase();
+                  return nameA.localeCompare(nameB);
+                });
+              } else if (sortBy === 'updated-desc') {
+                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                
+                // Sort by updated date (descending - most recent first)
+                rows.sort((a, b) => {
+                  const updatedA = parseInt(a.dataset.updated) || 0;
+                  const updatedB = parseInt(b.dataset.updated) || 0;
+                  return updatedB - updatedA;
+                });
+              } else if (sortBy === 'updated-asc') {
+                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-r-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                
+                // Sort by updated date (ascending - oldest first)
+                rows.sort((a, b) => {
+                  const updatedA = parseInt(a.dataset.updated) || 0;
+                  const updatedB = parseInt(b.dataset.updated) || 0;
+                  return updatedA - updatedB;
+                });
+              }
+              
+              // Re-append rows in new order
+              rows.forEach(row => tbody.appendChild(row));
+              
+              // Update aria-checked attributes
+              const group = nameBtn.parentElement;
+              group.querySelectorAll('button').forEach(btn => {
+                btn.setAttribute('aria-checked', btn.classList.contains('bg-primary-600') ? 'true' : 'false');
+              });
+            }
+          `,
+          }}
+        />
       </Layout>
     );
   } catch (error) {

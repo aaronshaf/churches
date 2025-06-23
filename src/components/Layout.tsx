@@ -187,6 +187,46 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
                 prefetchTimer = null;
               }
             }
+            
+            // Keyboard navigation for button groups
+            document.addEventListener('DOMContentLoaded', function() {
+              const buttonGroups = document.querySelectorAll('[role="group"]');
+              
+              buttonGroups.forEach(group => {
+                const buttons = Array.from(group.querySelectorAll('button'));
+                
+                buttons.forEach((button, index) => {
+                  button.setAttribute('tabindex', '0');
+                  
+                  button.addEventListener('keydown', (e) => {
+                    let nextIndex = -1;
+                    
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      nextIndex = index === 0 ? buttons.length - 1 : index - 1;
+                    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      nextIndex = index === buttons.length - 1 ? 0 : index + 1;
+                    } else if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      button.click();
+                      return;
+                    }
+                    
+                    if (nextIndex !== -1) {
+                      buttons[nextIndex].focus();
+                    }
+                  });
+                });
+                
+                // Set aria attributes
+                group.setAttribute('aria-label', 'Sort options');
+                buttons.forEach((button, index) => {
+                  button.setAttribute('aria-checked', button.classList.contains('bg-primary-600') ? 'true' : 'false');
+                  button.setAttribute('role', 'radio');
+                });
+              });
+            });
           `,
           }}
         />
