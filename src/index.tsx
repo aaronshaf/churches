@@ -91,7 +91,7 @@ app.get('/', async (c) => {
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
-            <div class="mb-8">
+            <div class="mb-4">
               <h1 class="sr-only">Churches in Utah</h1>
               <p class="sr-only">A directory of evangelical churches</p>
             </div>
@@ -252,7 +252,7 @@ app.get('/', async (c) => {
                 </div>
                 <a
                   href="/data"
-                  class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -377,7 +377,7 @@ app.get('/counties/:path', async (c) => {
           )}
 
           {/* Show unlisted checkbox - moved to bottom */}
-          {unlistedChurches.length > 0 && (
+          {unlistedChurches.length > 0 && listedChurches.length > 0 && (
             <div class="mt-8 text-center">
               <button
                 type="button"
