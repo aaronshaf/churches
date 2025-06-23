@@ -33,19 +33,21 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
   return (
     <div class="group relative bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md transition-all duration-200">
       <div class="p-6">
-        {/* Church Name */}
-        <h3 class="text-lg font-semibold text-gray-900 mb-3">
-          {church.path ? (
-            <a href={`/churches/${church.path}`} class="hover:text-primary-600 transition-colors">
-              {church.name}
-            </a>
-          ) : (
-            church.name
-          )}
-        </h3>
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            {/* Church Name */}
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">
+              {church.path ? (
+                <a href={`/churches/${church.path}`} class="hover:text-primary-600 transition-colors">
+                  {church.name}
+                </a>
+              ) : (
+                church.name
+              )}
+            </h3>
 
-        {/* Church Details */}
-        <div class="space-y-2">
+            {/* Church Details */}
+            <div class="space-y-2">
           {church.gatheringAddress && (
             <div class="flex items-start text-sm text-gray-600">
               <svg
@@ -109,31 +111,6 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
             </div>
           )}
 
-          {church.website && (
-            <div class="flex items-start text-sm">
-              <svg
-                class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                />
-              </svg>
-              <a
-                href={church.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary-600 hover:text-primary-500 transition-colors"
-              >
-                Visit Website
-              </a>
-            </div>
-          )}
 
           {church.language && church.language !== 'English' && (
             <div class="flex items-start text-sm text-gray-600">
@@ -157,16 +134,25 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
           {church.publicNotes && <p class="text-sm text-gray-600 italic mt-3">{church.publicNotes}</p>}
         </div>
 
-        {/* Status Badge */}
-        {church.status && church.status !== 'Listed' && (
-          <div class="mt-4">
-            <span
-              class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle}`}
-            >
-              {church.status}
-            </span>
+            {/* Status Badge */}
+            {church.status && church.status !== 'Listed' && (
+              <div class="mt-4">
+                <span
+                  class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle}`}
+                >
+                  {church.status}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Arrow icon */}
+          {church.path && (
+            <svg class="h-5 w-5 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          )}
+        </div>
       </div>
 
       {/* Hover effect border */}
