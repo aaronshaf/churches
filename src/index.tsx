@@ -2332,6 +2332,7 @@ app.get('/admin', adminMiddleware, async (c) => {
       id: churches.id,
       name: churches.name,
       path: churches.path,
+      status: churches.status,
       lastUpdated: churches.lastUpdated,
     })
     .from(churches)
@@ -2359,9 +2360,6 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <h2 class="text-lg font-semibold text-gray-900">To Review</h2>
                   <p class="text-sm text-gray-600 mt-1">Churches that haven't been updated recently</p>
                 </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                  {churchesForReview.length} need{churchesForReview.length === 1 ? 's' : ''} update
-                </span>
               </div>
 
               <div class="mt-6 space-y-3">
@@ -2370,7 +2368,30 @@ app.get('/admin', adminMiddleware, async (c) => {
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
-                          <h3 class="text-base font-medium text-gray-900">{church.name}</h3>
+                          <div class="flex items-center gap-2 mb-2">
+                            <h3 class="text-base font-medium text-gray-900">{church.name}</h3>
+                            {church.status && (
+                              <span
+                                class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                  church.status === 'Listed'
+                                    ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                    : church.status === 'Ready to list'
+                                    ? 'bg-blue-50 text-blue-700 ring-blue-600/20'
+                                    : church.status === 'Assess'
+                                    ? 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
+                                    : church.status === 'Needs data'
+                                    ? 'bg-orange-50 text-orange-700 ring-orange-600/20'
+                                    : church.status === 'Unlisted'
+                                    ? 'bg-gray-50 text-gray-700 ring-gray-600/20'
+                                    : church.status === 'Heretical'
+                                    ? 'bg-red-50 text-red-700 ring-red-600/20'
+                                    : 'bg-gray-50 text-gray-700 ring-gray-600/20'
+                                }`}
+                              >
+                                {church.status}
+                              </span>
+                            )}
+                          </div>
                           <div class="mt-2 flex items-center text-sm text-gray-500">
                             <svg
                               class="mr-1.5 h-4 w-4 text-gray-400"
