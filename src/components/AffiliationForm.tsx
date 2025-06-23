@@ -1,4 +1,4 @@
-import { FC } from 'hono/jsx';
+import type { FC } from 'hono/jsx';
 
 type AffiliationFormProps = {
   action: string;
@@ -15,7 +15,11 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </div>
             <div class="ml-3">
@@ -24,7 +28,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
           </div>
         </div>
       )}
-      
+
       <div class="space-y-8 divide-y divide-gray-200">
         <div>
           <div>
@@ -64,9 +68,15 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
                   required
                   class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                 >
-                  <option value="Listed" selected={affiliation?.status === 'Listed' || (!affiliation && true)}>Listed</option>
-                  <option value="Unlisted" selected={affiliation?.status === 'Unlisted'}>Unlisted</option>
-                  <option value="Heretical" selected={affiliation?.status === 'Heretical'}>Heretical</option>
+                  <option value="Listed" selected={affiliation?.status === 'Listed' || (!affiliation && true)}>
+                    Listed
+                  </option>
+                  <option value="Unlisted" selected={affiliation?.status === 'Unlisted'}>
+                    Unlisted
+                  </option>
+                  <option value="Heretical" selected={affiliation?.status === 'Heretical'}>
+                    Heretical
+                  </option>
                 </select>
               </div>
               <p class="mt-2 text-sm text-gray-500">Choose how this affiliation should be displayed</p>
@@ -110,7 +120,9 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
                   rows="3"
                   class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   placeholder="Notes visible to the public"
-                >{affiliation?.publicNotes || ''}</textarea>
+                >
+                  {affiliation?.publicNotes || ''}
+                </textarea>
               </div>
               <p class="mt-2 text-sm text-gray-500">These notes will be visible on the public website.</p>
             </div>
@@ -126,7 +138,9 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
                   rows="3"
                   class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   placeholder="Internal notes (not visible to public)"
-                >{affiliation?.privateNotes || ''}</textarea>
+                >
+                  {affiliation?.privateNotes || ''}
+                </textarea>
               </div>
               <p class="mt-2 text-sm text-gray-500">Internal notes for administrative purposes only.</p>
             </div>

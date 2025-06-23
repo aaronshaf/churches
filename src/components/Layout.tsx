@@ -1,4 +1,4 @@
-import { FC } from 'hono/jsx';
+import type { FC } from 'hono/jsx';
 import { Navbar } from './Navbar';
 
 type LayoutProps = {
@@ -17,8 +17,9 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             tailwind.config = {
               theme: {
                 extend: {
@@ -43,20 +44,17 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
                 }
               }
             }
-          `
-        }} />
+          `,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
-        {jsonLd && (
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        )}
+        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <Navbar user={user} currentPath={currentPath} />
-        <main class="flex-grow">
-          {children}
-        </main>
+        <main class="flex-grow">{children}</main>
       </body>
     </html>
   );

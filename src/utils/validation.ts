@@ -3,7 +3,10 @@ import { z } from 'zod';
 // Church validation schema
 export const churchSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  path: z.string().min(1, 'Path is required').regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only'),
+  path: z
+    .string()
+    .min(1, 'Path is required')
+    .regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only'),
   status: z.enum(['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed']).optional(),
   privateNotes: z.string().optional(),
   publicNotes: z.string().optional(),
@@ -48,7 +51,10 @@ export const affiliationSchema = z.object({
 // County validation schema
 export const countySchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  path: z.string().min(1, 'Path is required').regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only'),
+  path: z
+    .string()
+    .min(1, 'Path is required')
+    .regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only'),
   description: z.string().optional(),
   population: z.coerce.number().optional().nullable(),
 });

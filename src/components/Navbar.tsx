@@ -1,4 +1,4 @@
-import { FC } from 'hono/jsx';
+import type { FC } from 'hono/jsx';
 
 type NavbarProps = {
   user?: any;
@@ -13,18 +13,22 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
           {/* Logo/Brand - Left side */}
           <div class="flex-shrink-0 flex items-center">
             <a href="/" class="flex items-center">
-              <img src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w" alt="Utah Churches" class="h-10 sm:h-12 w-auto" />
+              <img
+                src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w"
+                alt="Utah Churches"
+                class="h-10 sm:h-12 w-auto"
+              />
             </a>
           </div>
-          
+
           {/* Primary Navigation - Right side */}
           <div class="flex items-center">
             <div class="hidden sm:flex sm:space-x-8">
               <a
                 href="/"
                 class={`${
-                  currentPath === '/' 
-                    ? 'border-primary-500 text-gray-900' 
+                  currentPath === '/'
+                    ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
@@ -33,8 +37,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
               <a
                 href="/map"
                 class={`${
-                  currentPath === '/map' 
-                    ? 'border-primary-500 text-gray-900' 
+                  currentPath === '/map'
+                    ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
@@ -43,8 +47,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
               <a
                 href="/networks"
                 class={`${
-                  currentPath === '/networks' 
-                    ? 'border-primary-500 text-gray-900' 
+                  currentPath === '/networks'
+                    ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
               >
@@ -55,8 +59,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                   <a
                     href="/admin"
                     class={`${
-                      currentPath === '/admin' 
-                        ? 'border-primary-500 text-gray-900' 
+                      currentPath === '/admin'
+                        ? 'border-primary-500 text-gray-900'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                     } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
                   >
@@ -75,7 +79,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
               )}
             </div>
           </div>
-          
+
           {/* Mobile menu button */}
           <div class="-mr-2 flex items-center sm:hidden">
             <button
@@ -93,7 +97,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
       <div class="hidden" id="mobile-menu">
         <div class="pt-2 pb-3 space-y-1">

@@ -1,4 +1,4 @@
-import { FC } from 'hono/jsx';
+import type { FC } from 'hono/jsx';
 
 type CountyFormProps = {
   action: string;
@@ -15,7 +15,11 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </div>
             <div class="ml-3">
@@ -24,13 +28,11 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
           </div>
         </div>
       )}
-      
+
       <div class="space-y-8 divide-y divide-gray-200">
         <div>
           <div>
-            <h3 class="text-lg leading-6 font-medium text-gray-900">
-              {isNew ? 'Create New County' : 'Edit County'}
-            </h3>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{isNew ? 'Create New County' : 'Edit County'}</h3>
             <p class="mt-1 text-sm text-gray-500">
               {isNew ? 'Add a new county to the directory.' : 'Update the county information.'}
             </p>
@@ -111,7 +113,9 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                   rows="4"
                   class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   placeholder="Brief description of the county, its location, or notable features..."
-                >{county?.description || ''}</textarea>
+                >
+                  {county?.description || ''}
+                </textarea>
               </div>
               <p class="mt-2 text-sm text-gray-500">This description may be shown on the county page.</p>
             </div>

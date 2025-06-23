@@ -1,37 +1,25 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
-import { eq, sql } from 'drizzle-orm';
-import { createDb } from './db';
-import { churches, users, affiliations, churchAffiliations, counties, churchGatherings } from './db/schema';
-import { churchWithGatheringsSchema } from './utils/validation';
-import { Layout } from './components/Layout';
-import { ChurchCard } from './components/ChurchCard';
-import { LoginForm } from './components/LoginForm';
-import { UserForm } from './components/UserForm';
-import { AffiliationForm } from './components/AffiliationForm';
-import { ChurchForm } from './components/ChurchForm';
-import { CountyForm } from './components/CountyForm';
-import { NotFound } from './components/NotFound';
-import { ErrorPage } from './components/ErrorPage';
-import { churchGridClass } from './styles/components';
-import { 
-  tableClass, 
-  tableHeaderClass, 
-  tableRowClass, 
-  adminBadgeClass, 
-  contributorBadgeClass,
-  editButtonClass,
-  deleteButtonClass,
-  addButtonClass,
-  statusBadgeClass
-} from './styles/admin';
-import { createSession, deleteSession, verifyPassword, validateSession } from './utils/auth';
-import { adminMiddleware } from './middleware/auth';
-import { requireAdminMiddleware } from './middleware/requireAdmin';
 import bcrypt from 'bcryptjs';
+import { eq, sql } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { cors } from 'hono/cors';
 import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
+import { AffiliationForm } from './components/AffiliationForm';
+import { ChurchCard } from './components/ChurchCard';
+import { ChurchForm } from './components/ChurchForm';
+import { CountyForm } from './components/CountyForm';
+import { ErrorPage } from './components/ErrorPage';
+import { Layout } from './components/Layout';
+import { LoginForm } from './components/LoginForm';
+import { NotFound } from './components/NotFound';
+import { UserForm } from './components/UserForm';
+import { createDb } from './db';
+import { affiliations, churchAffiliations, churches, churchGatherings, counties, users } from './db/schema';
+import { adminMiddleware } from './middleware/auth';
+import { requireAdminMiddleware } from './middleware/requireAdmin';
+import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
+import { churchWithGatheringsSchema } from './utils/validation';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -50,18 +38,16 @@ app.use('/api/*', cors());
 // Global error handler
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
-  
+
   // Check if it's a database connection error
-  const isDatabaseError = err.message?.includes('Network connection lost') || 
-                         err.message?.includes('Failed query') ||
-                         err.cause?.message?.includes('Network connection lost');
-  
+  const isDatabaseError =
+    err.message?.includes('Network connection lost') ||
+    err.message?.includes('Failed query') ||
+    err.cause?.message?.includes('Network connection lost');
+
   return c.html(
     <Layout title="Error - Utah Churches">
-      <ErrorPage 
-        error={isDatabaseError ? 'Database connection error' : err.message} 
-        statusCode={err.status || 500}
-      />
+      <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={err.status || 500} />
     </Layout>,
     err.status || 500
   );
@@ -70,126 +56,141 @@ app.onError((err, c) => {
 app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
-    
+
     // Get counties that have churches, with church count (only Listed and Unlisted)
-    const countiesWithChurches = await db.select({
-    id: counties.id,
-    name: counties.name,
-    path: counties.path,
-    description: counties.description,
-    churchCount: sql<number>`COUNT(${churches.id})`.as('churchCount'),
-  })
-    .from(counties)
-    .innerJoin(churches, sql`${counties.id} = ${churches.countyId} AND ${churches.status} IN ('Listed', 'Unlisted')`)
-    .groupBy(counties.id, counties.name, counties.path, counties.description)
-    .orderBy(counties.name)
-    .all();
-  
-  const totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
-  
-  return c.html(
-    <Layout currentPath="/">
-      <div class="bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Churches in Utah</h1>
-            <p class="mt-2 text-lg text-gray-600">
-              A directory of evangelical churches
-            </p>
-          </div>
-          
-          {/* Map Card */}
-          <div class="mb-8">
-            <a
-              href="/map"
-              class="block bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 p-8 text-white group"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="flex items-center mb-2">
-                    <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
-                  </div>
-                  <p class="text-primary-100">
-                    Explore an interactive map of churches in your area
-                  </p>
-                </div>
-                <svg class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </a>
-          </div>
-          
-          {/* Counties Grid */}
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Browse by County</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {countiesWithChurches.map((county) => (
-                <a
-                  href={`/counties/${county.path || county.id}`}
-                  class="group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
-                >
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <h3 class="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                        {county.name}
-                      </h3>
-                      <p class="mt-1 text-sm text-gray-500">
-                        {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
-                      </p>
-                    </div>
-                    <svg class="h-5 w-5 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                  {county.description && (
-                    <p class="mt-2 text-sm text-gray-600 line-clamp-2">
-                      {county.description}
-                    </p>
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <footer class="bg-white border-t border-gray-200 mt-auto">
+    const countiesWithChurches = await db
+      .select({
+        id: counties.id,
+        name: counties.name,
+        path: counties.path,
+        description: counties.description,
+        churchCount: sql<number>`COUNT(${churches.id})`.as('churchCount'),
+      })
+      .from(counties)
+      .innerJoin(churches, sql`${counties.id} = ${churches.countyId} AND ${churches.status} IN ('Listed', 'Unlisted')`)
+      .groupBy(counties.id, counties.name, counties.path, counties.description)
+      .orderBy(counties.name)
+      .all();
+
+    const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
+
+    return c.html(
+      <Layout currentPath="/">
+        <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-              <div class="text-gray-600 text-sm text-center sm:text-left">
-                <p class="italic">"Peace be to you. The friends greet you.</p>
-                <p class="italic">Greet the friends, each by name."</p>
-                <p class="mt-1 text-gray-500">– 3 John 1:15</p>
-              </div>
+            {/* Header */}
+            <div class="mb-8">
+              <h1 class="text-3xl font-bold text-gray-900">Churches in Utah</h1>
+              <p class="mt-2 text-lg text-gray-600">A directory of evangelical churches</p>
+            </div>
+
+            {/* Map Card */}
+            <div class="mb-8">
               <a
-                href="/data"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                href="/map"
+                class="block bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 p-8 text-white group"
               >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Data
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="flex items-center mb-2">
+                      <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
+                    </div>
+                    <p class="text-primary-100">Explore an interactive map of churches in your area</p>
+                  </div>
+                  <svg
+                    class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </a>
             </div>
+
+            {/* Counties Grid */}
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Browse by County</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {countiesWithChurches.map((county) => (
+                  <a
+                    href={`/counties/${county.path || county.id}`}
+                    class="group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div>
+                        <h3 class="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                          {county.name}
+                        </h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                          {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
+                        </p>
+                      </div>
+                      <svg
+                        class="h-5 w-5 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                    {county.description && <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>}
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
-        </footer>
-      </div>
-    </Layout>
-  );
+
+          {/* Footer */}
+          <footer class="bg-white border-t border-gray-200 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div class="text-gray-600 text-sm text-center sm:text-left">
+                  <p class="italic">"Peace be to you. The friends greet you.</p>
+                  <p class="italic">Greet the friends, each by name."</p>
+                  <p class="mt-1 text-gray-500">– 3 John 1:15</p>
+                </div>
+                <a
+                  href="/data"
+                  class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Data
+                </a>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </Layout>
+    );
   } catch (error) {
     console.error('Error loading home page:', error);
     return c.html(
       <Layout title="Error - Utah Churches">
-        <ErrorPage 
-          error={error.message || 'Failed to load churches'} 
-          statusCode={500}
-        />
+        <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
       </Layout>,
       500
     );
@@ -199,13 +200,10 @@ app.get('/', async (c) => {
 app.get('/counties/:path', async (c) => {
   const db = createDb(c.env);
   const countyPath = c.req.param('path');
-  
+
   // Get county by path
-  const county = await db.select()
-    .from(counties)
-    .where(eq(counties.path, countyPath))
-    .get();
-  
+  const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
+
   if (!county) {
     return c.html(
       <Layout title="Page Not Found - Utah Churches">
@@ -214,27 +212,28 @@ app.get('/counties/:path', async (c) => {
       404
     );
   }
-  
+
   // Get all churches in this county (excluding heretical)
-  const countyChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    gatheringAddress: churches.gatheringAddress,
-    website: churches.website,
-    language: churches.language,
-    publicNotes: churches.publicNotes,
-  })
+  const countyChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      gatheringAddress: churches.gatheringAddress,
+      website: churches.website,
+      language: churches.language,
+      publicNotes: churches.publicNotes,
+    })
     .from(churches)
     .where(sql`${churches.countyId} = ${county.id} AND ${churches.status} != 'Heretical'`)
     .orderBy(churches.name)
     .all();
-  
+
   // Separate listed and unlisted churches
-  const listedChurches = countyChurches.filter(c => c.status === 'Listed');
-  const unlistedChurches = countyChurches.filter(c => c.status === 'Unlisted');
-  
+  const listedChurches = countyChurches.filter((c) => c.status === 'Listed');
+  const unlistedChurches = countyChurches.filter((c) => c.status === 'Unlisted');
+
   return c.html(
     <Layout title={`${county.name} Churches - Utah Churches`}>
       <div class="min-h-screen">
@@ -259,11 +258,10 @@ app.get('/counties/:path', async (c) => {
                       </li>
                     </ol>
                   </nav>
-                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
-                    Churches in {county.name}
-                  </h1>
+                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">{county.name}</h1>
                   <p class="mt-4 text-xl text-primary-100">
-                    {listedChurches.length + unlistedChurches.length} {(listedChurches.length + unlistedChurches.length) === 1 ? 'church' : 'churches'}
+                    {listedChurches.length + unlistedChurches.length}{' '}
+                    {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'}
                   </p>
                 </div>
               </div>
@@ -273,11 +271,15 @@ app.get('/counties/:path', async (c) => {
 
         {/* Churches Grid */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          
           {listedChurches.length === 0 && unlistedChurches.length === 0 ? (
             <div class="text-center py-12">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <h3 class="mt-2 text-sm font-medium text-gray-900">No churches found</h3>
               <p class="mt-1 text-sm text-gray-500">No churches have been added to this county yet.</p>
@@ -295,7 +297,7 @@ app.get('/counties/:path', async (c) => {
                   <ChurchCard church={church} />
                 </div>
               ))}
-              
+
               {/* Unlisted Churches (hidden by default unless no listed churches) */}
               {unlistedChurches.map((church) => (
                 <div class={`church-card unlisted-church ${listedChurches.length > 0 ? 'hidden' : ''}`}>
@@ -304,7 +306,7 @@ app.get('/counties/:path', async (c) => {
               ))}
             </div>
           )}
-          
+
           {/* Show unlisted checkbox - moved to bottom */}
           {unlistedChurches.length > 0 && (
             <div class="mt-8 text-center">
@@ -323,10 +325,11 @@ app.get('/counties/:path', async (c) => {
           )}
         </div>
       </div>
-      
+
       {/* JavaScript for toggling unlisted churches */}
-      <script dangerouslySetInnerHTML={{
-        __html: `
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           function toggleUnlisted() {
             const checkbox = document.getElementById('show-unlisted');
             const unlistedChurches = document.querySelectorAll('.unlisted-church');
@@ -339,8 +342,9 @@ app.get('/counties/:path', async (c) => {
               }
             });
           }
-        `
-      }} />
+        `,
+        }}
+      />
     </Layout>
   );
 });
@@ -349,40 +353,45 @@ app.get('/api/churches', async (c) => {
   const db = createDb(c.env);
   const limit = Number(c.req.query('limit')) || 20;
   const offset = Number(c.req.query('offset')) || 0;
-  
+
   const allChurches = await db.select().from(churches).limit(limit).offset(offset);
-  
+
   return c.json({
     churches: allChurches,
     limit,
-    offset
+    offset,
   });
 });
 
 app.get('/api/churches/:id', async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  
-  const church = await db.select().from(churches).where(eq(churches.id, Number(id))).get();
-  
+
+  const church = await db
+    .select()
+    .from(churches)
+    .where(eq(churches.id, Number(id)))
+    .get();
+
   if (!church) {
     return c.json({ error: 'Church not found' }, 404);
   }
-  
+
   return c.json(church);
 });
 
 app.get('/networks', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all listed affiliations with church count
-  const listedAffiliations = await db.select({
-    id: affiliations.id,
-    name: affiliations.name,
-    website: affiliations.website,
-    publicNotes: affiliations.publicNotes,
-    churchCount: sql<number>`COUNT(DISTINCT ${churchAffiliations.churchId})`.as('churchCount')
-  })
+  const listedAffiliations = await db
+    .select({
+      id: affiliations.id,
+      name: affiliations.name,
+      website: affiliations.website,
+      publicNotes: affiliations.publicNotes,
+      churchCount: sql<number>`COUNT(DISTINCT ${churchAffiliations.churchId})`.as('churchCount'),
+    })
     .from(affiliations)
     .leftJoin(churchAffiliations, eq(affiliations.id, churchAffiliations.affiliationId))
     .where(eq(affiliations.status, 'Listed'))
@@ -390,7 +399,7 @@ app.get('/networks', async (c) => {
     .having(sql`COUNT(DISTINCT ${churchAffiliations.churchId}) > 0`)
     .orderBy(affiliations.name)
     .all();
-  
+
   return c.html(
     <Layout title="Church Networks - Utah Churches" currentPath="/networks">
       <div class="bg-gray-50">
@@ -400,7 +409,7 @@ app.get('/networks', async (c) => {
             <h1 class="text-3xl font-bold text-gray-900">Church Networks</h1>
             <p class="mt-2 text-lg text-gray-600">Denominations and affiliations represented in Utah</p>
           </div>
-          
+
           {/* Affiliations Grid */}
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
             <ul class="divide-y divide-gray-200">
@@ -419,27 +428,42 @@ app.get('/networks', async (c) => {
                             {affiliation.name} ({affiliation.churchCount})
                           </a>
                         ) : (
-                          <span>{affiliation.name} ({affiliation.churchCount})</span>
+                          <span>
+                            {affiliation.name} ({affiliation.churchCount})
+                          </span>
                         )}
                       </h3>
-                      {affiliation.publicNotes && (
-                        <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>
-                      )}
+                      {affiliation.publicNotes && <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>}
                     </div>
                     {affiliation.website && (
-                      <svg class="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <svg
+                        class="h-5 w-5 text-gray-400 flex-shrink-0 ml-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
                       </svg>
                     )}
                   </div>
                 </li>
               ))}
             </ul>
-            
+
             {listedAffiliations.length === 0 && (
               <div class="text-center py-12">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
                 </svg>
                 <h3 class="mt-2 text-sm font-semibold text-gray-900">No networks available</h3>
                 <p class="mt-1 text-sm text-gray-500">Check back later for church network information.</p>
@@ -447,7 +471,7 @@ app.get('/networks', async (c) => {
             )}
           </div>
         </div>
-        
+
         {/* Footer */}
         <footer class="bg-white border-t border-gray-200 mt-auto">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -462,7 +486,12 @@ app.get('/networks', async (c) => {
                 class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
                 Data
               </a>
@@ -477,14 +506,14 @@ app.get('/networks', async (c) => {
 app.get('/churches/:path', async (c) => {
   const db = createDb(c.env);
   const churchPath = c.req.param('path');
-  
+
   // Check for admin session (optional)
   const sessionId = getCookie(c, 'session');
   let user = null;
   if (sessionId) {
     user = await validateSession(sessionId, c.env);
   }
-  
+
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
     // Remove protocol
@@ -495,117 +524,116 @@ app.get('/churches/:path', async (c) => {
     displayUrl = displayUrl.replace(/\/$/, '');
     // Truncate if too long
     if (displayUrl.length > maxLength) {
-      return displayUrl.substring(0, maxLength) + '...';
+      return `${displayUrl.substring(0, maxLength)}...`;
     }
     return displayUrl;
-  }
-  
+  };
+
   // Helper function to format phone numbers
   const formatPhoneNumber = (phone: string): string => {
     // Remove all non-digit characters
     const digits = phone.replace(/\D/g, '');
-    
+
     // Check if it's a 10-digit US phone number
     if (digits.length === 10) {
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-    
+
     // Return original if not a standard 10-digit number
     return phone;
-  }
-  
+  };
+
   // Get church by path with county and affiliations
-  const church = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    publicNotes: churches.publicNotes,
-    privateNotes: churches.privateNotes,
-    lastUpdated: churches.lastUpdated,
-    gatheringAddress: churches.gatheringAddress,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    countyId: churches.countyId,
-    countyName: counties.name,
-    countyPath: counties.path,
-    website: churches.website,
-    statementOfFaith: churches.statementOfFaith,
-    phone: churches.phone,
-    email: churches.email,
-    facebook: churches.facebook,
-    instagram: churches.instagram,
-    youtube: churches.youtube,
-    spotify: churches.spotify,
-  })
+  const church = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      publicNotes: churches.publicNotes,
+      privateNotes: churches.privateNotes,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      countyId: churches.countyId,
+      countyName: counties.name,
+      countyPath: counties.path,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(eq(churches.path, churchPath))
     .get();
-  
+
   if (!church) {
     return c.notFound();
   }
-  
+
   // Get church affiliations
-  const churchAffiliationsList = await db.select({
-    name: affiliations.name,
-    website: affiliations.website,
-  })
+  const churchAffiliationsList = await db
+    .select({
+      name: affiliations.name,
+      website: affiliations.website,
+    })
     .from(churchAffiliations)
     .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
     .where(eq(churchAffiliations.churchId, church.id))
     .orderBy(churchAffiliations.order)
     .all();
-  
+
   // Get church gatherings
-  const churchGatheringsList = await db.select()
+  const churchGatheringsList = await db
+    .select()
     .from(churchGatherings)
     .where(eq(churchGatherings.churchId, church.id))
     .orderBy(churchGatherings.id)
     .all();
-  
+
   // Build JSON-LD structured data
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Church",
-    "name": church.name,
+    '@context': 'https://schema.org',
+    '@type': 'Church',
+    name: church.name,
     ...(church.gatheringAddress && {
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": church.gatheringAddress,
-        "addressLocality": church.countyName ? church.countyName.replace(' County', '') : undefined,
-        "addressRegion": "UT",
-        "addressCountry": "US"
-      }
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: church.gatheringAddress,
+        addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
+        addressRegion: 'UT',
+        addressCountry: 'US',
+      },
     }),
-    ...(church.latitude && church.longitude && {
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": church.latitude,
-        "longitude": church.longitude
-      }
-    }),
-    ...(church.phone && { "telephone": church.phone }),
-    ...(church.email && { "email": church.email }),
-    ...(church.website && { "url": church.website }),
+    ...(church.latitude &&
+      church.longitude && {
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: church.latitude,
+          longitude: church.longitude,
+        },
+      }),
+    ...(church.phone && { telephone: church.phone }),
+    ...(church.email && { email: church.email }),
+    ...(church.website && { url: church.website }),
     ...(churchGatheringsList.length > 0 && {
-      "openingHours": churchGatheringsList.map(g => g.time).join(', ')
+      openingHours: churchGatheringsList.map((g) => g.time).join(', '),
     }),
-    ...(church.publicNotes && { "description": church.publicNotes }),
+    ...(church.publicNotes && { description: church.publicNotes }),
     ...(churchAffiliationsList.length > 0 && {
-      "memberOf": churchAffiliationsList.map(a => ({
-        "@type": "Organization",
-        "name": a.name,
-        ...(a.website && { "url": a.website })
-      }))
+      memberOf: churchAffiliationsList.map((a) => ({
+        '@type': 'Organization',
+        name: a.name,
+        ...(a.website && { url: a.website }),
+      })),
     }),
-    "sameAs": [
-      church.facebook,
-      church.instagram,
-      church.youtube,
-      church.spotify
-    ].filter(Boolean)
+    sameAs: [church.facebook, church.instagram, church.youtube, church.spotify].filter(Boolean),
   };
 
   return c.html(
@@ -630,7 +658,10 @@ app.get('/churches/:path', async (c) => {
                             <span class="mx-2 text-primary-300">/</span>
                           </li>
                           <li>
-                            <a href={`/counties/${church.countyPath}`} class="text-primary-200 hover:text-white transition-colors">
+                            <a
+                              href={`/counties/${church.countyPath}`}
+                              class="text-primary-200 hover:text-white transition-colors"
+                            >
                               {church.countyName}
                             </a>
                           </li>
@@ -644,16 +675,18 @@ app.get('/churches/:path', async (c) => {
                       </li>
                     </ol>
                   </nav>
-                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
-                    {church.name}
-                  </h1>
+                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
                   {church.status && church.status !== 'Listed' && (
                     <div class="mt-4">
-                      <span class={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${
-                        church.status === 'Unlisted' ? 'bg-primary-800 text-primary-100' :
-                        church.status === 'Heretical' ? 'bg-red-100 text-red-800' :
-                        'bg-primary-800 text-primary-100'
-                      }`}>
+                      <span
+                        class={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${
+                          church.status === 'Unlisted'
+                            ? 'bg-primary-800 text-primary-100'
+                            : church.status === 'Heretical'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-primary-800 text-primary-100'
+                        }`}
+                      >
                         {church.status}
                       </span>
                     </div>
@@ -663,7 +696,7 @@ app.get('/churches/:path', async (c) => {
             </div>
           </div>
         </div>
-        
+
         {/* Church Content */}
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -671,185 +704,219 @@ app.get('/churches/:path', async (c) => {
               <div class="p-6 sm:p-8">
                 {/* Church Details Grid */}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  {church.gatheringAddress && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Address</h3>
-                      <p class="mt-1 text-sm text-gray-900">{church.gatheringAddress}</p>
-                      {church.latitude && church.longitude && (
-                        <div class="flex flex-col gap-1 mt-1">
-                          <a 
-                            href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-                          >
-                            View on Google Maps
-                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
-                          <a 
-                            href={`https://maps.apple.com/?ll=${church.latitude},${church.longitude}&q=${encodeURIComponent(church.name)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
-                          >
-                            View on Apple Maps
-                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {churchGatheringsList.length > 0 && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Services</h3>
-                      <div class="mt-1 space-y-1">
-                        {churchGatheringsList.map(gathering => (
-                          <div class="text-sm text-gray-900">
-                            <span class="font-medium">{gathering.time}</span>
-                            {gathering.notes && (
-                              <span class="text-gray-600"> – {gathering.notes}</span>
-                            )}
+                  <div class="space-y-4">
+                    {church.gatheringAddress && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Address</h3>
+                        <p class="mt-1 text-sm text-gray-900">{church.gatheringAddress}</p>
+                        {church.latitude && church.longitude && (
+                          <div class="flex flex-col gap-1 mt-1">
+                            <a
+                              href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                            >
+                              View on Google Maps
+                              <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
+                            <a
+                              href={`https://maps.apple.com/?ll=${church.latitude},${church.longitude}&q=${encodeURIComponent(church.name)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                            >
+                              View on Apple Maps
+                              <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                            </a>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {church.phone && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Phone</h3>
-                      <a href={`tel:${church.phone}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
-                        {formatPhoneNumber(church.phone)}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {church.email && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Email</h3>
-                      <a href={`mailto:${church.email}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
-                        {church.email}
-                      </a>
-                    </div>
-                  )}
-                </div>
-                
-                <div class="space-y-4">
-                  {church.website && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Website</h3>
-                      <a 
-                        href={church.website} 
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
-                      >
-                        {formatUrlForDisplay(church.website)}
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    </div>
-                  )}
-                  
-                  {church.statementOfFaith && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Statement of Faith</h3>
-                      <a 
-                        href={church.statementOfFaith} 
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
-                      >
-                        {formatUrlForDisplay(church.statementOfFaith)}
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    </div>
-                  )}
-                  
-                  {/* Social Media Links */}
-                  {(church.facebook || church.instagram || church.youtube || church.spotify) && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Social Media</h3>
-                      <div class="flex space-x-3 mt-1">
-                        {church.facebook && (
-                          <a href={church.facebook} rel="noopener noreferrer" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Facebook</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
-                            </svg>
-                          </a>
-                        )}
-                        {church.instagram && (
-                          <a href={church.instagram} rel="noopener noreferrer" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Instagram</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z"/>
-                            </svg>
-                          </a>
-                        )}
-                        {church.youtube && (
-                          <a href={church.youtube} rel="noopener noreferrer" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">YouTube</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                            </svg>
-                          </a>
-                        )}
-                        {church.spotify && (
-                          <a href={church.spotify} rel="noopener noreferrer" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Spotify</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                            </svg>
-                          </a>
                         )}
                       </div>
-                    </div>
-                  )}
-                  
-                  {churchAffiliationsList.length > 0 && (
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500">Affiliations</h3>
-                      <ul class="mt-1 space-y-1">
-                        {churchAffiliationsList.map((affiliation) => (
-                          <li class="text-sm">
-                            {affiliation.website ? (
-                              <a 
-                                href={affiliation.website} 
-                                rel="noopener noreferrer"
-                                class="text-primary-600 hover:text-primary-500"
-                              >
-                                {affiliation.name}
-                              </a>
-                            ) : (
-                              <span class="text-gray-900">{affiliation.name}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                    )}
+
+                    {churchGatheringsList.length > 0 && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Services</h3>
+                        <div class="mt-1 space-y-1">
+                          {churchGatheringsList.map((gathering) => (
+                            <div class="text-sm text-gray-900">
+                              <span class="font-medium">{gathering.time}</span>
+                              {gathering.notes && <span class="text-gray-600"> – {gathering.notes}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {church.phone && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Phone</h3>
+                        <a href={`tel:${church.phone}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
+                          {formatPhoneNumber(church.phone)}
+                        </a>
+                      </div>
+                    )}
+
+                    {church.email && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Email</h3>
+                        <a href={`mailto:${church.email}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
+                          {church.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div class="space-y-4">
+                    {church.website && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Website</h3>
+                        <a
+                          href={church.website}
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
+                        >
+                          {formatUrlForDisplay(church.website)}
+                          <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      </div>
+                    )}
+
+                    {church.statementOfFaith && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Statement of Faith</h3>
+                        <a
+                          href={church.statementOfFaith}
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center mt-1 text-sm text-primary-600 hover:text-primary-500"
+                        >
+                          {formatUrlForDisplay(church.statementOfFaith)}
+                          <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Social Media Links */}
+                    {(church.facebook || church.instagram || church.youtube || church.spotify) && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Social Media</h3>
+                        <div class="flex space-x-3 mt-1">
+                          {church.facebook && (
+                            <a
+                              href={church.facebook}
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-500"
+                            >
+                              <span class="sr-only">Facebook</span>
+                              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+                              </svg>
+                            </a>
+                          )}
+                          {church.instagram && (
+                            <a
+                              href={church.instagram}
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-500"
+                            >
+                              <span class="sr-only">Instagram</span>
+                              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" />
+                              </svg>
+                            </a>
+                          )}
+                          {church.youtube && (
+                            <a
+                              href={church.youtube}
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-500"
+                            >
+                              <span class="sr-only">YouTube</span>
+                              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                              </svg>
+                            </a>
+                          )}
+                          {church.spotify && (
+                            <a
+                              href={church.spotify}
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-500"
+                            >
+                              <span class="sr-only">Spotify</span>
+                              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {churchAffiliationsList.length > 0 && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-500">Affiliations</h3>
+                        <ul class="mt-1 space-y-1">
+                          {churchAffiliationsList.map((affiliation) => (
+                            <li class="text-sm">
+                              {affiliation.website ? (
+                                <a
+                                  href={affiliation.website}
+                                  rel="noopener noreferrer"
+                                  class="text-primary-600 hover:text-primary-500"
+                                >
+                                  {affiliation.name}
+                                </a>
+                              ) : (
+                                <span class="text-gray-900">{affiliation.name}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              {church.publicNotes && (
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                  <h3 class="text-sm font-medium text-gray-500 mb-2">Notes</h3>
-                  <p class="text-sm text-gray-700">{church.publicNotes}</p>
-                </div>
-              )}
+
+                {church.publicNotes && (
+                  <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Notes</h3>
+                    <p class="text-sm text-gray-700">{church.publicNotes}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Footer */}
         <footer class="bg-white border-t border-gray-200 mt-auto">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -866,7 +933,12 @@ app.get('/churches/:path', async (c) => {
                     class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
                   >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
                     </svg>
                     Edit
                   </a>
@@ -876,7 +948,12 @@ app.get('/churches/:path', async (c) => {
                   class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
                   </svg>
                   Data
                 </a>
@@ -891,30 +968,33 @@ app.get('/churches/:path', async (c) => {
 
 app.get('/map', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches with coordinates (excluding heretical)
-  const allChurchesWithCoords = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    gatheringAddress: churches.gatheringAddress,
-    countyName: counties.name,
-    website: churches.website,
-    status: churches.status,
-    language: churches.language,
-    publicNotes: churches.publicNotes,
-  })
+  const allChurchesWithCoords = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      gatheringAddress: churches.gatheringAddress,
+      countyName: counties.name,
+      website: churches.website,
+      status: churches.status,
+      language: churches.language,
+      publicNotes: churches.publicNotes,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`)
+    .where(
+      sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`
+    )
     .all();
-  
+
   // Separate listed and unlisted churches
-  const listedChurches = allChurchesWithCoords.filter(c => c.status === 'Listed');
-  const unlistedChurches = allChurchesWithCoords.filter(c => c.status === 'Unlisted');
-  
+  const listedChurches = allChurchesWithCoords.filter((c) => c.status === 'Listed');
+  const unlistedChurches = allChurchesWithCoords.filter((c) => c.status === 'Unlisted');
+
   return c.html(
     <Layout title="Church Map - Utah Churches" currentPath="/map">
       <div class="min-h-screen">
@@ -923,13 +1003,13 @@ app.get('/map', async (c) => {
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
             <div id="map" class="w-full h-[calc(100vh-180px)]"></div>
           </div>
-          
+
           <div class="mt-4 space-y-3">
             {/* Checkbox for unlisted churches */}
             <div class="bg-white border border-gray-200 rounded-lg p-3">
               <label class="flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   id="showUnlisted"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
@@ -938,18 +1018,24 @@ app.get('/map', async (c) => {
                 </span>
               </label>
             </div>
-            
+
             {/* Info box */}
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div class="flex">
                 <div class="flex-shrink-0">
                   <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div class="ml-3">
                   <p class="text-sm text-blue-800">
-                    <span id="church-count">{listedChurches.length}</span> churches shown. Click markers for details. Blue marker = your location.
+                    <span id="church-count">{listedChurches.length}</span> churches shown. Click markers for details.
+                    Blue marker = your location.
                   </p>
                 </div>
               </div>
@@ -957,9 +1043,10 @@ app.get('/map', async (c) => {
           </div>
         </div>
       </div>
-      
-      <script dangerouslySetInnerHTML={{
-        __html: `
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
         const listedChurches = ${JSON.stringify(listedChurches)};
         const unlistedChurches = ${JSON.stringify(unlistedChurches)};
         let listedMarkers = [];
@@ -1200,87 +1287,100 @@ app.get('/map', async (c) => {
         }
         
         window.initMap = initMap;
-        `
-      }} />
-      
-      <script async defer
-        src={`https://maps.googleapis.com/maps/api/js?key=${c.env.GOOGLE_MAPS_API_KEY}&callback=initMap&libraries=marker,geometry`}>
-      </script>
+        `,
+        }}
+      />
+
+      <script
+        async
+        defer
+        src={`https://maps.googleapis.com/maps/api/js?key=${c.env.GOOGLE_MAPS_API_KEY}&callback=initMap&libraries=marker,geometry`}
+      ></script>
     </Layout>
   );
 });
 
 app.get('/churches.json', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches with their public fields and county names (excluding heretical)
-  const allChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    lastUpdated: churches.lastUpdated,
-    gatheringAddress: churches.gatheringAddress,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    county: counties.name,
-    website: churches.website,
-    statementOfFaith: churches.statementOfFaith,
-    phone: churches.phone,
-    email: churches.email,
-    facebook: churches.facebook,
-    instagram: churches.instagram,
-    youtube: churches.youtube,
-    spotify: churches.spotify,
-    language: churches.language,
-    notes: churches.publicNotes,
-  })
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
-  
+
   // Get affiliations for each church
-  const churchIds = allChurches.map(c => c.id);
+  const churchIds = allChurches.map((c) => c.id);
   let churchAffiliationData = [];
-  
+
   if (churchIds.length > 0) {
-    churchAffiliationData = await db.select({
-      churchId: churchAffiliations.churchId,
-      affiliationId: churchAffiliations.affiliationId,
-      affiliationName: affiliations.name,
-      affiliationWebsite: affiliations.website,
-      affiliationPublicNotes: affiliations.publicNotes,
-      order: churchAffiliations.order,
-    })
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
+        order: churchAffiliations.order,
+      })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
       .orderBy(churchAffiliations.churchId, churchAffiliations.order)
       .all();
   }
-  
+
   // Group affiliations by church
-  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
-    if (!acc[item.churchId]) {
-      acc[item.churchId] = [];
-    }
-    acc[item.churchId].push({
-      id: item.affiliationId,
-      name: item.affiliationName,
-      website: item.affiliationWebsite,
-      notes: item.affiliationPublicNotes,
-    });
-    return acc;
-  }, {} as Record<number, any[]>);
-  
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push({
+        id: item.affiliationId,
+        name: item.affiliationName,
+        website: item.affiliationWebsite,
+        notes: item.affiliationPublicNotes,
+      });
+      return acc;
+    },
+    {} as Record<number, any[]>
+  );
+
   // Combine church data with affiliations
-  const churchesWithAffiliations = allChurches.map(church => ({
+  const churchesWithAffiliations = allChurches.map((church) => ({
     ...church,
     affiliations: affiliationsByChurch[church.id] || [],
   }));
-  
+
   return c.json({
     total: churchesWithAffiliations.length,
     churches: churchesWithAffiliations,
@@ -1289,70 +1389,80 @@ app.get('/churches.json', async (c) => {
 
 app.get('/churches.yaml', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches with their public fields and county names (excluding heretical)
-  const allChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    lastUpdated: churches.lastUpdated,
-    gatheringAddress: churches.gatheringAddress,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    county: counties.name,
-    website: churches.website,
-    statementOfFaith: churches.statementOfFaith,
-    phone: churches.phone,
-    email: churches.email,
-    facebook: churches.facebook,
-    instagram: churches.instagram,
-    youtube: churches.youtube,
-    spotify: churches.spotify,
-    language: churches.language,
-    notes: churches.publicNotes,
-  })
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
-  
+
   // Get affiliations for each church
-  const churchIds = allChurches.map(c => c.id);
+  const churchIds = allChurches.map((c) => c.id);
   let churchAffiliationData = [];
-  
+
   if (churchIds.length > 0) {
-    churchAffiliationData = await db.select({
-      churchId: churchAffiliations.churchId,
-      affiliationId: churchAffiliations.affiliationId,
-      affiliationName: affiliations.name,
-      affiliationWebsite: affiliations.website,
-      affiliationPublicNotes: affiliations.publicNotes,
-      order: churchAffiliations.order,
-    })
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
+        order: churchAffiliations.order,
+      })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
       .orderBy(churchAffiliations.churchId, churchAffiliations.order)
       .all();
   }
-  
+
   // Group affiliations by church
-  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
-    if (!acc[item.churchId]) {
-      acc[item.churchId] = [];
-    }
-    const affiliation: any = {
-      id: item.affiliationId,
-      name: item.affiliationName,
-    };
-    if (item.affiliationWebsite) affiliation.website = item.affiliationWebsite;
-    if (item.affiliationPublicNotes) affiliation.notes = item.affiliationPublicNotes;
-    acc[item.churchId].push(affiliation);
-    return acc;
-  }, {} as Record<number, any[]>);
-  
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      const affiliation: any = {
+        id: item.affiliationId,
+        name: item.affiliationName,
+      };
+      if (item.affiliationWebsite) affiliation.website = item.affiliationWebsite;
+      if (item.affiliationPublicNotes) affiliation.notes = item.affiliationPublicNotes;
+      acc[item.churchId].push(affiliation);
+      return acc;
+    },
+    {} as Record<number, any[]>
+  );
+
   // Helper function to remove null values from objects
   const removeNulls = (obj: any): any => {
     const cleaned: any = {};
@@ -1363,19 +1473,19 @@ app.get('/churches.yaml', async (c) => {
     }
     return cleaned;
   };
-  
+
   // Combine church data with affiliations and remove nulls
-  const churchesWithAffiliations = allChurches.map(church => {
+  const churchesWithAffiliations = allChurches.map((church) => {
     const cleanChurch = removeNulls(church);
     cleanChurch.affiliations = affiliationsByChurch[church.id] || [];
     return cleanChurch;
   });
-  
+
   const yamlData = yaml.dump({
     total: churchesWithAffiliations.length,
     churches: churchesWithAffiliations,
   });
-  
+
   return c.text(yamlData, 200, {
     'Content-Type': 'text/yaml',
   });
@@ -1383,60 +1493,70 @@ app.get('/churches.yaml', async (c) => {
 
 app.get('/churches.csv', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches with their public fields and county names (excluding heretical)
-  const allChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    lastUpdated: churches.lastUpdated,
-    gatheringAddress: churches.gatheringAddress,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    county: counties.name,
-    website: churches.website,
-    statementOfFaith: churches.statementOfFaith,
-    phone: churches.phone,
-    email: churches.email,
-    facebook: churches.facebook,
-    instagram: churches.instagram,
-    youtube: churches.youtube,
-    spotify: churches.spotify,
-    language: churches.language,
-    notes: churches.publicNotes,
-  })
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
-  
+
   // Get affiliations for each church
-  const churchIds = allChurches.map(c => c.id);
+  const churchIds = allChurches.map((c) => c.id);
   let churchAffiliationData = [];
-  
+
   if (churchIds.length > 0) {
-    churchAffiliationData = await db.select({
-      churchId: churchAffiliations.churchId,
-      affiliationName: affiliations.name,
-    })
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationName: affiliations.name,
+      })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
       .orderBy(churchAffiliations.churchId, churchAffiliations.order)
       .all();
   }
-  
+
   // Group affiliations by church
-  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
-    if (!acc[item.churchId]) {
-      acc[item.churchId] = [];
-    }
-    acc[item.churchId].push(item.affiliationName);
-    return acc;
-  }, {} as Record<number, string[]>);
-  
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push(item.affiliationName);
+      return acc;
+    },
+    {} as Record<number, string[]>
+  );
+
   // Helper function to escape CSV values
   const escapeCSV = (value: any): string => {
     if (value === null || value === undefined) return '';
@@ -1447,7 +1567,7 @@ app.get('/churches.csv', async (c) => {
     }
     return str;
   };
-  
+
   // Create CSV header
   const headers = [
     'Name',
@@ -1459,11 +1579,11 @@ app.get('/churches.csv', async (c) => {
     'Email',
     'Affiliations',
     'Notes',
-    'Last Updated'
+    'Last Updated',
   ];
-  
+
   // Create CSV rows
-  const rows = allChurches.map(church => {
+  const rows = allChurches.map((church) => {
     const affiliations = affiliationsByChurch[church.id]?.join('; ') || '';
     return [
       church.name,
@@ -1475,280 +1595,330 @@ app.get('/churches.csv', async (c) => {
       church.email || '',
       affiliations,
       church.notes || '',
-      church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : ''
+      church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : '',
     ].map(escapeCSV);
   });
-  
+
   // Combine header and rows
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n');
-  
+  const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
   return c.text(csvContent, 200, {
     'Content-Type': 'text/csv',
-    'Content-Disposition': 'attachment; filename="utah-churches.csv"'
+    'Content-Disposition': 'attachment; filename="utah-churches.csv"',
   });
 });
 
 app.get('/churches.xlsx', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches (excluding heretical)
-  const allChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    lastUpdated: churches.lastUpdated,
-    gatheringAddress: churches.gatheringAddress,
-    latitude: churches.latitude,
-    longitude: churches.longitude,
-    county: counties.name,
-    website: churches.website,
-    statementOfFaith: churches.statementOfFaith,
-    phone: churches.phone,
-    email: churches.email,
-    facebook: churches.facebook,
-    instagram: churches.instagram,
-    youtube: churches.youtube,
-    spotify: churches.spotify,
-    language: churches.language,
-    notes: churches.publicNotes,
-  })
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
+    })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
     .orderBy(churches.name)
     .all();
-  
+
   // Get all counties
-  const allCounties = await db.select({
-    name: counties.name,
-    path: counties.path,
-    description: counties.description,
-    population: counties.population,
-  })
+  const allCounties = await db
+    .select({
+      name: counties.name,
+      path: counties.path,
+      description: counties.description,
+      population: counties.population,
+    })
     .from(counties)
     .orderBy(counties.name)
     .all();
-  
+
   // Get all listed affiliations
-  const allAffiliations = await db.select({
-    name: affiliations.name,
-    status: affiliations.status,
-    website: affiliations.website,
-    publicNotes: affiliations.publicNotes,
-  })
+  const allAffiliations = await db
+    .select({
+      name: affiliations.name,
+      status: affiliations.status,
+      website: affiliations.website,
+      publicNotes: affiliations.publicNotes,
+    })
     .from(affiliations)
     .where(eq(affiliations.status, 'Listed'))
     .orderBy(affiliations.name)
     .all();
-  
+
   // Get affiliations for each church
-  const churchIds = allChurches.map(c => c.id);
+  const churchIds = allChurches.map((c) => c.id);
   let churchAffiliationData = [];
-  
+
   if (churchIds.length > 0) {
-    churchAffiliationData = await db.select({
-      churchId: churchAffiliations.churchId,
-      affiliationId: churchAffiliations.affiliationId,
-      affiliationName: affiliations.name,
-      order: churchAffiliations.order,
-    })
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        order: churchAffiliations.order,
+      })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
       .orderBy(churchAffiliations.churchId, churchAffiliations.order)
       .all();
   }
-  
+
   // Group affiliations by church
-  const affiliationsByChurch = churchAffiliationData.reduce((acc, item) => {
-    if (!acc[item.churchId]) {
-      acc[item.churchId] = [];
-    }
-    acc[item.churchId].push(item.affiliationName);
-    return acc;
-  }, {} as Record<number, string[]>);
-  
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push(item.affiliationName);
+      return acc;
+    },
+    {} as Record<number, string[]>
+  );
+
   // Prepare church data for Excel
-  const churchData = allChurches.map(church => ({
-    'Name': church.name,
-    'Status': church.status || '',
-    'Address': church.gatheringAddress || '',
-    'County': church.county || '',
-    'Website': church.website || '',
-    'Phone': church.phone || '',
-    'Email': church.email || '',
-    'Affiliations': affiliationsByChurch[church.id]?.join('; ') || '',
-    'Facebook': church.facebook || '',
-    'Instagram': church.instagram || '',
-    'YouTube': church.youtube || '',
-    'Spotify': church.spotify || '',
-    'Notes': church.notes || '',
-    'Last Updated': church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : ''
+  const churchData = allChurches.map((church) => ({
+    Name: church.name,
+    Status: church.status || '',
+    Address: church.gatheringAddress || '',
+    County: church.county || '',
+    Website: church.website || '',
+    Phone: church.phone || '',
+    Email: church.email || '',
+    Affiliations: affiliationsByChurch[church.id]?.join('; ') || '',
+    Facebook: church.facebook || '',
+    Instagram: church.instagram || '',
+    YouTube: church.youtube || '',
+    Spotify: church.spotify || '',
+    Notes: church.notes || '',
+    'Last Updated': church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : '',
   }));
-  
+
   // Create workbook
   const wb = XLSX.utils.book_new();
-  
+
   // Add Churches sheet
   const churchesWs = XLSX.utils.json_to_sheet(churchData);
   XLSX.utils.book_append_sheet(wb, churchesWs, 'Churches');
-  
+
   // Add Counties sheet
   const countiesWs = XLSX.utils.json_to_sheet(allCounties);
   XLSX.utils.book_append_sheet(wb, countiesWs, 'Counties');
-  
+
   // Add Affiliations sheet
   const affiliationsWs = XLSX.utils.json_to_sheet(allAffiliations);
   XLSX.utils.book_append_sheet(wb, affiliationsWs, 'Affiliations');
-  
+
   // Generate buffer
   const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-  
+
   return c.body(xlsxBuffer, 200, {
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition': 'attachment; filename="utah-churches.xlsx"'
+    'Content-Disposition': 'attachment; filename="utah-churches.xlsx"',
   });
 });
 
 app.get('/data', async (c) => {
   try {
     const db = createDb(c.env);
-    
+
     // Get count of churches (excluding heretical)
-    const churchCount = await db.select({
-      count: sql<number>`COUNT(*)`.as('count')
-    })
+    const churchCount = await db
+      .select({
+        count: sql<number>`COUNT(*)`.as('count'),
+      })
       .from(churches)
       .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
       .get();
-    
+
     return c.html(
-    <Layout title="Download Data - Utah Churches" currentPath="/data">
-      <div class="bg-gray-50 min-h-screen">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="px-6 py-8 sm:p-10">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">Download Church Data</h1>
-              <p class="text-lg text-gray-600 mb-8">
-                Export data for {churchCount?.count || 0} evangelical churches in various formats
-              </p>
-              
-              <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto">
-                {/* XLSX Download */}
-                <a
-                  href="/churches.xlsx"
-                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
-                >
-                  <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-3">
-                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <Layout title="Download Data - Utah Churches" currentPath="/data">
+        <div class="bg-gray-50 min-h-screen">
+          <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div class="px-6 py-8 sm:p-10">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Download Church Data</h1>
+                <p class="text-lg text-gray-600 mb-8">
+                  Export data for {churchCount?.count || 0} evangelical churches in various formats
+                </p>
+
+                <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto">
+                  {/* XLSX Download */}
+                  <a
+                    href="/churches.xlsx"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">Excel Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">
+                        Multi-sheet workbook with churches, counties, and affiliations
+                      </p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download XLSX
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* CSV Download */}
+                  <a
+                    href="/churches.csv"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">CSV Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Spreadsheet-compatible format with church details</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download CSV
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* JSON Download */}
+                  <a
+                    href="/churches.json"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">JSON Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Programmer-friendly format with complete data</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download JSON
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* YAML Download */}
+                  <a
+                    href="/churches.yaml"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">YAML Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Readable format for documentation and LLMs</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download YAML
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="mt-10 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-base font-semibold text-gray-900 mb-1">Excel Format</h3>
-                    <p class="text-xs text-gray-600 mb-3">
-                      Multi-sheet workbook with churches, counties, and affiliations
-                    </p>
-                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
-                      Download XLSX
-                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-                
-                {/* CSV Download */}
-                <a
-                  href="/churches.csv"
-                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
-                >
-                  <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-3">
-                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-gray-900 mb-1">CSV Format</h3>
-                    <p class="text-xs text-gray-600 mb-3">
-                      Spreadsheet-compatible format with church details
-                    </p>
-                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
-                      Download CSV
-                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-                
-                {/* JSON Download */}
-                <a
-                  href="/churches.json"
-                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
-                >
-                  <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-3">
-                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                      </svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-gray-900 mb-1">JSON Format</h3>
-                    <p class="text-xs text-gray-600 mb-3">
-                      Programmer-friendly format with complete data
-                    </p>
-                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
-                      Download JSON
-                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-                
-                {/* YAML Download */}
-                <a
-                  href="/churches.yaml"
-                  class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
-                >
-                  <div class="flex flex-col items-center text-center">
-                    <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-3">
-                      <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-gray-900 mb-1">YAML Format</h3>
-                    <p class="text-xs text-gray-600 mb-3">
-                      Readable format for documentation and LLMs
-                    </p>
-                    <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
-                      Download YAML
-                      <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-              </div>
-              
-              <div class="mt-10 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex">
-                  <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div class="ml-3">
-                    <h3 class="text-sm font-medium text-blue-800">About the data</h3>
-                    <div class="mt-2 text-sm text-blue-700">
-                      <ul class="list-disc list-inside space-y-1">
-                        <li>Data includes church details, locations, and affiliations</li>
-                        <li>Updated regularly as new churches are added</li>
-                      </ul>
+                    <div class="ml-3">
+                      <h3 class="text-sm font-medium text-blue-800">About the data</h3>
+                      <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                          <li>Data includes church details, locations, and affiliations</li>
+                          <li>Updated regularly as new churches are added</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1756,17 +1926,13 @@ app.get('/data', async (c) => {
             </div>
           </div>
         </div>
-      </div>
-    </Layout>
-  );
+      </Layout>
+    );
   } catch (error) {
     console.error('Error loading data page:', error);
     return c.html(
       <Layout title="Error - Utah Churches">
-        <ErrorPage 
-          error={error.message || 'Failed to load data'} 
-          statusCode={500}
-        />
+        <ErrorPage error={error.message || 'Failed to load data'} statusCode={500} />
       </Layout>,
       500
     );
@@ -1783,7 +1949,7 @@ app.get('/login', async (c) => {
       return c.redirect('/admin');
     }
   }
-  
+
   return c.html(
     <Layout title="Login - Utah Churches">
       <LoginForm />
@@ -1796,10 +1962,10 @@ app.post('/login', async (c) => {
   const body = await c.req.parseBody();
   const username = body.username as string;
   const password = body.password as string;
-  
+
   // Find user
   const user = await db.select().from(users).where(eq(users.username, username)).get();
-  
+
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return c.html(
       <Layout title="Login - Utah Churches">
@@ -1807,10 +1973,10 @@ app.post('/login', async (c) => {
       </Layout>
     );
   }
-  
+
   // Create session
   const sessionId = await createSession(user.id, c.env);
-  
+
   // Set cookie
   setCookie(c, 'session', sessionId, {
     httpOnly: true,
@@ -1818,19 +1984,19 @@ app.post('/login', async (c) => {
     sameSite: 'Lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });
-  
+
   // Always redirect to /admin after login
   return c.redirect('/admin');
 });
 
 app.get('/logout', async (c) => {
   const sessionId = getCookie(c, 'session');
-  
+
   if (sessionId) {
     await deleteSession(sessionId, c.env);
     deleteCookie(c, 'session');
   }
-  
+
   return c.redirect('/');
 });
 
@@ -1838,16 +2004,16 @@ app.get('/logout', async (c) => {
 app.get('/admin', adminMiddleware, async (c) => {
   const user = c.get('user');
   const db = createDb(c.env);
-  
+
   // Get statistics
   const allChurches = await db.select().from(churches).all();
   const allCounties = await db.select().from(counties).all();
-  const allAffiliations = await db.select().from(affiliations).all();
-  const allUsers = await db.select().from(users).all();
-  
-  const listedChurches = allChurches.filter(c => c.status === 'Listed').length;
-  const needsDataChurches = allChurches.filter(c => c.status === 'Needs data').length;
-  
+  const _allAffiliations = await db.select().from(affiliations).all();
+  const _allUsers = await db.select().from(users).all();
+
+  const listedChurches = allChurches.filter((c) => c.status === 'Listed').length;
+  const needsDataChurches = allChurches.filter((c) => c.status === 'Needs data').length;
+
   return c.html(
     <Layout title="Admin Dashboard - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -1855,12 +2021,10 @@ app.get('/admin', adminMiddleware, async (c) => {
           {/* Header */}
           <div class="md:flex md:items-center md:justify-between mb-8">
             <div class="flex-1 min-w-0">
-              <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Admin Dashboard
-              </h1>
+              <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
             </div>
           </div>
-          
+
           {/* Stats Grid */}
           <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             <div class="bg-white overflow-hidden shadow rounded-lg">
@@ -1868,7 +2032,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
@@ -1887,13 +2056,18 @@ app.get('/admin', adminMiddleware, async (c) => {
                 </div>
               </div>
             </div>
-            
+
             <div class="bg-white overflow-hidden shadow rounded-lg">
               <div class="p-5">
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
@@ -1910,13 +2084,18 @@ app.get('/admin', adminMiddleware, async (c) => {
                 </div>
               </div>
             </div>
-            
+
             <div class="bg-white overflow-hidden shadow rounded-lg">
               <div class="p-5">
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
@@ -1928,18 +2107,21 @@ app.get('/admin', adminMiddleware, async (c) => {
                 </div>
               </div>
               <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm text-gray-500">
-                  Churches requiring updates
-                </div>
+                <div class="text-sm text-gray-500">Churches requiring updates</div>
               </div>
             </div>
-            
+
             <div class="bg-white overflow-hidden shadow rounded-lg">
               <div class="p-5">
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                      />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
@@ -1959,7 +2141,7 @@ app.get('/admin', adminMiddleware, async (c) => {
               </div>
             </div>
           </div>
-          
+
           {/* Quick Actions */}
           <div class="bg-white shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -1972,7 +2154,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
                       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
                       </svg>
                     </span>
                   </div>
@@ -1981,17 +2168,18 @@ app.get('/admin', adminMiddleware, async (c) => {
                       <span class="absolute inset-0" aria-hidden="true"></span>
                       Churches
                     </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Add, edit, or remove church listings
-                    </p>
+                    <p class="mt-2 text-sm text-gray-500">Add, edit, or remove church listings</p>
                   </div>
-                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                     </svg>
                   </span>
                 </a>
-                
+
                 <a
                   href="/admin/affiliations"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -1999,7 +2187,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
                       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
                       </svg>
                     </span>
                   </div>
@@ -2008,17 +2201,18 @@ app.get('/admin', adminMiddleware, async (c) => {
                       <span class="absolute inset-0" aria-hidden="true"></span>
                       Affiliations
                     </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Manage denominations and networks
-                    </p>
+                    <p class="mt-2 text-sm text-gray-500">Manage denominations and networks</p>
                   </div>
-                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                     </svg>
                   </span>
                 </a>
-                
+
                 <a
                   href="/admin/counties"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -2026,7 +2220,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
                       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                        />
                       </svg>
                     </span>
                   </div>
@@ -2035,17 +2234,18 @@ app.get('/admin', adminMiddleware, async (c) => {
                       <span class="absolute inset-0" aria-hidden="true"></span>
                       Counties
                     </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Manage Utah county information
-                    </p>
+                    <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
                   </div>
-                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                     </svg>
                   </span>
                 </a>
-                
+
                 <a
                   href="/admin/users"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
@@ -2053,7 +2253,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
                       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
                       </svg>
                     </span>
                   </div>
@@ -2062,11 +2267,12 @@ app.get('/admin', adminMiddleware, async (c) => {
                       <span class="absolute inset-0" aria-hidden="true"></span>
                       Users
                     </h3>
-                    <p class="mt-2 text-sm text-gray-500">
-                      Manage admin access and permissions
-                    </p>
+                    <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
                   </div>
-                  <span class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400" aria-hidden="true">
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                     </svg>
@@ -2086,7 +2292,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const allUsers = await db.select().from(users).all();
-  
+
   return c.html(
     <Layout title="Manage Users - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2109,9 +2315,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                   </li>
                 </ol>
               </nav>
-              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Manage Users
-              </h1>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Manage Users</h1>
             </div>
             <div class="mt-4 flex md:mt-0 md:ml-4">
               <a
@@ -2119,25 +2323,39 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Add New User
               </a>
             </div>
           </div>
-          
+
           {/* Table */}
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     User
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Type
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Created
                   </th>
                   <th scope="col" class="relative px-6 py-3">
@@ -2155,11 +2373,11 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                       </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.userType === 'admin' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span
+                        class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.userType === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
                         {user.userType}
                       </span>
                     </td>
@@ -2172,7 +2390,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                       </a>
                       {user.username !== 'admin' && (
                         <form method="POST" action={`/admin/users/${user.id}/delete`} class="inline">
-                          <button 
+                          <button
                             type="submit"
                             class="text-red-600 hover:text-red-900"
                             onclick="return confirm('Are you sure you want to delete this user?')"
@@ -2207,21 +2425,21 @@ app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
 app.post('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  
+
   const username = body.username as string;
   const email = body.email as string;
   const password = body.password as string;
   const userType = body.userType as string;
-  
+
   // Check if username already exists
   const existing = await db.select().from(users).where(eq(users.username, username)).get();
   if (existing) {
     return c.html(
       <Layout title="Create User - Utah Churches">
         <div style="max-width: 600px; margin: 0 auto;">
-          <UserForm 
-            action="/admin/users" 
-            isNew={true} 
+          <UserForm
+            action="/admin/users"
+            isNew={true}
             error="Username already exists"
             user={{ username, email, userType }}
           />
@@ -2229,16 +2447,16 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
       </Layout>
     );
   }
-  
+
   // Hash password and create user
   const passwordHash = await bcrypt.hash(password, 10);
   await db.insert(users).values({
     username,
     email,
     passwordHash,
-    userType: userType as 'admin' | 'contributor'
+    userType: userType as 'admin' | 'contributor',
   });
-  
+
   return c.redirect('/admin/users');
 });
 
@@ -2246,22 +2464,23 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
 app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  const user = await db.select().from(users).where(eq(users.id, Number(id))).get();
-  
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, Number(id)))
+    .get();
+
   if (!user) {
     return c.redirect('/admin/users');
   }
-  
+
   // Check if this is the only admin user
   let isOnlyAdmin = false;
   if (user.userType === 'admin') {
-    const adminCount = await db.select()
-      .from(users)
-      .where(eq(users.userType, 'admin'))
-      .all();
+    const adminCount = await db.select().from(users).where(eq(users.userType, 'admin')).all();
     isOnlyAdmin = adminCount.length === 1;
   }
-  
+
   return c.html(
     <Layout title="Edit User - Utah Churches">
       <div style="max-width: 600px; margin: 0 auto;">
@@ -2275,44 +2494,46 @@ app.post('/admin/users/:id', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  
+
   const email = body.email as string;
   const userType = body.userType as string;
   const password = body.password as string;
-  
+
   // Get the current user
-  const currentUser = await db.select().from(users).where(eq(users.id, Number(id))).get();
+  const currentUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, Number(id)))
+    .get();
   if (!currentUser) {
     return c.redirect('/admin/users');
   }
-  
+
   // Check if trying to change the only admin to contributor
   if (currentUser.userType === 'admin' && userType !== 'admin') {
-    const adminCount = await db.select()
-      .from(users)
-      .where(eq(users.userType, 'admin'))
-      .all();
-    
+    const adminCount = await db.select().from(users).where(eq(users.userType, 'admin')).all();
+
     if (adminCount.length === 1) {
       // This is the only admin, don't allow changing to contributor
       return c.redirect('/admin/users');
     }
   }
-  
+
   const updateData: any = {
     email,
-    userType: userType as 'admin' | 'contributor'
+    userType: userType as 'admin' | 'contributor',
   };
-  
+
   // Only update password if provided
   if (password && password.length >= 6) {
     updateData.passwordHash = await bcrypt.hash(password, 10);
   }
-  
-  await db.update(users)
+
+  await db
+    .update(users)
     .set(updateData)
     .where(eq(users.id, Number(id)));
-  
+
   return c.redirect('/admin/users');
 });
 
@@ -2320,13 +2541,17 @@ app.post('/admin/users/:id', requireAdminMiddleware, async (c) => {
 app.post('/admin/users/:id/delete', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  
+
   // Don't allow deleting the admin user
-  const user = await db.select().from(users).where(eq(users.id, Number(id))).get();
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, Number(id)))
+    .get();
   if (user && user.username !== 'admin') {
     await db.delete(users).where(eq(users.id, Number(id)));
   }
-  
+
   return c.redirect('/admin/users');
 });
 
@@ -2334,31 +2559,29 @@ app.post('/admin/users/:id/delete', requireAdminMiddleware, async (c) => {
 app.get('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  
+
   // Get all affiliations first
-  const allAffiliations = await db.select()
-    .from(affiliations)
-    .orderBy(affiliations.name)
-    .all();
-  
+  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
+
   // Get church counts for each affiliation
-  const churchCounts = await db.select({
-    affiliationId: churchAffiliations.affiliationId,
-    count: sql<number>`count(*)`.as('count'),
-  })
+  const churchCounts = await db
+    .select({
+      affiliationId: churchAffiliations.affiliationId,
+      count: sql<number>`count(*)`.as('count'),
+    })
     .from(churchAffiliations)
     .groupBy(churchAffiliations.affiliationId)
     .all();
-  
+
   // Create a map of affiliation ID to church count
-  const countMap = new Map(churchCounts.map(c => [c.affiliationId, c.count]));
-  
+  const countMap = new Map(churchCounts.map((c) => [c.affiliationId, c.count]));
+
   // Add church counts to affiliations
-  const affiliationsWithCounts = allAffiliations.map(aff => ({
+  const affiliationsWithCounts = allAffiliations.map((aff) => ({
     ...aff,
     churchCount: countMap.get(aff.id) || 0,
   }));
-  
+
   return c.html(
     <Layout title="Manage Affiliations - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2391,13 +2614,18 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Add New Affiliation
               </a>
             </div>
           </div>
-          
+
           {/* Table */}
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
             <table class="min-w-full divide-y divide-gray-300">
@@ -2421,33 +2649,38 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                {affiliationsWithCounts.map((affiliation, index) => (
+                {affiliationsWithCounts.map((affiliation, _index) => (
                   <tr class="hover:bg-gray-50 transition-colors">
                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                       {affiliation.name} {affiliation.churchCount > 0 && `(${affiliation.churchCount})`}
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm">
-                      <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                        affiliation.status === 'Listed' ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                        affiliation.status === 'Unlisted' ? 'bg-gray-50 text-gray-600 ring-gray-500/10' :
-                        affiliation.status === 'Heretical' ? 'bg-red-50 text-red-700 ring-red-600/10' :
-                        'bg-green-50 text-green-700 ring-green-600/20' // Default to Listed if not set
-                      }`}>
+                      <span
+                        class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                          affiliation.status === 'Listed'
+                            ? 'bg-green-50 text-green-700 ring-green-600/20'
+                            : affiliation.status === 'Unlisted'
+                              ? 'bg-gray-50 text-gray-600 ring-gray-500/10'
+                              : affiliation.status === 'Heretical'
+                                ? 'bg-red-50 text-red-700 ring-red-600/10'
+                                : 'bg-green-50 text-green-700 ring-green-600/20' // Default to Listed if not set
+                        }`}
+                      >
                         {affiliation.status || 'Listed'}
                       </span>
                     </td>
                     <td class="px-3 py-4 text-sm text-gray-900">
                       {affiliation.website ? (
-                        <a 
-                          href={affiliation.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={affiliation.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           class="text-primary-600 hover:text-primary-900 underline underline-offset-2 block truncate max-w-xs"
                           title={affiliation.website}
                         >
                           {(() => {
                             const cleanUrl = affiliation.website.replace(/^https?:\/\//, '').replace(/\/$/, '');
-                            return cleanUrl.length > 40 ? cleanUrl.substring(0, 40) + '…' : cleanUrl;
+                            return cleanUrl.length > 40 ? `${cleanUrl.substring(0, 40)}…` : cleanUrl;
                           })()}
                         </a>
                       ) : (
@@ -2455,20 +2688,18 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                       )}
                     </td>
                     <td class="px-3 py-4 text-sm text-gray-600 max-w-md">
-                      <div class="break-words">
-                        {affiliation.publicNotes || <span class="text-gray-400">—</span>}
-                      </div>
+                      <div class="break-words">{affiliation.publicNotes || <span class="text-gray-400">—</span>}</div>
                     </td>
                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <a 
-                        href={`/admin/affiliations/${affiliation.id}/edit`} 
+                      <a
+                        href={`/admin/affiliations/${affiliation.id}/edit`}
                         class="text-primary-600 hover:text-primary-900 pr-2"
                       >
                         Edit<span class="sr-only">, {affiliation.name}</span>
                       </a>
                       <span class="text-gray-300">|</span>
                       <form method="POST" action={`/admin/affiliations/${affiliation.id}/delete`} class="inline">
-                        <button 
+                        <button
                           type="submit"
                           class="text-red-600 hover:text-red-900 pl-2"
                           onclick="return confirm('Are you sure you want to delete this affiliation?')"
@@ -2484,7 +2715,12 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
             {affiliationsWithCounts.length === 0 && (
               <div class="text-center py-12">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
                 </svg>
                 <h3 class="mt-2 text-sm font-semibold text-gray-900">No affiliations</h3>
                 <p class="mt-1 text-sm text-gray-500">Get started by creating a new affiliation.</p>
@@ -2528,13 +2764,13 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
-  
+
   const name = body.name as string;
   const status = body.status as string;
   const website = body.website as string;
   const publicNotes = body.publicNotes as string;
   const privateNotes = body.privateNotes as string;
-  
+
   // Check if name already exists
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
   if (existing) {
@@ -2543,9 +2779,9 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
         <div class="min-h-screen bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
-              <AffiliationForm 
-                action="/admin/affiliations" 
-                isNew={true} 
+              <AffiliationForm
+                action="/admin/affiliations"
+                isNew={true}
                 error="An affiliation with this name already exists"
                 affiliation={{ name, status, website, publicNotes, privateNotes }}
               />
@@ -2555,7 +2791,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
       </Layout>
     );
   }
-  
+
   await db.insert(affiliations).values({
     name,
     status: status as 'Listed' | 'Unlisted' | 'Heretical',
@@ -2563,7 +2799,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
     publicNotes: publicNotes || null,
     privateNotes: privateNotes || null,
   });
-  
+
   return c.redirect('/admin/affiliations');
 });
 
@@ -2572,12 +2808,16 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
-  const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, Number(id))).get();
-  
+  const affiliation = await db
+    .select()
+    .from(affiliations)
+    .where(eq(affiliations.id, Number(id)))
+    .get();
+
   if (!affiliation) {
     return c.redirect('/admin/affiliations');
   }
-  
+
   return c.html(
     <Layout title="Edit Affiliation - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50 py-8">
@@ -2595,14 +2835,15 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  
+
   const name = body.name as string;
   const status = body.status as string;
   const website = body.website as string;
   const publicNotes = body.publicNotes as string;
   const privateNotes = body.privateNotes as string;
-  
-  await db.update(affiliations)
+
+  await db
+    .update(affiliations)
     .set({
       name,
       status: status as 'Listed' | 'Unlisted' | 'Heretical',
@@ -2612,7 +2853,7 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
       updatedAt: new Date(),
     })
     .where(eq(affiliations.id, Number(id)));
-  
+
   return c.redirect('/admin/affiliations');
 });
 
@@ -2620,10 +2861,10 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
 app.post('/admin/affiliations/:id/delete', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  
+
   // TODO: Check if any churches are using this affiliation before deleting
   await db.delete(affiliations).where(eq(affiliations.id, Number(id)));
-  
+
   return c.redirect('/admin/affiliations');
 });
 
@@ -2632,33 +2873,35 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const user = c.get('user');
-    const allChurches = await db.select({
-    id: churches.id,
-    name: churches.name,
-    path: churches.path,
-    status: churches.status,
-    gatheringAddress: churches.gatheringAddress,
-    countyName: counties.name,
-  })
-    .from(churches)
-    .leftJoin(counties, eq(churches.countyId, counties.id))
-    .orderBy(churches.name)
-    .all();
-  
-  const statusStyles: Record<string, string> = {
-    'Listed': 'bg-green-50 text-green-700 ring-green-600/20',
-    'Ready to list': 'bg-blue-50 text-blue-700 ring-blue-600/20',
-    'Assess': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-    'Needs data': 'bg-orange-50 text-orange-700 ring-orange-600/20',
-    'Unlisted': 'bg-gray-50 text-gray-700 ring-gray-600/20',
-    'Heretical': 'bg-red-50 text-red-700 ring-red-600/20',
-    'Closed': 'bg-gray-800 text-white ring-gray-800',
-  };
-  
-  return c.html(
-    <Layout title="Manage Churches - Utah Churches" user={user}>
-      <style dangerouslySetInnerHTML={{
-        __html: `
+    const allChurches = await db
+      .select({
+        id: churches.id,
+        name: churches.name,
+        path: churches.path,
+        status: churches.status,
+        gatheringAddress: churches.gatheringAddress,
+        countyName: counties.name,
+      })
+      .from(churches)
+      .leftJoin(counties, eq(churches.countyId, counties.id))
+      .orderBy(churches.name)
+      .all();
+
+    const statusStyles: Record<string, string> = {
+      Listed: 'bg-green-50 text-green-700 ring-green-600/20',
+      'Ready to list': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+      Assess: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
+      'Needs data': 'bg-orange-50 text-orange-700 ring-orange-600/20',
+      Unlisted: 'bg-gray-50 text-gray-700 ring-gray-600/20',
+      Heretical: 'bg-red-50 text-red-700 ring-red-600/20',
+      Closed: 'bg-gray-800 text-white ring-gray-800',
+    };
+
+    return c.html(
+      <Layout title="Manage Churches - Utah Churches" user={user}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -2666,102 +2909,121 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
           .animate-spin {
             animation: spin 1s linear infinite;
           }
-        `
-      }} />
-      <div class="min-h-screen bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div class="md:flex md:items-center md:justify-between mb-8">
-            <div class="flex-1 min-w-0">
-              <nav class="flex" aria-label="Breadcrumb">
-                <ol class="flex items-center space-x-2">
-                  <li>
-                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
-                      Admin
-                    </a>
-                  </li>
-                  <li>
-                    <span class="mx-2 text-gray-400">/</span>
-                  </li>
-                  <li>
-                    <span class="text-gray-900">Churches</span>
-                  </li>
-                </ol>
-              </nav>
-              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Manage Churches
-              </h1>
-            </div>
-            <div class="mt-4 flex md:mt-0 md:ml-4">
-              <a
-                href="/admin/churches/new"
-                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Church
-              </a>
-            </div>
-          </div>
-          
-          {/* Table */}
-          <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Church
-                  </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th scope="col" class="relative px-6 py-3">
-                    <span class="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                {allChurches.map((church) => (
-                  <tr class="hover:bg-gray-50 transition-all duration-300" id={`church-row-${church.id}`}>
-                    <td class="px-6 py-4">
-                      <div>
-                        <div class="text-sm font-medium text-gray-900 church-name">{church.name}</div>
-                        {church.path && (
-                          <div class="text-sm text-gray-500">/{church.path}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      {church.status ? (
-                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyles[church.status] || ''}`}>
-                          {church.status}
-                        </span>
-                      ) : (
-                        <span class="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td class="px-6 py-4">
-                      <div class="text-sm text-gray-900">
-                        {church.gatheringAddress || <span class="text-gray-400">No address</span>}
-                      </div>
-                      {church.countyName && (
-                        <div class="text-sm text-gray-500">{church.countyName} County</div>
-                      )}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/admin/churches/${church.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
-                        Edit
+        `,
+          }}
+        />
+        <div class="min-h-screen bg-gray-50">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header */}
+            <div class="md:flex md:items-center md:justify-between mb-8">
+              <div class="flex-1 min-w-0">
+                <nav class="flex" aria-label="Breadcrumb">
+                  <ol class="flex items-center space-x-2">
+                    <li>
+                      <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                        Admin
                       </a>
-                      <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline" id={`delete-form-${church.id}`}>
-                        <button 
-                          type="submit"
-                          class="text-red-600 hover:text-red-900 delete-btn"
-                          data-church-id={church.id}
-                          onclick={`
+                    </li>
+                    <li>
+                      <span class="mx-2 text-gray-400">/</span>
+                    </li>
+                    <li>
+                      <span class="text-gray-900">Churches</span>
+                    </li>
+                  </ol>
+                </nav>
+                <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Manage Churches</h1>
+              </div>
+              <div class="mt-4 flex md:mt-0 md:ml-4">
+                <a
+                  href="/admin/churches/new"
+                  class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Add Church
+                </a>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div class="bg-white shadow overflow-hidden sm:rounded-md">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Church
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Location
+                    </th>
+                    <th scope="col" class="relative px-6 py-3">
+                      <span class="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  {allChurches.map((church) => (
+                    <tr class="hover:bg-gray-50 transition-all duration-300" id={`church-row-${church.id}`}>
+                      <td class="px-6 py-4">
+                        <div>
+                          <div class="text-sm font-medium text-gray-900 church-name">{church.name}</div>
+                          {church.path && <div class="text-sm text-gray-500">/{church.path}</div>}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        {church.status ? (
+                          <span
+                            class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyles[church.status] || ''}`}
+                          >
+                            {church.status}
+                          </span>
+                        ) : (
+                          <span class="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">
+                          {church.gatheringAddress || <span class="text-gray-400">No address</span>}
+                        </div>
+                        {church.countyName && <div class="text-sm text-gray-500">{church.countyName} County</div>}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a
+                          href={`/admin/churches/${church.id}/edit`}
+                          class="text-primary-600 hover:text-primary-900 mr-4"
+                        >
+                          Edit
+                        </a>
+                        <form
+                          method="POST"
+                          action={`/admin/churches/${church.id}/delete`}
+                          class="inline"
+                          id={`delete-form-${church.id}`}
+                        >
+                          <button
+                            type="submit"
+                            class="text-red-600 hover:text-red-900 delete-btn"
+                            data-church-id={church.id}
+                            onclick={`
                             event.preventDefault();
                             if (!confirm('Are you sure you want to delete this church?')) return false;
                             
@@ -2788,28 +3050,25 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                             // Submit the form
                             document.getElementById('delete-form-${church.id}').submit();
                           `}
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          >
+                            Delete
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </Layout>
-  );
+      </Layout>
+    );
   } catch (error) {
     console.error('Error loading churches:', error);
     return c.html(
       <Layout title="Error - Utah Churches" user={user}>
-        <ErrorPage 
-          error={error.message || 'Failed to load churches'} 
-          statusCode={500}
-        />
+        <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
       </Layout>,
       500
     );
@@ -2820,16 +3079,10 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
 app.get('/admin/churches/new', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  const allAffiliations = await db.select()
-    .from(affiliations)
-    .orderBy(affiliations.name)
-    .all();
-  
-  const allCounties = await db.select()
-    .from(counties)
-    .orderBy(counties.name)
-    .all();
-  
+  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
+
+  const allCounties = await db.select().from(counties).orderBy(counties.name).all();
+
   return c.html(
     <Layout title="Create Church - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2837,13 +3090,17 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
           <nav class="flex mb-8" aria-label="Breadcrumb">
             <ol class="flex items-center space-x-2">
               <li>
-                <a href="/admin" class="text-gray-500 hover:text-gray-700">Admin</a>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                  Admin
+                </a>
               </li>
               <li>
                 <span class="mx-2 text-gray-400">/</span>
               </li>
               <li>
-                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">Churches</a>
+                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">
+                  Churches
+                </a>
               </li>
               <li>
                 <span class="mx-2 text-gray-400">/</span>
@@ -2853,12 +3110,7 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
               </li>
             </ol>
           </nav>
-          <ChurchForm 
-            action="/admin/churches" 
-            isNew={true}
-            affiliations={allAffiliations}
-            counties={allCounties}
-          />
+          <ChurchForm action="/admin/churches" isNew={true} affiliations={allAffiliations} counties={allCounties} />
         </div>
       </div>
     </Layout>
@@ -2869,60 +3121,69 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const body = await c.req.parseBody();
-    
+
     // Parse gatherings from form data
     const gatherings = [];
     let index = 0;
     while (body[`gatherings[${index}][time]`]) {
       gatherings.push({
         time: body[`gatherings[${index}][time]`] as string,
-        notes: body[`gatherings[${index}][notes]`] as string || undefined,
+        notes: (body[`gatherings[${index}][notes]`] as string) || undefined,
       });
       index++;
     }
-    
+
     // Validate input
     const validationResult = churchWithGatheringsSchema.safeParse({
       church: {
         name: body.name as string,
-        path: body.path as string || undefined,
-        status: body.status as string || undefined,
-        gatheringAddress: body.gatheringAddress as string || undefined,
+        path: (body.path as string) || undefined,
+        status: (body.status as string) || undefined,
+        gatheringAddress: (body.gatheringAddress as string) || undefined,
         latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
         longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
         countyId: body.countyId ? Number(body.countyId) : undefined,
-        website: body.website as string || undefined,
-        statementOfFaith: body.statementOfFaith as string || undefined,
-        phone: body.phone as string || undefined,
-        email: body.email as string || undefined,
-        facebook: body.facebook as string || undefined,
-        instagram: body.instagram as string || undefined,
-        youtube: body.youtube as string || undefined,
-        spotify: body.spotify as string || undefined,
-        language: body.language as string || 'English',
-        privateNotes: body.privateNotes as string || undefined,
-        publicNotes: body.publicNotes as string || undefined,
+        website: (body.website as string) || undefined,
+        statementOfFaith: (body.statementOfFaith as string) || undefined,
+        phone: (body.phone as string) || undefined,
+        email: (body.email as string) || undefined,
+        facebook: (body.facebook as string) || undefined,
+        instagram: (body.instagram as string) || undefined,
+        youtube: (body.youtube as string) || undefined,
+        spotify: (body.spotify as string) || undefined,
+        language: (body.language as string) || 'English',
+        privateNotes: (body.privateNotes as string) || undefined,
+        publicNotes: (body.publicNotes as string) || undefined,
       },
       gatherings,
-      affiliations: body.affiliations 
-        ? (Array.isArray(body.affiliations) ? body.affiliations.map(Number) : [Number(body.affiliations)])
+      affiliations: body.affiliations
+        ? Array.isArray(body.affiliations)
+          ? body.affiliations.map(Number)
+          : [Number(body.affiliations)]
         : [],
     });
-    
+
     if (!validationResult.success) {
       const errors = validationResult.error.flatten();
       return c.text(`Validation error: ${JSON.stringify(errors)}`, 400);
     }
-    
-    const { church: churchData, gatherings: validatedGatherings, affiliations: selectedAffiliations } = validationResult.data;
-    
+
+    const {
+      church: churchData,
+      gatherings: validatedGatherings,
+      affiliations: selectedAffiliations,
+    } = validationResult.data;
+
     // Create church
-    const result = await db.insert(churches).values({
-      ...churchData,
-      lastUpdated: new Date(),
-    }).returning({ id: churches.id });
+    const result = await db
+      .insert(churches)
+      .values({
+        ...churchData,
+        lastUpdated: new Date(),
+      })
+      .returning({ id: churches.id });
     const churchId = result[0].id;
-    
+
     // Insert gatherings
     for (const gathering of validatedGatherings) {
       await db.insert(churchGatherings).values({
@@ -2931,7 +3192,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
         notes: gathering.notes || null,
       });
     }
-    
+
     // Insert affiliations
     for (let i = 0; i < selectedAffiliations.length; i++) {
       await db.insert(churchAffiliations).values({
@@ -2940,7 +3201,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
         order: i + 1,
       });
     }
-    
+
     return c.redirect('/admin/churches');
   } catch (error) {
     console.error('Error creating church:', error);
@@ -2953,33 +3214,33 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const id = c.req.param('id');
-  
-  const church = await db.select().from(churches).where(eq(churches.id, Number(id))).get();
+
+  const church = await db
+    .select()
+    .from(churches)
+    .where(eq(churches.id, Number(id)))
+    .get();
   if (!church) {
     return c.redirect('/admin/churches');
   }
-  
-  const allAffiliations = await db.select()
-    .from(affiliations)
-    .orderBy(affiliations.name)
-    .all();
-  
-  const allCounties = await db.select()
-    .from(counties)
-    .orderBy(counties.name)
-    .all();
-  
-  const currentAffiliations = await db.select()
+
+  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
+
+  const allCounties = await db.select().from(counties).orderBy(counties.name).all();
+
+  const currentAffiliations = await db
+    .select()
     .from(churchAffiliations)
     .where(eq(churchAffiliations.churchId, Number(id)))
     .all();
-  
-  const currentGatherings = await db.select()
+
+  const currentGatherings = await db
+    .select()
     .from(churchGatherings)
     .where(eq(churchGatherings.churchId, Number(id)))
     .orderBy(churchGatherings.id)
     .all();
-  
+
   return c.html(
     <Layout title="Edit Church - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2987,13 +3248,17 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
           <nav class="flex mb-8" aria-label="Breadcrumb">
             <ol class="flex items-center space-x-2">
               <li>
-                <a href="/admin" class="text-gray-500 hover:text-gray-700">Admin</a>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                  Admin
+                </a>
               </li>
               <li>
                 <span class="mx-2 text-gray-400">/</span>
               </li>
               <li>
-                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">Churches</a>
+                <a href="/admin/churches" class="text-gray-500 hover:text-gray-700">
+                  Churches
+                </a>
               </li>
               <li>
                 <span class="mx-2 text-gray-400">/</span>
@@ -3003,8 +3268,8 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
               </li>
             </ol>
           </nav>
-          <ChurchForm 
-            action={`/admin/churches/${id}`} 
+          <ChurchForm
+            action={`/admin/churches/${id}`}
             church={church}
             gatherings={currentGatherings}
             affiliations={allAffiliations}
@@ -3022,65 +3287,72 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
     const db = createDb(c.env);
     const id = c.req.param('id');
     const body = await c.req.parseBody();
-    
+
     // Parse gatherings from form data
     const gatherings = [];
     let index = 0;
     while (body[`gatherings[${index}][time]`]) {
       gatherings.push({
         time: body[`gatherings[${index}][time]`] as string,
-        notes: body[`gatherings[${index}][notes]`] as string || undefined,
+        notes: (body[`gatherings[${index}][notes]`] as string) || undefined,
       });
       index++;
     }
-    
+
     // Validate input
     const validationResult = churchWithGatheringsSchema.safeParse({
       church: {
         name: body.name as string,
-        path: body.path as string || undefined,
-        status: body.status as string || undefined,
-        gatheringAddress: body.gatheringAddress as string || undefined,
+        path: (body.path as string) || undefined,
+        status: (body.status as string) || undefined,
+        gatheringAddress: (body.gatheringAddress as string) || undefined,
         latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
         longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
         countyId: body.countyId ? Number(body.countyId) : undefined,
-        website: body.website as string || undefined,
-        statementOfFaith: body.statementOfFaith as string || undefined,
-        phone: body.phone as string || undefined,
-        email: body.email as string || undefined,
-        facebook: body.facebook as string || undefined,
-        instagram: body.instagram as string || undefined,
-        youtube: body.youtube as string || undefined,
-        spotify: body.spotify as string || undefined,
-        language: body.language as string || 'English',
-        privateNotes: body.privateNotes as string || undefined,
-        publicNotes: body.publicNotes as string || undefined,
+        website: (body.website as string) || undefined,
+        statementOfFaith: (body.statementOfFaith as string) || undefined,
+        phone: (body.phone as string) || undefined,
+        email: (body.email as string) || undefined,
+        facebook: (body.facebook as string) || undefined,
+        instagram: (body.instagram as string) || undefined,
+        youtube: (body.youtube as string) || undefined,
+        spotify: (body.spotify as string) || undefined,
+        language: (body.language as string) || 'English',
+        privateNotes: (body.privateNotes as string) || undefined,
+        publicNotes: (body.publicNotes as string) || undefined,
       },
       gatherings,
-      affiliations: body.affiliations 
-        ? (Array.isArray(body.affiliations) ? body.affiliations.map(Number) : [Number(body.affiliations)])
+      affiliations: body.affiliations
+        ? Array.isArray(body.affiliations)
+          ? body.affiliations.map(Number)
+          : [Number(body.affiliations)]
         : [],
     });
-    
+
     if (!validationResult.success) {
       const errors = validationResult.error.flatten();
       return c.text(`Validation error: ${JSON.stringify(errors)}`, 400);
     }
-    
-    const { church: churchData, gatherings: validatedGatherings, affiliations: selectedAffiliations } = validationResult.data;
-    
+
+    const {
+      church: churchData,
+      gatherings: validatedGatherings,
+      affiliations: selectedAffiliations,
+    } = validationResult.data;
+
     // Update church
-    await db.update(churches)
+    await db
+      .update(churches)
       .set({
         ...churchData,
         lastUpdated: new Date(),
       })
       .where(eq(churches.id, Number(id)));
-    
+
     // Update gatherings
     // First, delete existing gatherings
     await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
-    
+
     // Then insert new ones
     for (const gathering of validatedGatherings) {
       await db.insert(churchGatherings).values({
@@ -3089,11 +3361,11 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         notes: gathering.notes || null,
       });
     }
-    
+
     // Update affiliations
     // First, delete existing affiliations
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
-    
+
     // Then insert new ones
     for (let i = 0; i < selectedAffiliations.length; i++) {
       await db.insert(churchAffiliations).values({
@@ -3102,7 +3374,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         order: i + 1,
       });
     }
-    
+
     return c.redirect('/admin/churches');
   } catch (error) {
     console.error('Error updating church:', error);
@@ -3115,14 +3387,14 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const id = c.req.param('id');
-    
+
     // Delete related data first
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
     await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
-    
+
     // Then delete the church
     await db.delete(churches).where(eq(churches.id, Number(id)));
-    
+
     return c.redirect('/admin/churches');
   } catch (error) {
     console.error('Error deleting church:', error);
@@ -3134,11 +3406,8 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
 app.get('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  const allCounties = await db.select()
-    .from(counties)
-    .orderBy(counties.name)
-    .all();
-  
+  const allCounties = await db.select().from(counties).orderBy(counties.name).all();
+
   return c.html(
     <Layout title="Manage Counties - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -3161,9 +3430,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
                   </li>
                 </ol>
               </nav>
-              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Manage Counties
-              </h1>
+              <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Manage Counties</h1>
             </div>
             <div class="mt-4 flex md:mt-0 md:ml-4">
               <a
@@ -3171,28 +3438,45 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Add New County
               </a>
             </div>
           </div>
-          
+
           {/* Table */}
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Name
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Path
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Description
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Population
                   </th>
                   <th scope="col" class="relative px-6 py-3">
@@ -3216,11 +3500,14 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
                       {county.population ? county.population.toLocaleString() : <span class="text-gray-400">-</span>}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/admin/counties/${county.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                      <a
+                        href={`/admin/counties/${county.id}/edit`}
+                        class="text-primary-600 hover:text-primary-900 mr-4"
+                      >
                         Edit
                       </a>
                       <form method="POST" action={`/admin/counties/${county.id}/delete`} class="inline">
-                        <button 
+                        <button
                           type="submit"
                           class="text-red-600 hover:text-red-900"
                           onclick="return confirm('Are you sure you want to delete this county?')"
@@ -3256,21 +3543,21 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
-  
+
   const name = body.name as string;
   const path = body.path as string;
   const description = body.description as string;
   const population = body.population ? parseInt(body.population as string) : null;
-  
+
   // Check if name already exists
   const existing = await db.select().from(counties).where(eq(counties.name, name)).get();
   if (existing) {
     return c.html(
       <Layout title="Create County - Utah Churches" user={user}>
         <div style="max-width: 600px; margin: 0 auto;">
-          <CountyForm 
-            action="/admin/counties" 
-            isNew={true} 
+          <CountyForm
+            action="/admin/counties"
+            isNew={true}
             error="A county with this name already exists"
             county={{ name, description, population }}
           />
@@ -3278,14 +3565,14 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
       </Layout>
     );
   }
-  
+
   await db.insert(counties).values({
     name,
     path: path || null,
     description: description || null,
     population,
   });
-  
+
   return c.redirect('/admin/counties');
 });
 
@@ -3294,12 +3581,16 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
-  const county = await db.select().from(counties).where(eq(counties.id, Number(id))).get();
-  
+  const county = await db
+    .select()
+    .from(counties)
+    .where(eq(counties.id, Number(id)))
+    .get();
+
   if (!county) {
     return c.redirect('/admin/counties');
   }
-  
+
   return c.html(
     <Layout title="Edit County - Utah Churches" user={user}>
       <div style="max-width: 600px; margin: 0 auto;">
@@ -3313,13 +3604,14 @@ app.post('/admin/counties/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  
+
   const name = body.name as string;
   const path = body.path as string;
   const description = body.description as string;
   const population = body.population ? parseInt(body.population as string) : null;
-  
-  await db.update(counties)
+
+  await db
+    .update(counties)
     .set({
       name,
       path: path || null,
@@ -3327,7 +3619,7 @@ app.post('/admin/counties/:id', adminMiddleware, async (c) => {
       population,
     })
     .where(eq(counties.id, Number(id)));
-  
+
   return c.redirect('/admin/counties');
 });
 
@@ -3335,10 +3627,10 @@ app.post('/admin/counties/:id', adminMiddleware, async (c) => {
 app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  
+
   // TODO: Check if any churches are using this county before deleting
   await db.delete(counties).where(eq(counties.id, Number(id)));
-  
+
   return c.redirect('/admin/counties');
 });
 

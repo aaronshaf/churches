@@ -1,4 +1,4 @@
-import { FC } from 'hono/jsx';
+import type { FC } from 'hono/jsx';
 
 type UserFormProps = {
   action: string;
@@ -17,13 +17,18 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
             <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-8">
               {isNew ? 'Create New User' : 'Edit User'}
             </h2>
-            
+
             {error && (
               <div class="rounded-md bg-red-50 p-4 mb-6">
                 <div class="flex">
                   <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
                     </svg>
                   </div>
                   <div class="ml-3">
@@ -32,7 +37,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                 </div>
               </div>
             )}
-            
+
             <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
               <div class="sm:col-span-3">
                 <label for="username" class="block text-sm font-medium leading-6 text-gray-900">
@@ -105,20 +110,15 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       Admin
                     </option>
                   </select>
-                  {isOnlyAdmin && (
-                    <input type="hidden" name="userType" value="admin" />
-                  )}
+                  {isOnlyAdmin && <input type="hidden" name="userType" value="admin" />}
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-          <a
-            href="/admin/users"
-            class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
-          >
+          <a href="/admin/users" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">
             Cancel
           </a>
           <button

@@ -13,13 +13,18 @@
     "db:reset-admin": "tsx scripts/reset-admin-password.ts",
     "db:seed-affiliations": "tsx scripts/seed-affiliations.ts",
     "db:import-churches": "tsx scripts/import-churches.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "check": "biome check src/"
   },
   "keywords": [],
   "author": "Aaron Shafovaloff",
   "license": "MIT",
   "packageManager": "pnpm@10.11.0",
   "devDependencies": {
+    "@biomejs/biome": "^2.0.4",
     "@cloudflare/workers-types": "^4.20250619.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/js-yaml": "^4.0.9",
