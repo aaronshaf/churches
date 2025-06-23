@@ -2401,7 +2401,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
               <div class="mt-6 space-y-3">
                 {churchesForReview.map((church) => (
-                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
