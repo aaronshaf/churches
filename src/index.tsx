@@ -2101,11 +2101,11 @@ app.get('/admin', adminMiddleware, async (c) => {
   const user = c.get('user');
   const db = createDb(c.env);
 
-  // Get statistics
-  const _allChurches = await db.select().from(churches).all();
-  const _allCounties = await db.select().from(counties).all();
-  const _allAffiliations = await db.select().from(affiliations).all();
-  const _allUsers = await db.select().from(users).all();
+  // Get statistics using COUNT for efficiency
+  const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
+  const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
+  const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
+  const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
 
   // Get oldest non-closed church
   const oldestNonClosedChurch = await db
@@ -2162,7 +2162,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                       </div>
                       <div class="mt-3">
                         <a
-                          href={`/admin/churches/edit/${oldestNonClosedChurch.id}`}
+                          href={`/admin/churches/${oldestNonClosedChurch.id}/edit`}
                           class="text-sm font-medium text-yellow-800 hover:text-yellow-900"
                         >
                           Update church →
@@ -2199,7 +2199,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div class="mt-4">
                     <h3 class="text-lg font-medium">
                       <span class="absolute inset-0" aria-hidden="true"></span>
-                      Churches
+                      Churches ({churchCount?.count || 0})
                     </h3>
                     <p class="mt-2 text-sm text-gray-500">Add, edit, or remove church listings</p>
                   </div>
@@ -2232,7 +2232,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div class="mt-4">
                     <h3 class="text-lg font-medium">
                       <span class="absolute inset-0" aria-hidden="true"></span>
-                      Affiliations
+                      Affiliations ({affiliationCount?.count || 0})
                     </h3>
                     <p class="mt-2 text-sm text-gray-500">Manage denominations and networks</p>
                   </div>
@@ -2265,7 +2265,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div class="mt-4">
                     <h3 class="text-lg font-medium">
                       <span class="absolute inset-0" aria-hidden="true"></span>
-                      Counties
+                      Counties ({countyCount?.count || 0})
                     </h3>
                     <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
                   </div>
@@ -2298,7 +2298,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <div class="mt-4">
                     <h3 class="text-lg font-medium">
                       <span class="absolute inset-0" aria-hidden="true"></span>
-                      Users
+                      Users ({userCount?.count || 0})
                     </h3>
                     <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
                   </div>
