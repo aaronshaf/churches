@@ -53,11 +53,11 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md">
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md" data-testid="skip-link">
           Skip to main content
         </a>
         <Navbar user={user} currentPath={currentPath} />
-        <main id="main-content" class="flex-grow" role="main">{children}</main>
+        <main id="main-content" class="flex-grow" role="main" data-testid="main-content">{children}</main>
       </body>
     </html>
   );

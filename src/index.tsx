@@ -80,8 +80,8 @@ app.get('/', async (c) => {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
             <div class="mb-8">
-              <h1 class="text-3xl font-bold text-gray-900">Churches in Utah</h1>
-              <p class="mt-2 text-lg text-gray-600">A directory of evangelical churches</p>
+              <h1 class="sr-only">Churches in Utah</h1>
+              <p class="sr-only">A directory of evangelical churches</p>
             </div>
 
             {/* Map Card */}
@@ -109,7 +109,7 @@ app.get('/', async (c) => {
                       </svg>
                       <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
                     </div>
-                    <p class="text-primary-100">Explore an interactive map of churches in your area</p>
+                    <p class="text-primary-100">Explore an interactive map of evangelical churches in Utah</p>
                   </div>
                   <svg
                     class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
@@ -625,14 +625,14 @@ app.get('/churches/:path', async (c) => {
     <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user}>
       <div class="min-h-screen">
         {/* Header */}
-        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700" data-testid="church-header">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
-                  <h1 class="text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
+                  <h1 class="text-4xl font-bold text-white md:text-5xl" data-testid="church-name">{church.name}</h1>
                   {church.gatheringAddress && (
-                    <p class="mt-4 text-xl text-primary-100">{church.gatheringAddress}</p>
+                    <p class="mt-4 text-xl text-primary-100" data-testid="church-address">{church.gatheringAddress}</p>
                   )}
                   {church.status && church.status !== 'Listed' && (
                     <div class="mt-4">
@@ -644,6 +644,7 @@ app.get('/churches/:path', async (c) => {
                               ? 'bg-red-100 text-red-800'
                               : 'bg-primary-800 text-primary-100'
                         }`}
+                        data-testid="church-status"
                       >
                         {church.status}
                       </span>
@@ -662,9 +663,9 @@ app.get('/churches/:path', async (c) => {
               <div class="p-6 sm:p-8">
                 {/* Church Details Grid */}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div class="space-y-4">
+                  <div class="space-y-4" data-testid="church-details">
                     {church.gatheringAddress && (
-                      <div>
+                      <div data-testid="church-directions">
                         <h3 class="text-sm font-medium text-gray-500">Directions</h3>
                         {church.latitude && church.longitude && (
                           <div class="flex flex-col gap-1 mt-1">
@@ -720,7 +721,7 @@ app.get('/churches/:path', async (c) => {
                     )}
 
                     {church.phone && (
-                      <div>
+                      <div data-testid="church-phone">
                         <h3 class="text-sm font-medium text-gray-500">Phone</h3>
                         <a href={`tel:${church.phone}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
                           {formatPhoneNumber(church.phone)}
@@ -729,7 +730,7 @@ app.get('/churches/:path', async (c) => {
                     )}
 
                     {church.email && (
-                      <div>
+                      <div data-testid="church-email">
                         <h3 class="text-sm font-medium text-gray-500">Email</h3>
                         <a href={`mailto:${church.email}`} class="mt-1 text-sm text-primary-600 hover:text-primary-500">
                           {church.email}
@@ -740,7 +741,7 @@ app.get('/churches/:path', async (c) => {
 
                   <div class="space-y-4">
                     {church.website && (
-                      <div>
+                      <div data-testid="church-website">
                         <h3 class="text-sm font-medium text-gray-500">Website</h3>
                         <a
                           href={church.website}
@@ -761,7 +762,7 @@ app.get('/churches/:path', async (c) => {
                     )}
 
                     {church.statementOfFaith && (
-                      <div>
+                      <div data-testid="church-statement-of-faith">
                         <h3 class="text-sm font-medium text-gray-500">Statement of Faith</h3>
                         <a
                           href={church.statementOfFaith}
@@ -839,7 +840,7 @@ app.get('/churches/:path', async (c) => {
                     )}
 
                     {churchAffiliationsList.length > 0 && (
-                      <div>
+                      <div data-testid="church-affiliations">
                         <h3 class="text-sm font-medium text-gray-500">Affiliations</h3>
                         <ul class="mt-1 space-y-1">
                           {churchAffiliationsList.map((affiliation) => (
@@ -864,7 +865,7 @@ app.get('/churches/:path', async (c) => {
                 </div>
 
                 {church.publicNotes && (
-                  <div class="mt-6 pt-6 border-t border-gray-200">
+                  <div class="mt-6 pt-6 border-t border-gray-200" data-testid="church-notes">
                     <h3 class="text-sm font-medium text-gray-500 mb-2">Notes</h3>
                     <p class="text-sm text-gray-700">{church.publicNotes}</p>
                   </div>
