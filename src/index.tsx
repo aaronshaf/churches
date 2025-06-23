@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
@@ -482,8 +482,6 @@ app.get('/networks', async (c) => {
                         {affiliation.website ? (
                           <a
                             href={affiliation.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             class="text-primary-600 hover:text-primary-900 hover:underline"
                           >
                             {affiliation.name} ({affiliation.churchCount})
@@ -1043,16 +1041,18 @@ app.get('/map', async (c) => {
           </div>
 
           <div class="mt-4 space-y-3">
-            {/* Button for unlisted churches */}
+            {/* Checkbox for unlisted churches */}
             <div class="bg-white border border-gray-200 rounded-lg p-3">
-              <button
-                type="button"
-                id="showUnlisted"
-                class="w-full inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                onclick="this.style.display='none'; showUnlistedMarkers();"
-              >
-                Show unlisted churches ({unlistedChurches.length} unlisted)
-              </button>
+              <label class="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="showUnlisted"
+                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <span class="ml-2 text-sm text-gray-700">
+                  Show unlisted churches ({unlistedChurches.length} unlisted)
+                </span>
+              </label>
             </div>
 
             {/* Info box */}
@@ -1170,14 +1170,21 @@ app.get('/map', async (c) => {
             });
           });
           
-          // Function to show unlisted markers
-          window.showUnlistedMarkers = function() {
+          // Set up checkbox listener
+          document.getElementById('showUnlisted').addEventListener('change', function(e) {
+            const show = e.target.checked;
             const countSpan = document.getElementById('church-count');
             
-            // Show unlisted markers
-            unlistedMarkers.forEach(marker => marker.map = map);
-            countSpan.textContent = listedChurches.length + unlistedChurches.length;
-          };
+            if (show) {
+              // Show unlisted markers
+              unlistedMarkers.forEach(marker => marker.map = map);
+              countSpan.textContent = listedChurches.length + unlistedChurches.length;
+            } else {
+              // Hide unlisted markers
+              unlistedMarkers.forEach(marker => marker.map = null);
+              countSpan.textContent = listedChurches.length;
+            }
+          });
           
           // Try to get user location
           loadLocation();

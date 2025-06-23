@@ -4,7 +4,7 @@ import { z } from 'zod';
 const optionalUrl = z.string().url('Invalid URL').optional().or(z.literal(''));
 const optionalEmail = z.string().email('Invalid email').optional().or(z.literal(''));
 const _optionalString = z.string().optional().or(z.literal(''));
-const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
+const phoneRegex = /^(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 
 // Church validation schema
 export const churchSchema = z
