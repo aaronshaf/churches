@@ -1190,7 +1190,7 @@ app.get('/networks/:id', async (c) => {
           {/* Churches List */}
           {listedChurches.length > 0 ? (
             <>
-              <h2 class="text-2xl font-bold text-gray-900 mb-6">Churches</h2>
+              <h2 class="sr-only">Churches</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {listedChurches.map((church) => (
                   <div class="church-card listed-church">
@@ -1216,7 +1216,7 @@ app.get('/networks/:id', async (c) => {
               </button>
 
               <div id="unlisted-churches" class="hidden mt-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Unlisted Churches</h2>
+                <h2 class="sr-only">Unlisted Churches</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {unlistedChurches.map((church) => (
                     <div class="church-card unlisted-church">
