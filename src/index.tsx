@@ -662,14 +662,11 @@ app.get('/churches/:path', async (c) => {
                               {church.countyName}
                             </a>
                           </li>
+                          <li>
+                            <span class="mx-2 text-primary-300">/</span>
+                          </li>
                         </>
                       )}
-                      <li>
-                        <span class="mx-2 text-primary-300">/</span>
-                      </li>
-                      <li>
-                        <span class="text-white">{church.name}</span>
-                      </li>
                     </ol>
                   </nav>
                   <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
