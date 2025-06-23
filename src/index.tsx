@@ -3415,6 +3415,20 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 btn.setAttribute('aria-checked', btn.classList.contains('bg-primary-600') ? 'true' : 'false');
               });
             }
+            
+            // Check URL parameters on page load
+            document.addEventListener('DOMContentLoaded', function() {
+              const urlParams = new URLSearchParams(window.location.search);
+              const sortParam = urlParams.get('sort');
+              
+              if (sortParam === 'oldest') {
+                sortChurches('updated-asc');
+              } else if (sortParam === 'recent') {
+                sortChurches('updated-desc');
+              } else if (sortParam === 'name') {
+                sortChurches('name');
+              }
+            });
           `,
           }}
         />
