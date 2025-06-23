@@ -632,7 +632,7 @@ app.get('/churches/:path', async (c) => {
                 <div class="flex-1 min-w-0">
                   <h1 class="text-4xl font-bold text-white md:text-5xl">{church.name}</h1>
                   {church.gatheringAddress && (
-                    <p class="mt-2 text-xl text-primary-100">{church.gatheringAddress}</p>
+                    <p class="mt-4 text-xl text-primary-100">{church.gatheringAddress}</p>
                   )}
                   {church.status && church.status !== 'Listed' && (
                     <div class="mt-4">
