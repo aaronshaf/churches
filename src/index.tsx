@@ -2277,8 +2277,8 @@ app.get('/admin', adminMiddleware, async (c) => {
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
   const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
 
-  // Get oldest non-closed church
-  const oldestNonClosedChurch = await db
+  // Get 3 oldest non-closed churches for review
+  const churchesForReview = await db
     .select({
       id: churches.id,
       name: churches.name,
@@ -2288,8 +2288,8 @@ app.get('/admin', adminMiddleware, async (c) => {
     .from(churches)
     .where(sql`${churches.status} != 'Closed' OR ${churches.status} IS NULL`)
     .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
-    .limit(1)
-    .get();
+    .limit(3)
+    .all();
 
   return c.html(
     <Layout title="Admin Dashboard - Utah Churches" user={user}>
@@ -2303,7 +2303,7 @@ app.get('/admin', adminMiddleware, async (c) => {
           </div>
 
           {/* To Review Section */}
-          {oldestNonClosedChurch && (
+          {churchesForReview && churchesForReview.length > 0 && (
             <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-6 mb-8 border border-gray-200">
               <div class="flex items-start justify-between">
                 <div>
@@ -2311,41 +2311,45 @@ app.get('/admin', adminMiddleware, async (c) => {
                   <p class="text-sm text-gray-600 mt-1">Churches that haven't been updated recently</p>
                 </div>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                  Needs update
+                  {churchesForReview.length} need{churchesForReview.length === 1 ? 's' : ''} update
                 </span>
               </div>
               
-              <div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div class="p-4">
-                  <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                      <h3 class="text-base font-medium text-gray-900">
-                        {oldestNonClosedChurch.name}
-                      </h3>
-                      <div class="mt-2 flex items-center text-sm text-gray-500">
-                        <svg class="mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Last updated: {oldestNonClosedChurch.lastUpdated
-                          ? new Date(oldestNonClosedChurch.lastUpdated).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })
-                          : 'Never updated'}
+              <div class="mt-6 space-y-3">
+                {churchesForReview.map((church) => (
+                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <h3 class="text-base font-medium text-gray-900">
+                            {church.name}
+                          </h3>
+                          <div class="mt-2 flex items-center text-sm text-gray-500">
+                            <svg class="mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Last updated: {church.lastUpdated
+                              ? new Date(church.lastUpdated).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })
+                              : 'Never updated'}
+                          </div>
+                        </div>
+                        <a
+                          href={`/admin/churches/${church.id}/edit`}
+                          class="ml-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                          Review
+                          <svg class="ml-1.5 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </a>
                       </div>
                     </div>
-                    <a
-                      href={`/admin/churches/${oldestNonClosedChurch.id}/edit`}
-                      class="ml-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                      Review
-                      <svg class="ml-1.5 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </a>
                   </div>
-                </div>
+                ))}
               </div>
               
               <div class="mt-4 text-sm text-gray-600">
