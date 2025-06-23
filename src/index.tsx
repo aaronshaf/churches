@@ -145,7 +145,7 @@ app.get('/', async (c) => {
                     <button
                       type="button"
                       id="sort-population"
-                      class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                      class="sort-button-population px-3 py-1.5 text-sm font-medium border rounded-l-md focus:z-10 focus:ring-2 focus:ring-primary-500"
                       onclick="sortCounties('population')"
                     >
                       Population
@@ -153,12 +153,32 @@ app.get('/', async (c) => {
                     <button
                       type="button"
                       id="sort-name"
-                      class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                      class="sort-button-name px-3 py-1.5 text-sm font-medium border rounded-r-md focus:z-10 focus:ring-2 focus:ring-primary-500"
                       onclick="sortCounties('name')"
                     >
                       Name
                     </button>
                   </div>
+                  <script
+                    dangerouslySetInnerHTML={{
+                      __html: `
+                      // Set initial button styles based on saved preference
+                      (function() {
+                        const savedSort = localStorage.getItem('countySort') || 'population';
+                        const popBtn = document.getElementById('sort-population');
+                        const nameBtn = document.getElementById('sort-name');
+                        
+                        if (savedSort === 'name') {
+                          popBtn.className = 'sort-button-population px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                          nameBtn.className = 'sort-button-name px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-r-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                        } else {
+                          popBtn.className = 'sort-button-population px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                          nameBtn.className = 'sort-button-name px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                        }
+                      })();
+                    `,
+                    }}
+                  />
                 </div>
               </div>
               <div id="counties-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -285,12 +305,16 @@ app.get('/counties/:path', async (c) => {
   const db = createDb(c.env);
   const countyPath = c.req.param('path');
 
+  // Check if user is logged in
+  const sessionId = getCookie(c, 'session');
+  const user = await validateSession(sessionId, c.env);
+
   // Get county by path
   const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
 
   if (!county) {
     return c.html(
-      <Layout title="Page Not Found - Utah Churches">
+      <Layout title="Page Not Found - Utah Churches" user={user}>
         <NotFound />
       </Layout>,
       404
@@ -314,12 +338,41 @@ app.get('/counties/:path', async (c) => {
     .orderBy(churches.name)
     .all();
 
+  // Get gatherings for all churches
+  const churchIds = countyChurches.map((c) => c.id);
+  const gatherings =
+    churchIds.length > 0
+      ? await db
+          .select()
+          .from(churchGatherings)
+          .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds, sql`, `)})`)
+          .all()
+      : [];
+
+  // Create a map of church ID to gatherings
+  const gatheringsByChurchId = gatherings.reduce(
+    (acc, gathering) => {
+      if (!acc[gathering.churchId]) {
+        acc[gathering.churchId] = [];
+      }
+      acc[gathering.churchId].push(gathering);
+      return acc;
+    },
+    {} as Record<number, typeof gatherings>
+  );
+
+  // Add gatherings to each church
+  const churchesWithGatherings = countyChurches.map((church) => ({
+    ...church,
+    gatherings: gatheringsByChurchId[church.id] || [],
+  }));
+
   // Separate listed and unlisted churches
-  const listedChurches = countyChurches.filter((c) => c.status === 'Listed');
-  const unlistedChurches = countyChurches.filter((c) => c.status === 'Unlisted');
+  const listedChurches = churchesWithGatherings.filter((c) => c.status === 'Listed');
+  const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
 
   return c.html(
-    <Layout title={`${county.name} Churches - Utah Churches`}>
+    <Layout title={`${county.name} Churches - Utah Churches`} user={user}>
       <div class="min-h-screen">
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -391,6 +444,28 @@ app.get('/counties/:path', async (c) => {
             </div>
           )}
         </div>
+
+        {/* Edit button for logged-in users */}
+        {user && (
+          <div class="border-t border-gray-200 mt-12 pt-8">
+            <div class="flex justify-center">
+              <a
+                href={`/admin/counties/${county.id}/edit`}
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="mr-2 -ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit County
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* JavaScript for showing unlisted churches */}
@@ -481,10 +556,7 @@ app.get('/networks', async (c) => {
             <ul class="divide-y divide-gray-200">
               {listedAffiliations.map((affiliation) => (
                 <li>
-                  <a
-                    href={`/networks/${affiliation.id}`}
-                    class="block px-6 py-4 hover:bg-gray-50 transition-colors"
-                  >
+                  <a href={`/networks/${affiliation.id}`} class="block px-6 py-4 hover:bg-gray-50 transition-colors">
                     <div class="flex items-center justify-between">
                       <div>
                         <h3 class="text-lg font-medium text-gray-900">
@@ -499,12 +571,7 @@ app.get('/networks', async (c) => {
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 5l7 7-7 7"
-                        />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
                   </a>
@@ -744,38 +811,28 @@ app.get('/churches/:path', async (c) => {
                       <div data-testid="church-directions">
                         <h3 class="text-sm font-medium text-gray-500">Directions</h3>
                         {church.latitude && church.longitude && (
-                          <div class="flex flex-col gap-1 mt-1">
+                          <div class="flex flex-col gap-2 mt-3">
                             <a
                               href={`https://maps.google.com/?q=${church.latitude},${church.longitude}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                              class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                             >
-                              View on Google Maps
-                              <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                />
+                              <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                               </svg>
+                              View on Google Maps
                             </a>
                             <a
                               href={`https://maps.apple.com/?ll=${church.latitude},${church.longitude}&q=${encodeURIComponent(church.name)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              class="inline-flex items-center text-sm text-primary-600 hover:text-primary-500"
+                              class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                             >
-                              View on Apple Maps
-                              <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                />
+                              <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
                               </svg>
+                              View on Apple Maps
                             </a>
                           </div>
                         )}
@@ -1099,12 +1156,8 @@ app.get('/networks/:id', async (c) => {
                     class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-primary-500 transition-all duration-200"
                   >
                     <h3 class="font-semibold text-gray-900">{church.name}</h3>
-                    {church.gatheringAddress && (
-                      <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>
-                    )}
-                    {church.countyName && (
-                      <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>
-                    )}
+                    {church.gatheringAddress && <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>}
+                    {church.countyName && <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>}
                   </a>
                 ))}
               </div>
@@ -1124,7 +1177,7 @@ app.get('/networks/:id', async (c) => {
               >
                 Show unlisted churches ({unlistedChurches.length})
               </button>
-              
+
               <div id="unlisted-churches" class="hidden mt-6">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Unlisted Churches</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1135,12 +1188,8 @@ app.get('/networks/:id', async (c) => {
                         class="bg-gray-50 rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-gray-400 transition-all duration-200 block"
                       >
                         <h3 class="font-semibold text-gray-700">{church.name}</h3>
-                        {church.gatheringAddress && (
-                          <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>
-                        )}
-                        {church.countyName && (
-                          <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>
-                        )}
+                        {church.gatheringAddress && <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>}
+                        {church.countyName && <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>}
                       </a>
                     </div>
                   ))}
@@ -1930,7 +1979,7 @@ app.get('/churches.xlsx', async (c) => {
 
   // Add Churches sheet
   const churchesWs = XLSX.utils.json_to_sheet(churchData);
-  
+
   // Set column widths for Churches sheet
   churchesWs['!cols'] = [
     { wch: 40 }, // Name
@@ -1952,7 +2001,7 @@ app.get('/churches.xlsx', async (c) => {
   // Apply header styling
   const range = XLSX.utils.decode_range(churchesWs['!ref'] || 'A1');
   for (let C = range.s.c; C <= range.e.c; ++C) {
-    const address = XLSX.utils.encode_col(C) + '1';
+    const address = `${XLSX.utils.encode_col(C)}1`;
     if (!churchesWs[address]) continue;
     churchesWs[address].s = {
       font: { bold: true },
@@ -1965,7 +2014,7 @@ app.get('/churches.xlsx', async (c) => {
 
   // Add Counties sheet
   const countiesWs = XLSX.utils.json_to_sheet(allCounties);
-  
+
   // Set column widths for Counties sheet
   countiesWs['!cols'] = [
     { wch: 20 }, // name
@@ -1978,7 +2027,7 @@ app.get('/churches.xlsx', async (c) => {
 
   // Add Affiliations sheet
   const affiliationsWs = XLSX.utils.json_to_sheet(allAffiliations);
-  
+
   // Set column widths for Affiliations sheet
   affiliationsWs['!cols'] = [
     { wch: 40 }, // name
@@ -2314,25 +2363,34 @@ app.get('/admin', adminMiddleware, async (c) => {
                   {churchesForReview.length} need{churchesForReview.length === 1 ? 's' : ''} update
                 </span>
               </div>
-              
+
               <div class="mt-6 space-y-3">
                 {churchesForReview.map((church) => (
                   <div class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
-                          <h3 class="text-base font-medium text-gray-900">
-                            {church.name}
-                          </h3>
+                          <h3 class="text-base font-medium text-gray-900">{church.name}</h3>
                           <div class="mt-2 flex items-center text-sm text-gray-500">
-                            <svg class="mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              class="mr-1.5 h-4 w-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
-                            Last updated: {church.lastUpdated
-                              ? new Date(church.lastUpdated).toLocaleDateString('en-US', { 
-                                  year: 'numeric', 
-                                  month: 'short', 
-                                  day: 'numeric' 
+                            Last updated:{' '}
+                            {church.lastUpdated
+                              ? new Date(church.lastUpdated).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
                                 })
                               : 'Never updated'}
                           </div>
@@ -2351,7 +2409,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                   </div>
                 ))}
               </div>
-              
+
               <div class="mt-4 text-sm text-gray-600">
                 <a href="/admin/churches?sort=oldest" class="hover:text-gray-900 underline">
                   View all churches needing review →
@@ -2360,10 +2418,10 @@ app.get('/admin', adminMiddleware, async (c) => {
             </div>
           )}
 
-          {/* Quick Actions */}
+          {/* Manage */}
           <div class="bg-white shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-              <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Actions</h2>
+              <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <a
                   href="/admin/churches"
@@ -3266,8 +3324,8 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   {allChurches.map((church) => (
-                    <tr 
-                      class="church-row hover:bg-gray-50 transition-all duration-300" 
+                    <tr
+                      class="church-row hover:bg-gray-50 transition-all duration-300"
                       id={`church-row-${church.id}`}
                       data-name={church.name}
                       data-updated={church.lastUpdated || 0}
@@ -3351,7 +3409,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
             </div>
           </div>
         </div>
-        
+
         {/* Sorting Script */}
         <script
           dangerouslySetInnerHTML={{

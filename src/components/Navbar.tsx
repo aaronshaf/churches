@@ -79,7 +79,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                     } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
                   >
-                    Dashboard
+                    Admin
                   </a>
                   <div class="flex items-center ml-6">
                     <span class="text-sm text-gray-700 mr-3">{user.username}</span>
@@ -106,7 +106,12 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
               data-testid="mobile-menu-button"
             >
               <span class="sr-only">Open main menu</span>
-              <svg class="block h-6 w-6 transition-transform duration-200 hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="block h-6 w-6 transition-transform duration-200 hover:scale-110"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>

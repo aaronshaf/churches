@@ -7,10 +7,16 @@ type Church = {
   status: string | null;
   gatheringAddress: string | null;
   countyName?: string | null;
-  serviceTimes: string | null;
+  serviceTimes?: string | null;
   website: string | null;
   language?: string | null;
   publicNotes?: string | null;
+  gatherings?: Array<{
+    id: number;
+    churchId: number;
+    time: string;
+    notes: string | null;
+  }>;
 };
 
 type ChurchCardProps = {
@@ -92,7 +98,32 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
                 </div>
               )}
 
-              {church.serviceTimes && (
+              {/* Display gatherings if available, otherwise fall back to serviceTimes */}
+              {church.gatherings && church.gatherings.length > 0 ? (
+                <div class="space-y-1">
+                  {church.gatherings.map((gathering) => (
+                    <div class="flex items-start text-sm text-gray-600">
+                      <svg
+                        class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>
+                        {gathering.time}
+                        {gathering.notes && <span class="text-gray-500"> - {gathering.notes}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : church.serviceTimes ? (
                 <div class="flex items-start text-sm text-gray-600">
                   <svg
                     class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
@@ -109,7 +140,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
                   </svg>
                   <span>{church.serviceTimes}</span>
                 </div>
-              )}
+              ) : null}
 
               {church.language && church.language !== 'English' && (
                 <div class="flex items-start text-sm text-gray-600">
