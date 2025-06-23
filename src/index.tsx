@@ -71,7 +71,7 @@ app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
     
-    // Get counties that have churches, with church count
+    // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db.select({
     id: counties.id,
     name: counties.name,
@@ -80,7 +80,7 @@ app.get('/', async (c) => {
     churchCount: sql<number>`COUNT(${churches.id})`.as('churchCount'),
   })
     .from(counties)
-    .innerJoin(churches, eq(counties.id, churches.countyId))
+    .innerJoin(churches, sql`${counties.id} = ${churches.countyId} AND ${churches.status} IN ('Listed', 'Unlisted')`)
     .groupBy(counties.id, counties.name, counties.path, counties.description)
     .orderBy(counties.name)
     .all();
@@ -312,9 +312,10 @@ app.get('/counties/:path', async (c) => {
                 <input
                   type="checkbox"
                   id="show-unlisted"
-                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   onchange="toggleUnlisted()"
                   checked={listedChurches.length === 0}
+                  disabled={listedChurches.length + unlistedChurches.length === 1}
                 />
                 <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
               </label>
