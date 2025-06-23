@@ -95,7 +95,7 @@ app.get('/', async (c) => {
           <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Churches in Utah</h1>
             <p class="mt-2 text-lg text-gray-600">
-              A directory of churches organized by county
+              A directory of evangelical churches
             </p>
           </div>
           
@@ -695,7 +695,7 @@ app.get('/churches/:path', async (c) => {
                   
                   {churchGatheringsList.length > 0 && (
                     <div>
-                      <h3 class="text-sm font-medium text-gray-500">Gatherings</h3>
+                      <h3 class="text-sm font-medium text-gray-500">Services</h3>
                       <div class="mt-1 space-y-1">
                         {churchGatheringsList.map(gathering => (
                           <div class="text-sm text-gray-900">

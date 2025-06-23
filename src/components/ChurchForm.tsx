@@ -197,10 +197,10 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               </div>
 
 
-              {/* Gatherings */}
+              {/* Services */}
               <div class="sm:col-span-6">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Gatherings</h3>
-                <p class="text-sm text-gray-500 mb-4">Add gathering times and optional notes</p>
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Services</h3>
+                <p class="text-sm text-gray-500 mb-4">Add service times and optional notes</p>
                 
                 <div id="gatherings-container" class="space-y-4">
                   {gatherings.map((gathering, index) => (
@@ -287,7 +287,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Gathering
+                  Add Service
                 </button>
               </div>
 
