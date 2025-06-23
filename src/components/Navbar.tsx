@@ -12,7 +12,13 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
         <div class="flex justify-between h-16 sm:h-20">
           {/* Logo/Brand - Left side */}
           <div class="flex-shrink-0 flex items-center">
-            <a href="/" class="flex items-center" data-testid="logo-link">
+            <a
+              href="/"
+              class="flex items-center"
+              data-testid="logo-link"
+              onmouseover="prefetchAfterDelay('/', 200)"
+              onmouseout="cancelPrefetch()"
+            >
               <img
                 src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w"
                 alt="Utah Churches"
@@ -32,6 +38,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
                 data-testid="nav-churches"
+                onmouseover="prefetchAfterDelay('/', 200)"
+                onmouseout="cancelPrefetch()"
               >
                 Churches
               </a>

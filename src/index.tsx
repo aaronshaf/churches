@@ -165,7 +165,7 @@ app.get('/', async (c) => {
                 {countiesWithChurches.map((county) => (
                   <a
                     href={`/counties/${county.path || county.id}`}
-                    class="county-card group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
+                    class="county-card group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-6"
                     data-name={county.name}
                     data-population={county.population || 0}
                   >
@@ -474,33 +474,25 @@ app.get('/networks', async (c) => {
           {/* Header */}
           <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Church Networks</h1>
-            <p class="mt-2 text-lg text-gray-600">Denominations and affiliations represented in Utah</p>
           </div>
 
           {/* Affiliations Grid */}
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
             <ul class="divide-y divide-gray-200">
               {listedAffiliations.map((affiliation) => (
-                <li class="px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="text-lg font-medium text-gray-900">
-                        {affiliation.website ? (
-                          <a
-                            href={affiliation.website}
-                            class="text-primary-600 hover:text-primary-900 hover:underline"
-                          >
-                            {affiliation.name} ({affiliation.churchCount})
-                          </a>
-                        ) : (
-                          <span>
-                            {affiliation.name} ({affiliation.churchCount})
-                          </span>
-                        )}
-                      </h3>
-                      {affiliation.publicNotes && <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>}
-                    </div>
-                    {affiliation.website && (
+                <li>
+                  <a
+                    href={`/networks/${affiliation.id}`}
+                    class="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h3 class="text-lg font-medium text-gray-900">
+                          {affiliation.name}
+                          <span class="ml-2 text-gray-500">({affiliation.churchCount})</span>
+                        </h3>
+                        {affiliation.publicNotes && <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>}
+                      </div>
                       <svg
                         class="h-5 w-5 text-gray-400 flex-shrink-0 ml-4"
                         fill="none"
@@ -511,11 +503,11 @@ app.get('/networks', async (c) => {
                           stroke-linecap="round"
                           stroke-linejoin="round"
                           stroke-width="2"
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          d="M9 5l7 7-7 7"
                         />
                       </svg>
-                    )}
-                  </div>
+                    </div>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -1008,6 +1000,178 @@ app.get('/churches/:path', async (c) => {
   );
 });
 
+app.get('/networks/:id', async (c) => {
+  const db = createDb(c.env);
+  const affiliationId = c.req.param('id');
+
+  // Get affiliation details
+  const affiliation = await db
+    .select()
+    .from(affiliations)
+    .where(eq(affiliations.id, Number(affiliationId)))
+    .get();
+
+  if (!affiliation) {
+    return c.notFound();
+  }
+
+  // Get all churches for this affiliation
+  const affiliationChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      gatheringAddress: churches.gatheringAddress,
+      countyName: counties.name,
+      countyPath: counties.path,
+    })
+    .from(churches)
+    .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(
+      sql`${churchAffiliations.affiliationId} = ${affiliationId} AND (${churches.status} = 'Listed' OR ${churches.status} = 'Unlisted')`
+    )
+    .orderBy(churches.name)
+    .all();
+
+  // Separate listed and unlisted churches
+  const listedChurches = affiliationChurches.filter((c) => c.status === 'Listed');
+  const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
+
+  return c.html(
+    <Layout title={`${affiliation.name} - Utah Churches`}>
+      <div class="min-h-screen">
+        {/* Header */}
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-12 md:py-16">
+              <div class="md:flex md:items-center md:justify-between">
+                <div class="flex-1 min-w-0">
+                  <h1 class="text-4xl font-bold text-white md:text-5xl">{affiliation.name}</h1>
+                  <p class="mt-4 text-xl text-primary-100">
+                    {listedChurches.length + unlistedChurches.length}{' '}
+                    {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'} in Utah
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {affiliation.website && (
+            <div class="mb-6">
+              <a
+                href={affiliation.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center text-primary-600 hover:text-primary-500"
+              >
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                Visit official website
+              </a>
+            </div>
+          )}
+
+          {affiliation.publicNotes && (
+            <div class="mb-8">
+              <p class="text-gray-700">{affiliation.publicNotes}</p>
+            </div>
+          )}
+
+          {/* Churches List */}
+          {listedChurches.length > 0 ? (
+            <>
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Churches</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {listedChurches.map((church) => (
+                  <a
+                    href={`/churches/${church.path || church.id}`}
+                    class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-primary-500 transition-all duration-200"
+                  >
+                    <h3 class="font-semibold text-gray-900">{church.name}</h3>
+                    {church.gatheringAddress && (
+                      <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>
+                    )}
+                    {church.countyName && (
+                      <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p class="text-gray-600">No listed churches found for this network.</p>
+          )}
+
+          {/* Show unlisted churches if any */}
+          {unlistedChurches.length > 0 && (
+            <div class="mt-8">
+              <button
+                type="button"
+                id="show-unlisted"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                onclick="showUnlistedChurches()"
+              >
+                Show unlisted churches ({unlistedChurches.length})
+              </button>
+              
+              <div id="unlisted-churches" class="hidden mt-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Unlisted Churches</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {unlistedChurches.map((church) => (
+                    <div class="church-card unlisted-church">
+                      <a
+                        href={`/churches/${church.path || church.id}`}
+                        class="bg-gray-50 rounded-lg shadow-sm ring-1 ring-gray-200 p-4 hover:shadow-md hover:ring-gray-400 transition-all duration-200 block"
+                      >
+                        <h3 class="font-semibold text-gray-700">{church.name}</h3>
+                        {church.gatheringAddress && (
+                          <p class="mt-1 text-sm text-gray-600">{church.gatheringAddress}</p>
+                        )}
+                        {church.countyName && (
+                          <p class="mt-1 text-sm text-gray-500">{church.countyName} County</p>
+                        )}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* JavaScript for showing unlisted churches */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            function showUnlistedChurches() {
+              const button = document.getElementById('show-unlisted');
+              const unlistedSection = document.getElementById('unlisted-churches');
+              
+              // Show the section
+              unlistedSection.classList.remove('hidden');
+              
+              // Hide the button
+              button.style.display = 'none';
+            }
+          `,
+          }}
+        />
+      </div>
+    </Layout>
+  );
+});
+
 app.get('/map', async (c) => {
   const db = createDb(c.env);
 
@@ -1043,7 +1207,7 @@ app.get('/map', async (c) => {
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div id="map" class="w-full h-[calc(100vh-180px)]"></div>
+            <div id="map" class="w-full h-[calc(100vh-280px)] min-h-[400px] max-h-[600px]"></div>
           </div>
 
           <div class="mt-4 space-y-3">
