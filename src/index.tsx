@@ -1697,14 +1697,63 @@ app.get('/churches.xlsx', async (c) => {
 
   // Add Churches sheet
   const churchesWs = XLSX.utils.json_to_sheet(churchData);
+  
+  // Set column widths for Churches sheet
+  churchesWs['!cols'] = [
+    { wch: 40 }, // Name
+    { wch: 12 }, // Status
+    { wch: 50 }, // Address
+    { wch: 20 }, // County
+    { wch: 35 }, // Website
+    { wch: 15 }, // Phone
+    { wch: 30 }, // Email
+    { wch: 40 }, // Affiliations
+    { wch: 25 }, // Facebook
+    { wch: 25 }, // Instagram
+    { wch: 25 }, // YouTube
+    { wch: 25 }, // Spotify
+    { wch: 50 }, // Notes
+    { wch: 12 }, // Last Updated
+  ];
+
+  // Apply header styling
+  const range = XLSX.utils.decode_range(churchesWs['!ref'] || 'A1');
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = XLSX.utils.encode_col(C) + '1';
+    if (!churchesWs[address]) continue;
+    churchesWs[address].s = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: '2563EB' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    };
+  }
+
   XLSX.utils.book_append_sheet(wb, churchesWs, 'Churches');
 
   // Add Counties sheet
   const countiesWs = XLSX.utils.json_to_sheet(allCounties);
+  
+  // Set column widths for Counties sheet
+  countiesWs['!cols'] = [
+    { wch: 20 }, // name
+    { wch: 20 }, // path
+    { wch: 50 }, // description
+    { wch: 12 }, // population
+  ];
+
   XLSX.utils.book_append_sheet(wb, countiesWs, 'Counties');
 
   // Add Affiliations sheet
   const affiliationsWs = XLSX.utils.json_to_sheet(allAffiliations);
+  
+  // Set column widths for Affiliations sheet
+  affiliationsWs['!cols'] = [
+    { wch: 40 }, // name
+    { wch: 12 }, // status
+    { wch: 35 }, // website
+    { wch: 50 }, // publicNotes
+  ];
+
   XLSX.utils.book_append_sheet(wb, affiliationsWs, 'Affiliations');
 
   // Generate buffer
