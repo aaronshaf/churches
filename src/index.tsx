@@ -75,12 +75,13 @@ app.get('/', async (c) => {
         name: counties.name,
         path: counties.path,
         description: counties.description,
+        population: counties.population,
         churchCount: sql<number>`COUNT(${churches.id})`.as('churchCount'),
       })
       .from(counties)
       .innerJoin(churches, sql`${counties.id} = ${churches.countyId} AND ${churches.status} IN ('Listed', 'Unlisted')`)
-      .groupBy(counties.id, counties.name, counties.path, counties.description)
-      .orderBy(counties.name)
+      .groupBy(counties.id, counties.name, counties.path, counties.description, counties.population)
+      .orderBy(desc(counties.population))
       .all();
 
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
@@ -136,12 +137,37 @@ app.get('/', async (c) => {
 
             {/* Counties Grid */}
             <div>
-              <h2 class="text-2xl font-bold text-gray-900 mb-6">Browse by County</h2>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Browse by County</h2>
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm text-gray-700">Sort by:</span>
+                  <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button
+                      type="button"
+                      id="sort-population"
+                      class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                      onclick="sortCounties('population')"
+                    >
+                      Population
+                    </button>
+                    <button
+                      type="button"
+                      id="sort-name"
+                      class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
+                      onclick="sortCounties('name')"
+                    >
+                      Name
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div id="counties-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {countiesWithChurches.map((county) => (
                   <a
                     href={`/counties/${county.path || county.id}`}
-                    class="group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
+                    class="county-card group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-5"
+                    data-name={county.name}
+                    data-population={county.population || 0}
                   >
                     <div class="flex items-start justify-between">
                       <div>
@@ -167,6 +193,47 @@ app.get('/', async (c) => {
               </div>
             </div>
           </div>
+
+          {/* Sorting Script */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+              function sortCounties(sortBy) {
+                const grid = document.getElementById('counties-grid');
+                const cards = Array.from(document.querySelectorAll('.county-card'));
+                
+                // Update button styles
+                const popBtn = document.getElementById('sort-population');
+                const nameBtn = document.getElementById('sort-name');
+                
+                if (sortBy === 'population') {
+                  popBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                  nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                  
+                  // Sort by population (descending)
+                  cards.sort((a, b) => {
+                    const popA = parseInt(a.dataset.population) || 0;
+                    const popB = parseInt(b.dataset.population) || 0;
+                    return popB - popA;
+                  });
+                } else {
+                  popBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                  nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-r-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                  
+                  // Sort by name (ascending)
+                  cards.sort((a, b) => {
+                    const nameA = a.dataset.name.toLowerCase();
+                    const nameB = b.dataset.name.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                  });
+                }
+                
+                // Re-append cards in new order
+                cards.forEach(card => grid.appendChild(card));
+              }
+            `,
+            }}
+          />
 
           {/* Footer */}
           <footer class="bg-white border-t border-gray-200 mt-auto">
@@ -306,37 +373,35 @@ app.get('/counties/:path', async (c) => {
           {/* Show unlisted checkbox - moved to bottom */}
           {unlistedChurches.length > 0 && (
             <div class="mt-8 text-center">
-              <label class="inline-flex items-center">
-                <input
-                  type="checkbox"
-                  id="show-unlisted"
-                  class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onchange="toggleUnlisted()"
-                  checked={listedChurches.length === 0}
-                  disabled={listedChurches.length + unlistedChurches.length === 1}
-                />
-                <span class="ml-2 text-sm text-gray-700">Show unlisted churches ({unlistedChurches.length})</span>
-              </label>
+              <button
+                type="button"
+                id="show-unlisted"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                onclick="showUnlistedChurches()"
+                disabled={listedChurches.length + unlistedChurches.length === 1}
+              >
+                Show unlisted churches ({unlistedChurches.length})
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* JavaScript for toggling unlisted churches */}
+      {/* JavaScript for showing unlisted churches */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
-          function toggleUnlisted() {
-            const checkbox = document.getElementById('show-unlisted');
+          function showUnlistedChurches() {
+            const button = document.getElementById('show-unlisted');
             const unlistedChurches = document.querySelectorAll('.unlisted-church');
             
+            // Show all unlisted churches
             unlistedChurches.forEach(church => {
-              if (checkbox.checked) {
-                church.classList.remove('hidden');
-              } else {
-                church.classList.add('hidden');
-              }
+              church.classList.remove('hidden');
             });
+            
+            // Hide the button after clicking
+            button.style.display = 'none';
           }
         `,
         }}
@@ -978,18 +1043,16 @@ app.get('/map', async (c) => {
           </div>
 
           <div class="mt-4 space-y-3">
-            {/* Checkbox for unlisted churches */}
+            {/* Button for unlisted churches */}
             <div class="bg-white border border-gray-200 rounded-lg p-3">
-              <label class="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="showUnlisted"
-                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <span class="ml-2 text-sm text-gray-700">
-                  Show unlisted churches ({unlistedChurches.length} unlisted)
-                </span>
-              </label>
+              <button
+                type="button"
+                id="showUnlisted"
+                class="w-full inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                onclick="this.style.display='none'; showUnlistedMarkers();"
+              >
+                Show unlisted churches ({unlistedChurches.length} unlisted)
+              </button>
             </div>
 
             {/* Info box */}
@@ -1107,21 +1170,14 @@ app.get('/map', async (c) => {
             });
           });
           
-          // Set up checkbox listener
-          document.getElementById('showUnlisted').addEventListener('change', function(e) {
-            const show = e.target.checked;
+          // Function to show unlisted markers
+          window.showUnlistedMarkers = function() {
             const countSpan = document.getElementById('church-count');
             
-            if (show) {
-              // Show unlisted markers
-              unlistedMarkers.forEach(marker => marker.map = map);
-              countSpan.textContent = listedChurches.length + unlistedChurches.length;
-            } else {
-              // Hide unlisted markers
-              unlistedMarkers.forEach(marker => marker.map = null);
-              countSpan.textContent = listedChurches.length;
-            }
-          });
+            // Show unlisted markers
+            unlistedMarkers.forEach(marker => marker.map = map);
+            countSpan.textContent = listedChurches.length + unlistedChurches.length;
+          };
           
           // Try to get user location
           loadLocation();
@@ -2047,6 +2103,20 @@ app.get('/admin', adminMiddleware, async (c) => {
   const listedChurches = allChurches.filter((c) => c.status === 'Listed').length;
   const needsDataChurches = allChurches.filter((c) => c.status === 'Needs data').length;
 
+  // Get oldest non-closed church
+  const oldestNonClosedChurch = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      lastUpdated: churches.lastUpdated,
+    })
+    .from(churches)
+    .where(sql`${churches.status} != 'Closed' OR ${churches.status} IS NULL`)
+    .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
+    .limit(1)
+    .get();
+
   return c.html(
     <Layout title="Admin Dashboard - Utah Churches" user={user}>
       <div class="min-h-screen bg-gray-50">
@@ -2174,6 +2244,49 @@ app.get('/admin', adminMiddleware, async (c) => {
               </div>
             </div>
           </div>
+
+          {/* Oldest Church Card */}
+          {oldestNonClosedChurch && (
+            <div class="bg-white shadow rounded-lg mb-8">
+              <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Needs Attention</h2>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <h3 class="text-sm font-medium text-yellow-800">Oldest Non-Closed Church</h3>
+                      <div class="mt-2 text-sm text-yellow-700">
+                        <p class="font-semibold">{oldestNonClosedChurch.name}</p>
+                        <p class="mt-1">
+                          Last updated:{' '}
+                          {oldestNonClosedChurch.lastUpdated
+                            ? new Date(oldestNonClosedChurch.lastUpdated * 1000).toLocaleDateString()
+                            : 'Never'}
+                        </p>
+                      </div>
+                      <div class="mt-3">
+                        <a
+                          href={`/admin/churches/edit/${oldestNonClosedChurch.id}`}
+                          class="text-sm font-medium text-yellow-800 hover:text-yellow-900"
+                        >
+                          Update church →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div class="bg-white shadow rounded-lg">

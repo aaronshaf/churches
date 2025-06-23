@@ -43,6 +43,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
                 data-testid="nav-map"
+                onmouseover="prefetchAfterDelay('/map', 200)"
+                onmouseout="cancelPrefetch()"
               >
                 Map
               </a>
@@ -54,6 +56,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
                 data-testid="nav-networks"
+                onmouseover="prefetchAfterDelay('/networks', 200)"
+                onmouseout="cancelPrefetch()"
               >
                 Networks
               </a>

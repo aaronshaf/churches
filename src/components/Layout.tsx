@@ -162,6 +162,34 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
           `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            let prefetchTimer;
+            let prefetchedUrls = new Set();
+            
+            function prefetchAfterDelay(url, delay) {
+              cancelPrefetch();
+              prefetchTimer = setTimeout(() => {
+                if (!prefetchedUrls.has(url)) {
+                  const link = document.createElement('link');
+                  link.rel = 'prefetch';
+                  link.href = url;
+                  document.head.appendChild(link);
+                  prefetchedUrls.add(url);
+                }
+              }, delay);
+            }
+            
+            function cancelPrefetch() {
+              if (prefetchTimer) {
+                clearTimeout(prefetchTimer);
+                prefetchTimer = null;
+              }
+            }
+          `,
+          }}
+        />
       </head>
       <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
         <a
