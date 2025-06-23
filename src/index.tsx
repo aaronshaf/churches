@@ -610,56 +610,67 @@ app.get('/churches/:path', async (c) => {
 
   return c.html(
     <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user}>
-      <div class="bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Breadcrumb */}
-          <nav class="flex mb-8" aria-label="Breadcrumb">
-            <ol class="flex items-center space-x-2">
-              <li>
-                <a href="/" class="text-gray-500 hover:text-gray-700">
-                  Home
-                </a>
-              </li>
-              {church.countyName && church.countyPath && (
-                <>
-                  <li>
-                    <span class="mx-2 text-gray-400">/</span>
-                  </li>
-                  <li>
-                    <a href={`/counties/${church.countyPath}`} class="text-gray-500 hover:text-gray-700">
-                      {church.countyName} County
-                    </a>
-                  </li>
-                </>
-              )}
-              <li>
-                <span class="mx-2 text-gray-400">/</span>
-              </li>
-              <li>
-                <span class="text-gray-900">{church.name}</span>
-              </li>
-            </ol>
-          </nav>
-          
-          {/* Church Header */}
-          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg mb-8">
-            <div class="p-6 sm:p-8">
-              <h1 class="text-3xl font-bold text-gray-900 mb-4">{church.name}</h1>
-              
-              {church.status && church.status !== 'Listed' && (
-                <div class="mb-4">
-                  <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                    church.status === 'Unlisted' ? 'bg-gray-50 text-gray-700 ring-gray-600/20' :
-                    church.status === 'Heretical' ? 'bg-red-900 text-white ring-red-900' :
-                    'bg-gray-50 text-gray-700 ring-gray-600/20'
-                  }`}>
-                    {church.status}
-                  </span>
+      <div class="min-h-screen">
+        {/* Header */}
+        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-12 md:py-16">
+              <div class="md:flex md:items-center md:justify-between">
+                <div class="flex-1 min-w-0">
+                  <nav class="flex" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-2">
+                      <li>
+                        <a href="/" class="text-primary-200 hover:text-white transition-colors">
+                          Churches
+                        </a>
+                      </li>
+                      {church.countyName && church.countyPath && (
+                        <>
+                          <li>
+                            <span class="mx-2 text-primary-300">/</span>
+                          </li>
+                          <li>
+                            <a href={`/counties/${church.countyPath}`} class="text-primary-200 hover:text-white transition-colors">
+                              {church.countyName}
+                            </a>
+                          </li>
+                        </>
+                      )}
+                      <li>
+                        <span class="mx-2 text-primary-300">/</span>
+                      </li>
+                      <li>
+                        <span class="text-white">{church.name}</span>
+                      </li>
+                    </ol>
+                  </nav>
+                  <h1 class="mt-4 text-4xl font-bold text-white md:text-5xl">
+                    {church.name}
+                  </h1>
+                  {church.status && church.status !== 'Listed' && (
+                    <div class="mt-4">
+                      <span class={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${
+                        church.status === 'Unlisted' ? 'bg-primary-800 text-primary-100' :
+                        church.status === 'Heretical' ? 'bg-red-100 text-red-800' :
+                        'bg-primary-800 text-primary-100'
+                      }`}>
+                        {church.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              {/* Church Details Grid */}
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Church Content */}
+        <div class="bg-gray-50">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
+              <div class="p-6 sm:p-8">
+                {/* Church Details Grid */}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                   {church.gatheringAddress && (
                     <div>
@@ -834,6 +845,7 @@ app.get('/churches/:path', async (c) => {
                   <p class="text-sm text-gray-700">{church.publicNotes}</p>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
