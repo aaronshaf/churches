@@ -1,5 +1,7 @@
 # Utah Churches
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A directory of evangelical churches in Utah, built with Cloudflare Workers, Hono, and Turso.
 
 ## Overview
@@ -154,7 +156,7 @@ Please read [CLAUDE.md](CLAUDE.md) for detailed information about the codebase s
 
 ## License
 
-This project is private and proprietary.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
