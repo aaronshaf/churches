@@ -8,8 +8,6 @@ A directory of evangelical churches in Utah, built with Cloudflare Workers, Hono
 
 Utah Churches provides a comprehensive directory of evangelical churches across Utah's counties. The application features an interactive map, detailed church information, and data export capabilities.
 
-**Live Site**: [https://utahchurches.aaronshaf.workers.dev](https://utahchurches.aaronshaf.workers.dev)
-
 ## Features
 
 - 📍 **Interactive Map** - Find churches near you with Google Maps integration
