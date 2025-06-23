@@ -247,14 +247,11 @@ app.get('/counties/:path', async (c) => {
                     <ol class="flex items-center space-x-2">
                       <li>
                         <a href="/" class="text-primary-200 hover:text-white transition-colors">
-                          Home
+                          Churches
                         </a>
                       </li>
                       <li>
                         <span class="mx-2 text-primary-300">/</span>
-                      </li>
-                      <li>
-                        <span class="text-white">{county.name}</span>
                       </li>
                     </ol>
                   </nav>
