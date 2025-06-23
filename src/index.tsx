@@ -2102,13 +2102,10 @@ app.get('/admin', adminMiddleware, async (c) => {
   const db = createDb(c.env);
 
   // Get statistics
-  const allChurches = await db.select().from(churches).all();
-  const allCounties = await db.select().from(counties).all();
+  const _allChurches = await db.select().from(churches).all();
+  const _allCounties = await db.select().from(counties).all();
   const _allAffiliations = await db.select().from(affiliations).all();
   const _allUsers = await db.select().from(users).all();
-
-  const listedChurches = allChurches.filter((c) => c.status === 'Listed').length;
-  const needsDataChurches = allChurches.filter((c) => c.status === 'Needs data').length;
 
   // Get oldest non-closed church
   const oldestNonClosedChurch = await db
@@ -2132,123 +2129,6 @@ app.get('/admin', adminMiddleware, async (c) => {
           <div class="md:flex md:items-center md:justify-between mb-8">
             <div class="flex-1 min-w-0">
               <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-              <div class="p-5">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                  </div>
-                  <div class="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Total Churches</dt>
-                      <dd class="text-lg font-semibold text-gray-900">{allChurches.length}</dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                  <a href="/admin/churches" class="font-medium text-primary-600 hover:text-primary-500">
-                    View all
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-              <div class="p-5">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <div class="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Listed Churches</dt>
-                      <dd class="text-lg font-semibold text-gray-900">{listedChurches}</dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm text-gray-500">
-                  {Math.round((listedChurches / allChurches.length) * 100)}% of total
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-              <div class="p-5">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                  </div>
-                  <div class="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Needs Data</dt>
-                      <dd class="text-lg font-semibold text-gray-900">{needsDataChurches}</dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm text-gray-500">Churches requiring updates</div>
-              </div>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-              <div class="p-5">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-                      />
-                    </svg>
-                  </div>
-                  <div class="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Counties</dt>
-                      <dd class="text-lg font-semibold text-gray-900">{allCounties.length}</dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                  <a href="/admin/counties" class="font-medium text-primary-600 hover:text-primary-500">
-                    Manage
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -2276,7 +2156,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                         <p class="mt-1">
                           Last updated:{' '}
                           {oldestNonClosedChurch.lastUpdated
-                            ? new Date(oldestNonClosedChurch.lastUpdated * 1000).toLocaleDateString()
+                            ? new Date(oldestNonClosedChurch.lastUpdated).toLocaleDateString()
                             : 'Never'}
                         </p>
                       </div>
