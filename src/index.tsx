@@ -2383,10 +2383,8 @@ app.get('/admin', adminMiddleware, async (c) => {
       <div class="min-h-screen bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div class="md:flex md:items-center md:justify-between mb-8">
-            <div class="flex-1 min-w-0">
-              <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
-            </div>
+          <div class="mb-8">
+            <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
           </div>
 
           {/* To Review Section */}
@@ -2401,7 +2399,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
               <div class="space-y-3">
                 {churchesForReview.map((church) => (
-                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" data-testid={`church-review-${church.id}`}>
+                  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 overflow-hidden" data-testid={`church-review-${church.id}`}>
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
@@ -2469,8 +2467,8 @@ app.get('/admin', adminMiddleware, async (c) => {
                 ))}
               </div>
 
-              <div class="mt-4 text-sm text-gray-600">
-                <a href="/admin/churches?sort=oldest" class="hover:text-gray-900 underline">
+              <div class="mt-4">
+                <a href="/admin/churches?sort=oldest" class="text-sm font-medium text-primary-600 hover:text-primary-500">
                   View all churches needing review →
                 </a>
               </div>
@@ -2483,7 +2481,7 @@ app.get('/admin', adminMiddleware, async (c) => {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <a
                   href="/admin/churches"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                   data-testid="card-churches"
                 >
                   <div>
@@ -2517,7 +2515,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
                 <a
                   href="/admin/affiliations"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                   data-testid="card-affiliations"
                 >
                   <div>
@@ -2551,7 +2549,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
                 <a
                   href="/admin/counties"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                   data-testid="card-counties"
                 >
                   <div>
@@ -2585,7 +2583,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
                 <a
                   href="/admin/users"
-                  class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                   data-testid="card-users"
                 >
                   <div>
