@@ -144,6 +144,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="language"
                       id="language"
                       value={church?.language || 'English'}
+                      data-testid="input-language"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -181,6 +182,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="latitude"
                       step="any"
                       value={church?.latitude || ''}
+                      data-testid="input-latitude"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -197,6 +199,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="longitude"
                       step="any"
                       value={church?.longitude || ''}
+                      data-testid="input-longitude"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -318,6 +321,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="website"
                       value={church?.website || ''}
                       placeholder="https://example.com"
+                      data-testid="input-website"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -333,6 +337,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="phone"
                       id="phone"
                       value={church?.phone || ''}
+                      data-testid="input-phone"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -348,6 +353,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="email"
                       id="email"
                       value={church?.email || ''}
+                      data-testid="input-email"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -369,6 +375,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="facebook"
                       value={church?.facebook || ''}
                       placeholder="https://facebook.com/..."
+                      data-testid="input-facebook"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -385,6 +392,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="instagram"
                       value={church?.instagram || ''}
                       placeholder="https://instagram.com/..."
+                      data-testid="input-instagram"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -401,6 +409,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="youtube"
                       value={church?.youtube || ''}
                       placeholder="https://youtube.com/..."
+                      data-testid="input-youtube"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -417,6 +426,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="spotify"
                       value={church?.spotify || ''}
                       placeholder="https://open.spotify.com/..."
+                      data-testid="input-spotify"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -462,6 +472,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="statementOfFaith"
                       id="statementOfFaith"
                       value={church?.statementOfFaith || ''}
+                      data-testid="input-statementOfFaith"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -477,6 +488,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="publicNotes"
                       rows={3}
                       value={church?.publicNotes || ''}
+                      data-testid="textarea-publicNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -493,6 +505,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="privateNotes"
                       rows={3}
                       value={church?.privateNotes || ''}
+                      data-testid="textarea-privateNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
