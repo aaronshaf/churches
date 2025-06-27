@@ -2391,7 +2391,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
           {/* To Review Section */}
           {churchesForReview && churchesForReview.length > 0 && (
-            <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-6 mb-8 border border-gray-200">
+            <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-6 mb-8 border border-gray-200" data-testid="to-review-section">
               <div class="flex items-start justify-between">
                 <div>
                   <h2 class="text-lg font-semibold text-gray-900">To Review</h2>
@@ -2401,7 +2401,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
               <div class="mt-6 space-y-3">
                 {churchesForReview.map((church) => (
-                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" data-testid={`church-review-${church.id}`}>
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
@@ -2456,6 +2456,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                         <a
                           href={`/admin/churches/${church.id}/edit`}
                           class="ml-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                          data-testid={`btn-review-${church.id}`}
                         >
                           Review
                           <svg class="ml-1.5 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2477,13 +2478,14 @@ app.get('/admin', adminMiddleware, async (c) => {
           )}
 
           {/* Manage */}
-          <div class="bg-white shadow rounded-lg">
+          <div class="bg-white shadow rounded-lg" data-testid="manage-section">
             <div class="px-4 py-5 sm:p-6">
               <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <a
                   href="/admin/churches"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  data-testid="card-churches"
                 >
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
@@ -2517,6 +2519,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                 <a
                   href="/admin/affiliations"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  data-testid="card-affiliations"
                 >
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
@@ -2550,6 +2553,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                 <a
                   href="/admin/counties"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  data-testid="card-counties"
                 >
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
@@ -2583,6 +2587,7 @@ app.get('/admin', adminMiddleware, async (c) => {
                 <a
                   href="/admin/users"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
+                  data-testid="card-users"
                 >
                   <div>
                     <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
@@ -2655,6 +2660,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
               <a
                 href="/admin/users/new"
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                data-testid="btn-add-user"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -2671,7 +2677,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
 
           {/* Table */}
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200" data-testid="users-table">
               <thead class="bg-gray-50">
                 <tr>
                   <th
@@ -2699,7 +2705,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 {allUsers.map((user) => (
-                  <tr class="hover:bg-gray-50">
+                  <tr class="hover:bg-gray-50" data-testid={`user-row-${user.id}`}>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div class="text-sm font-medium text-gray-900">{user.username}</div>
@@ -2719,7 +2725,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/admin/users/${user.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4">
+                      <a href={`/admin/users/${user.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4" data-testid={`btn-edit-user-${user.id}`}>
                         Edit
                       </a>
                       {user.username !== 'admin' && (
@@ -2728,6 +2734,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                             type="submit"
                             class="text-red-600 hover:text-red-900"
                             onclick="return confirm('Are you sure you want to delete this user?')"
+                            data-testid={`btn-delete-user-${user.id}`}
                           >
                             Delete
                           </button>
@@ -2957,6 +2964,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
               <a
                 href="/admin/affiliations/new"
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                data-testid="btn-add-affiliation"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -2973,7 +2981,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
 
           {/* Table */}
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
-            <table class="min-w-full divide-y divide-gray-300">
+            <table class="min-w-full divide-y divide-gray-300" data-testid="affiliations-table">
               <thead>
                 <tr>
                   <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
@@ -2995,7 +3003,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
               </thead>
               <tbody class="divide-y divide-gray-200">
                 {affiliationsWithCounts.map((affiliation, _index) => (
-                  <tr class="hover:bg-gray-50 transition-colors">
+                  <tr class="hover:bg-gray-50 transition-colors" data-testid={`affiliation-row-${affiliation.id}`}>
                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                       {affiliation.name} {affiliation.churchCount > 0 && `(${affiliation.churchCount})`}
                     </td>
@@ -3039,6 +3047,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                       <a
                         href={`/admin/affiliations/${affiliation.id}/edit`}
                         class="text-primary-600 hover:text-primary-900 pr-2"
+                        data-testid={`btn-edit-affiliation-${affiliation.id}`}
                       >
                         Edit<span class="sr-only">, {affiliation.name}</span>
                       </a>
@@ -3048,6 +3057,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
                           type="submit"
                           class="text-red-600 hover:text-red-900 pl-2"
                           onclick="return confirm('Are you sure you want to delete this affiliation?')"
+                          data-testid={`btn-delete-affiliation-${affiliation.id}`}
                         >
                           Delete<span class="sr-only">, {affiliation.name}</span>
                         </button>
@@ -3302,6 +3312,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 <a
                   href="/admin/churches/new"
                   class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  data-testid="btn-add-church"
                 >
                   <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -3329,6 +3340,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                     id="sort-name"
                     class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500"
                     onclick="sortChurches('name')"
+                    data-testid="btn-sort-name"
                   >
                     Name
                   </button>
@@ -3337,6 +3349,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                     id="sort-updated"
                     class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
                     onclick="sortChurches('updated-desc')"
+                    data-testid="btn-sort-updated"
                   >
                     Recently Updated
                   </button>
@@ -3345,6 +3358,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                     id="sort-oldest"
                     class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500"
                     onclick="sortChurches('updated-asc')"
+                    data-testid="btn-sort-oldest"
                   >
                     Needs Update
                   </button>
@@ -3354,7 +3368,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
 
             {/* Table */}
             <div class="bg-white shadow overflow-hidden sm:rounded-md">
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-gray-200" data-testid="churches-table">
                 <thead class="bg-gray-50">
                   <tr>
                     <th
@@ -3387,6 +3401,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                       id={`church-row-${church.id}`}
                       data-name={church.name}
                       data-updated={church.lastUpdated || 0}
+                      data-testid={`church-row-${church.id}`}
                     >
                       <td class="px-6 py-4">
                         <div>
@@ -3415,6 +3430,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                         <a
                           href={`/admin/churches/${church.id}/edit`}
                           class="text-primary-600 hover:text-primary-900 mr-4"
+                          data-testid={`btn-edit-church-${church.id}`}
                         >
                           Edit
                         </a>
@@ -3428,6 +3444,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                             type="submit"
                             class="text-red-600 hover:text-red-900 delete-btn"
                             data-church-id={church.id}
+                            data-testid={`btn-delete-church-${church.id}`}
                             onclick={`
                             event.preventDefault();
                             if (!confirm('Are you sure you want to delete this church?')) return false;
@@ -3916,6 +3933,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
               <a
                 href="/admin/counties/new"
                 class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                data-testid="btn-add-county"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -3932,7 +3950,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
 
           {/* Table */}
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200" data-testid="counties-table">
               <thead class="bg-gray-50">
                 <tr>
                   <th
@@ -3966,7 +3984,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 {allCounties.map((county) => (
-                  <tr class="hover:bg-gray-50">
+                  <tr class="hover:bg-gray-50" data-testid={`county-row-${county.id}`}>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm font-medium text-gray-900">{county.name}</div>
                     </td>
@@ -3983,6 +4001,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
                       <a
                         href={`/admin/counties/${county.id}/edit`}
                         class="text-primary-600 hover:text-primary-900 mr-4"
+                        data-testid={`btn-edit-county-${county.id}`}
                       >
                         Edit
                       </a>
@@ -3991,6 +4010,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
                           type="submit"
                           class="text-red-600 hover:text-red-900"
                           onclick="return confirm('Are you sure you want to delete this county?')"
+                          data-testid={`btn-delete-county-${county.id}`}
                         >
                           Delete
                         </button>

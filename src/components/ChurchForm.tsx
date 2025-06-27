@@ -26,7 +26,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
   return (
     <>
-      <form method="POST" action={action} class="space-y-8" onsubmit="handleFormSubmit(event)">
+      <form method="POST" action={action} class="space-y-8" onsubmit="handleFormSubmit(event)" data-testid="church-form">
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
@@ -35,7 +35,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               </h2>
 
               {error && (
-                <div class="rounded-md bg-red-50 p-4 mb-6">
+                <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-church-form">
                   <div class="flex">
                     <div class="flex-shrink-0">
                       <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,6 +67,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       id="name"
                       required
                       value={church?.name || ''}
+                      data-testid="input-name"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -85,6 +86,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       placeholder="e.g., first-baptist-church-salt-lake"
                       pattern="[a-z0-9\-]+"
                       title="Only lowercase letters, numbers, and hyphens allowed"
+                      data-testid="input-path"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -98,6 +100,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <select
                       id="status"
                       name="status"
+                      data-testid="select-status"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     >
                       <option value="">Select status</option>
@@ -118,6 +121,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <select
                       id="countyId"
                       name="countyId"
+                      data-testid="select-county"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     >
                       <option value="">Select county</option>
@@ -160,6 +164,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="gatheringAddress"
                       id="gatheringAddress"
                       value={church?.gatheringAddress || ''}
+                      data-testid="input-gatheringAddress"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -236,6 +241,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                         <button
                           type="button"
                           onclick={`this.closest('.flex').remove()`}
+                          data-testid="btn-remove-gathering"
                           class="mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                         >
                           Remove
@@ -246,6 +252,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
                   <button
                     type="button"
+                    data-testid="btn-add-gathering"
                     onclick={`
                     const container = document.getElementById('gatherings-container');
                     const index = container.children.length;
@@ -278,6 +285,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       <button
                         type="button"
                         onclick="this.closest('.flex').remove()"
+                        data-testid="btn-remove-gathering"
                         class="mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
                         Remove
@@ -427,6 +435,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                             name="affiliations"
                             value={affiliation.id}
                             checked={selectedAffiliationIds.includes(affiliation.id)}
+                            data-testid={`checkbox-affiliation-${affiliation.id}`}
                             class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                           />
                         </div>
@@ -494,12 +503,13 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin/churches" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">
+            <a href="/admin/churches" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
               Cancel
             </a>
             <button
               type="submit"
               id="submit-button"
+              data-testid="btn-submit"
               class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               <span id="button-text">{isNew ? 'Create Church' : 'Save Changes'}</span>

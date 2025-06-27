@@ -10,9 +10,9 @@ type CountyFormProps = {
 export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew = false }) => {
   return (
     <>
-      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-8 divide-y divide-gray-200">
+      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-8 divide-y divide-gray-200" data-testid="county-form">
         {error && (
-          <div class="rounded-md bg-red-50 p-4 mb-6">
+          <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-county-form">
             <div class="flex">
               <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -52,6 +52,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                     required
                     value={county?.name || ''}
                     placeholder="e.g., Salt Lake County"
+                    data-testid="input-name"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
                 </div>
@@ -71,6 +72,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                     placeholder="e.g., salt-lake"
                     pattern="[a-z0-9\-]+"
                     title="Only lowercase letters, numbers, and hyphens allowed"
+                    data-testid="input-path"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
                 </div>
@@ -89,6 +91,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                     value={county?.population || ''}
                     min="0"
                     placeholder="e.g., 1185238"
+                    data-testid="input-population"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
                 </div>
@@ -129,12 +132,14 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
             <a
               href="/admin/counties"
               class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              data-testid="btn-cancel"
             >
               Cancel
             </a>
             <button
               type="submit"
               id="submit-button"
+              data-testid="btn-submit"
               class="inline-flex items-center justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
             >
               <span class="button-text">{isNew ? 'Create County' : 'Save Changes'}</span>

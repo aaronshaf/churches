@@ -11,7 +11,7 @@ type UserFormProps = {
 export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false, isOnlyAdmin = false }) => {
   return (
     <>
-      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-6">
+      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-6" data-testid="user-form">
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
@@ -20,7 +20,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
               </h2>
 
               {error && (
-                <div class="rounded-md bg-red-50 p-4 mb-6">
+                <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-user-form">
                   <div class="flex">
                     <div class="flex-shrink-0">
                       <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +52,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       required
                       disabled={!isNew}
                       value={user?.username || ''}
+                      data-testid="input-username"
                       class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -68,6 +69,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       id="email"
                       required
                       value={user?.email || ''}
+                      data-testid="input-email"
                       class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -86,6 +88,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       required={isNew}
                       minlength="6"
                       placeholder={isNew ? '' : 'Leave blank to keep current password'}
+                      data-testid="input-password"
                       class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
@@ -102,6 +105,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       name="userType"
                       required
                       disabled={isOnlyAdmin}
+                      data-testid="select-userType"
                       class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
                     >
                       <option value="contributor" selected={user?.userType === 'contributor' || (!user && !isNew)}>
@@ -119,12 +123,13 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin/users" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">
+            <a href="/admin/users" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
               Cancel
             </a>
             <button
               type="submit"
               id="submit-button"
+              data-testid="btn-submit"
               class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
             >
               <span class="button-text">{isNew ? 'Create User' : 'Save Changes'}</span>
