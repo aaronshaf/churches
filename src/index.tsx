@@ -1221,6 +1221,9 @@ app.get('/networks/:id', async (c) => {
 app.get('/map', async (c) => {
   const db = createDb(c.env);
 
+  // Check for heretical query param
+  const showHereticalOption = c.req.query('heretical') !== undefined;
+
   // Check for user session
   let user = null;
   const sessionId = getCookie(c, 'session');
@@ -1228,7 +1231,7 @@ app.get('/map', async (c) => {
     user = await validateSession(sessionId, c.env);
   }
 
-  // Get all churches with coordinates (excluding heretical)
+  // Get all churches with coordinates (excluding heretical unless param is present)
   const allChurchesWithCoords = await db
     .select({
       id: churches.id,
@@ -1246,27 +1249,30 @@ app.get('/map', async (c) => {
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
-      sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`
+      showHereticalOption 
+        ? sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL`
+        : sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`
     )
     .all();
 
-  // Separate listed and unlisted churches
+  // Separate listed, unlisted, and heretical churches
   const listedChurches = allChurchesWithCoords.filter((c) => c.status === 'Listed');
   const unlistedChurches = allChurchesWithCoords.filter((c) => c.status === 'Unlisted');
+  const hereticalChurches = showHereticalOption ? allChurchesWithCoords.filter((c) => c.status === 'Heretical') : [];
 
   return c.html(
     <Layout title="Church Map - Utah Churches" currentPath="/map" user={user}>
       <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="bg-white rounded-lg overflow-hidden">
             <div id="map" class="w-full h-[calc(100vh-280px)] min-h-[400px] max-h-[600px]"></div>
           </div>
 
           <div class="mt-4 space-y-3">
             {/* Checkbox for unlisted churches */}
             <div class="bg-white border border-gray-200 rounded-lg p-3">
-              <label class="flex items-center cursor-pointer">
+              <label class="flex items-center cursor-pointer select-none">
                 <input
                   type="checkbox"
                   id="showUnlisted"
@@ -1277,6 +1283,22 @@ app.get('/map', async (c) => {
                 </span>
               </label>
             </div>
+
+            {/* Checkbox for heretical churches - only show if query param is present */}
+            {showHereticalOption && (
+              <div class="bg-white border border-gray-200 rounded-lg p-3">
+                <label class="flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="showHeretical"
+                    class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">
+                    Show heretical churches ({hereticalChurches.length} heretical)
+                  </span>
+                </label>
+              </div>
+            )}
 
             {/* Info box */}
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -1308,8 +1330,11 @@ app.get('/map', async (c) => {
           __html: `
         const listedChurches = ${JSON.stringify(listedChurches)};
         const unlistedChurches = ${JSON.stringify(unlistedChurches)};
+        const hereticalChurches = ${JSON.stringify(hereticalChurches)};
+        const showHereticalOption = ${showHereticalOption};
         let listedMarkers = [];
         let unlistedMarkers = [];
+        let hereticalMarkers = [];
         let map;
         let currentInfoWindow = null;
         let userMarker = null;
@@ -1393,21 +1418,90 @@ app.get('/map', async (c) => {
             });
           });
           
+          // Create markers for heretical churches (if option is enabled)
+          if (showHereticalOption) {
+            hereticalChurches.forEach((church) => {
+              if (!church.latitude || !church.longitude) return;
+              
+              const pin = new PinElement({
+                background: '#DC2626',
+                borderColor: '#991B1B',
+                glyphColor: '#7F1D1D',
+              });
+              
+              const marker = new AdvancedMarkerElement({
+                position: { lat: church.latitude, lng: church.longitude },
+                map: null, // Not shown initially
+                title: church.name,
+                content: pin.element,
+              });
+              
+              hereticalMarkers.push(marker);
+              
+              // Create info window content
+              const infoContent = createInfoContent(church);
+              const infoWindow = new google.maps.InfoWindow({
+                content: infoContent,
+              });
+              
+              marker.addListener('click', () => {
+                if (currentInfoWindow) {
+                  currentInfoWindow.close();
+                }
+                infoWindow.open(map, marker);
+                currentInfoWindow = infoWindow;
+              });
+            });
+          }
+          
           // Set up checkbox listener
           document.getElementById('showUnlisted').addEventListener('change', function(e) {
             const show = e.target.checked;
+            const showHeretical = showHereticalOption && document.getElementById('showHeretical').checked;
             const countSpan = document.getElementById('church-count');
             
             if (show) {
               // Show unlisted markers
               unlistedMarkers.forEach(marker => marker.map = map);
-              countSpan.textContent = listedChurches.length + unlistedChurches.length;
+              // Update count
+              let totalCount = listedChurches.length + unlistedChurches.length;
+              if (showHeretical) totalCount += hereticalChurches.length;
+              countSpan.textContent = totalCount;
             } else {
               // Hide unlisted markers
               unlistedMarkers.forEach(marker => marker.map = null);
-              countSpan.textContent = listedChurches.length;
+              // Update count
+              let totalCount = listedChurches.length;
+              if (showHeretical) totalCount += hereticalChurches.length;
+              countSpan.textContent = totalCount;
             }
           });
+          
+          // Set up heretical checkbox listener (if option is enabled)
+          if (showHereticalOption) {
+            document.getElementById('showHeretical').addEventListener('change', function(e) {
+              const show = e.target.checked;
+              const showUnlisted = document.getElementById('showUnlisted').checked;
+              const countSpan = document.getElementById('church-count');
+              
+              if (show) {
+                // Show heretical markers
+                hereticalMarkers.forEach(marker => marker.map = map);
+                // Update count
+                let totalCount = listedChurches.length;
+                if (showUnlisted) totalCount += unlistedChurches.length;
+                totalCount += hereticalChurches.length;
+                countSpan.textContent = totalCount;
+              } else {
+                // Hide heretical markers
+                hereticalMarkers.forEach(marker => marker.map = null);
+                // Update count
+                let totalCount = listedChurches.length;
+                if (showUnlisted) totalCount += unlistedChurches.length;
+                countSpan.textContent = totalCount;
+              }
+            });
+          }
           
           // Try to get user location
           loadLocation();
