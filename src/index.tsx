@@ -1126,7 +1126,7 @@ app.get('/networks/:id', async (c) => {
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {listedChurches.map((church) => (
                   <div class="church-card listed-church">
-                    <ChurchCard church={church} />
+                    <ChurchCard church={church} showCounty={false} />
                   </div>
                 ))}
               </div>
@@ -1138,7 +1138,7 @@ app.get('/networks/:id', async (c) => {
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {unlistedChurches.map((church) => (
                   <div class="church-card unlisted-church">
-                    <ChurchCard church={church} />
+                    <ChurchCard church={church} showCounty={false} />
                   </div>
                 ))}
               </div>

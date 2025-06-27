@@ -21,6 +21,7 @@ type Church = {
 
 type ChurchCardProps = {
   church: Church;
+  showCounty?: boolean;
 };
 
 const statusStyles: Record<string, string> = {
@@ -33,7 +34,7 @@ const statusStyles: Record<string, string> = {
   Closed: 'bg-gray-800 text-white ring-gray-800',
 };
 
-export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
+export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) => {
   const statusStyle = church.status ? statusStyles[church.status] || '' : '';
 
   return (
@@ -79,7 +80,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church }) => {
                 </div>
               )}
 
-              {church.countyName && (
+              {showCounty && church.countyName && (
                 <div class="flex items-start text-sm text-gray-600">
                   <svg
                     class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
