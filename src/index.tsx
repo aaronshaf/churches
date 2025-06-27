@@ -2055,6 +2055,13 @@ app.get('/data', async (c) => {
   try {
     const db = createDb(c.env);
 
+    // Check for admin session
+    const sessionId = getCookie(c, 'session');
+    let user = null;
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
+
     // Get count of churches (excluding heretical)
     const churchCount = await db
       .select({
@@ -2065,7 +2072,7 @@ app.get('/data', async (c) => {
       .get();
 
     return c.html(
-      <Layout title="Download Data - Utah Churches" currentPath="/data">
+      <Layout title="Download Data - Utah Churches" currentPath="/data" user={user}>
         <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
