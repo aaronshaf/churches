@@ -1004,6 +1004,29 @@ app.get('/churches/:path', async (c) => {
           </div>
         </div>
 
+        {/* Embedded Google Map */}
+        {church.latitude && church.longitude && (
+          <div class="mt-8">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Location</h2>
+                <div class="w-full h-96 rounded-lg overflow-hidden">
+                  <iframe
+                    src={`https://www.google.com/maps/embed/v1/place?key=${c.env.GOOGLE_MAPS_API_KEY}&q=${church.latitude},${church.longitude}&zoom=15`}
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title={`Map showing location of ${church.name}`}
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </Layout>
   );
