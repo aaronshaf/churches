@@ -1,5 +1,6 @@
 import type { FC } from 'hono/jsx';
 import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 
 type LayoutProps = {
   title?: string;
@@ -7,9 +8,10 @@ type LayoutProps = {
   user?: any;
   currentPath?: string;
   jsonLd?: any;
+  churchId?: string;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId }) => {
   return (
     <html lang="en">
       <head>
@@ -243,6 +245,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
+        <Footer user={user} churchId={churchId} />
       </body>
     </html>
   );

@@ -268,32 +268,6 @@ app.get('/', async (c) => {
             }}
           />
 
-          {/* Footer */}
-          <footer class="bg-white border-t border-gray-200 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div class="flex flex-col sm:flex-row justify-between items-center">
-                <div class="text-gray-600 text-sm text-center sm:text-left">
-                  <p class="italic">"Peace be to you. The friends greet you.</p>
-                  <p class="italic">Greet the friends, each by name."</p>
-                  <p class="mt-1 text-gray-500">– 3 John 1:15</p>
-                </div>
-                <a
-                  href="/data"
-                  class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
-                  </svg>
-                  Data
-                </a>
-              </div>
-            </div>
-          </footer>
         </div>
       </Layout>
     );
@@ -380,7 +354,7 @@ app.get('/counties/:path', async (c) => {
 
   return c.html(
     <Layout title={`${county.name} Churches - Utah Churches`} user={user}>
-      <div class="min-h-screen">
+      <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -610,32 +584,6 @@ app.get('/networks', async (c) => {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer class="bg-white border-t border-gray-200 mt-auto">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-              <div class="text-gray-600 text-sm text-center sm:text-left">
-                <p class="italic">"Peace be to you. The friends greet you.</p>
-                <p class="italic">Greet the friends, each by name."</p>
-                <p class="mt-1 text-gray-500">– 3 John 1:15</p>
-              </div>
-              <a
-                href="/data"
-                class="mt-4 sm:mt-0 inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Data
-              </a>
-            </div>
-          </div>
-        </footer>
       </div>
     </Layout>
   );
@@ -775,8 +723,8 @@ app.get('/churches/:path', async (c) => {
   };
 
   return c.html(
-    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user}>
-      <div class="min-h-screen">
+    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user} churchId={church.id}>
+      <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700" data-testid="church-header">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1028,50 +976,6 @@ app.get('/churches/:path', async (c) => {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer class="bg-white border-t border-gray-200 mt-auto">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-              <div class="text-gray-600 text-sm text-center sm:text-left">
-                <p class="italic">"Peace be to you. The friends greet you.</p>
-                <p class="italic">Greet the friends, each by name."</p>
-                <p class="mt-1 text-gray-500">– 3 John 1:15</p>
-              </div>
-              <div class="mt-4 sm:mt-0 flex items-center space-x-4">
-                {user && (
-                  <a
-                    href={`/admin/churches/${church.id}/edit`}
-                    class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                    Edit
-                  </a>
-                )}
-                <a
-                  href="/data"
-                  class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
-                  </svg>
-                  Data
-                </a>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
     </Layout>
   );
@@ -1140,7 +1044,7 @@ app.get('/networks/:id', async (c) => {
 
   return c.html(
     <Layout title={`${affiliation.name} - Utah Churches`} user={user}>
-      <div class="min-h-screen">
+      <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1289,7 +1193,7 @@ app.get('/map', async (c) => {
 
   return c.html(
     <Layout title="Church Map - Utah Churches" currentPath="/map" user={user}>
-      <div class="min-h-screen">
+      <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -2099,7 +2003,7 @@ app.get('/data', async (c) => {
 
     return c.html(
       <Layout title="Download Data - Utah Churches" currentPath="/data">
-        <div class="bg-gray-50 min-h-screen">
+        <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
               <div class="px-6 py-8 sm:p-10">
@@ -2380,7 +2284,7 @@ app.get('/admin', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin">
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="mb-8">
@@ -2630,7 +2534,7 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Manage Users - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="md:flex md:items-center md:justify-between mb-8">
@@ -2932,7 +2836,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Manage Affiliations - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="md:flex md:items-center md:justify-between mb-8">
@@ -3100,7 +3004,7 @@ app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
   const user = c.get('user');
   return c.html(
     <Layout title="Create Affiliation - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50 py-8">
+      <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
             <AffiliationForm action="/admin/affiliations" isNew={true} />
@@ -3123,7 +3027,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   if (!validation.success) {
     return c.html(
       <Layout title="Create Affiliation - Utah Churches" user={user}>
-        <div class="min-h-screen bg-gray-50 py-8">
+        <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
               <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
@@ -3145,7 +3049,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   if (existing) {
     return c.html(
       <Layout title="Create Affiliation - Utah Churches" user={user}>
-        <div class="min-h-screen bg-gray-50 py-8">
+        <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
               <AffiliationForm
@@ -3189,7 +3093,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Edit Affiliation - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50 py-8">
+      <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
             <AffiliationForm action={`/admin/affiliations/${id}`} affiliation={affiliation} />
@@ -3282,7 +3186,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
         `,
           }}
         />
-        <div class="min-h-screen bg-gray-50">
+        <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
             <div class="md:flex md:items-center md:justify-between mb-8">
@@ -3584,7 +3488,7 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Create Church - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
             <ol class="flex items-center space-x-2">
@@ -3736,7 +3640,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Edit Church - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
             <ol class="flex items-center space-x-2">
@@ -3903,7 +3807,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Manage Counties - Utah Churches" user={user}>
-      <div class="min-h-screen bg-gray-50">
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="md:flex md:items-center md:justify-between mb-8">
