@@ -1131,12 +1131,24 @@ app.get('/networks/:id', async (c) => {
                 ))}
               </div>
             </>
+          ) : unlistedChurches.length > 0 ? (
+            // If there are only unlisted churches, show them directly
+            <>
+              <h2 class="text-lg font-medium text-gray-900 mb-4">Unlisted Churches</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {unlistedChurches.map((church) => (
+                  <div class="church-card unlisted-church">
+                    <ChurchCard church={church} />
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
-            <p class="text-gray-600">No listed churches found for this network.</p>
+            <p class="text-gray-600">No churches found for this network.</p>
           )}
 
-          {/* Show unlisted churches if any */}
-          {unlistedChurches.length > 0 && (
+          {/* Show unlisted churches button only if there are listed churches AND unlisted churches */}
+          {listedChurches.length > 0 && unlistedChurches.length > 0 && (
             <div class="mt-8">
               <button
                 type="button"
