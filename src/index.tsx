@@ -46,6 +46,34 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('/api/*', cors());
 
+// Smart redirect middleware for church pages
+app.use('/*', async (c, next) => {
+  await next();
+  
+  // Only handle 404s for paths that might be church slugs
+  if (c.res.status === 404) {
+    const path = c.req.path;
+    
+    // Check if path looks like a church slug (no slashes except at start)
+    if (path.startsWith('/') && !path.includes('/', 1) && path.length > 1) {
+      const churchPath = path.substring(1); // Remove leading slash
+      
+      // Check if this might be a church path
+      const db = createDb(c.env);
+      const church = await db
+        .select({ id: churches.id })
+        .from(churches)
+        .where(eq(churches.path, churchPath))
+        .get();
+      
+      if (church) {
+        // Redirect to the correct church URL
+        return c.redirect(`/churches/${churchPath}`, 301);
+      }
+    }
+  }
+});
+
 // Global error handler
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
