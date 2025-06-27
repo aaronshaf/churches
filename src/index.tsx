@@ -2391,15 +2391,15 @@ app.get('/admin', adminMiddleware, async (c) => {
 
           {/* To Review Section */}
           {churchesForReview && churchesForReview.length > 0 && (
-            <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-6 mb-8 border border-gray-200" data-testid="to-review-section">
-              <div class="flex items-start justify-between">
+            <div class="mb-8" data-testid="to-review-section">
+              <div class="flex items-start justify-between mb-4">
                 <div>
                   <h2 class="text-lg font-semibold text-gray-900">To Review</h2>
                   <p class="text-sm text-gray-600 mt-1">Churches that haven't been updated recently</p>
                 </div>
               </div>
 
-              <div class="mt-6 space-y-3">
+              <div class="space-y-3">
                 {churchesForReview.map((church) => (
                   <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" data-testid={`church-review-${church.id}`}>
                     <div class="p-4">
@@ -2478,10 +2478,9 @@ app.get('/admin', adminMiddleware, async (c) => {
           )}
 
           {/* Manage */}
-          <div class="bg-white shadow rounded-lg" data-testid="manage-section">
-            <div class="px-4 py-5 sm:p-6">
-              <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="mb-8" data-testid="manage-section">
+            <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <a
                   href="/admin/churches"
                   class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
@@ -2617,7 +2616,6 @@ app.get('/admin', adminMiddleware, async (c) => {
                     </svg>
                   </span>
                 </a>
-              </div>
             </div>
           </div>
         </div>
