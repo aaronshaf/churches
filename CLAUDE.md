@@ -26,6 +26,7 @@ Production URL: https://utahchurches.aaronshaf.workers.dev
 - **Package Manager**: pnpm v10.11.0 (faster, more efficient than npm)
 - **Local Dev**: Wrangler (Cloudflare's CLI)
 - **TypeScript**: Built-in support via Hono
+- **Code Search**: ast-grep (structural code search, faster than regex)
 
 ### Key Dependencies
 - `hono` - Web framework optimized for edge
@@ -76,6 +77,11 @@ pnpm db:reset-admin  # Reset admin password
 
 # Run custom migrations (when db:push doesn't work)
 pnpm tsx scripts/run-migration.ts
+
+# Code search with ast-grep
+ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
+ast-grep --pattern 'churches.$_' src/      # Find church table queries
+ast-grep --pattern '<$Component $$$>' src/  # Find JSX component usage
 ```
 
 ### Production Secrets
@@ -186,6 +192,18 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - Consistent color scheme via Tailwind config
 - Loading states with delays to prevent flash
 - Hover states and transitions for interactivity
+
+## Development Best Practices
+
+### Code Search and Navigation
+- **Use ast-grep for structural code search** - it's faster and more accurate than regex
+  - Example: `ast-grep --pattern 'app.get($path, $_)' src/`
+  - Example: `ast-grep --pattern 'name="$_"' src/components/`
+  - Searches by AST structure, not text patterns
+- Prefer ast-grep over grep/Grep when searching for:
+  - Function calls, route definitions, JSX attributes
+  - Import statements, variable declarations
+  - Any code with specific structure
 
 ## Important Implementation Notes
 
