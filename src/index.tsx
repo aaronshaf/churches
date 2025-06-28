@@ -14,9 +14,10 @@ import { Layout } from './components/Layout';
 import { LoginForm } from './components/LoginForm';
 import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
+import { SettingsForm } from './components/SettingsForm';
 import { UserForm } from './components/UserForm';
 import { createDb } from './db';
-import { affiliations, churchAffiliations, churches, churchGatherings, counties, pages, users } from './db/schema';
+import { affiliations, churchAffiliations, churches, churchGatherings, counties, pages, settings, users } from './db/schema';
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
@@ -2648,6 +2649,46 @@ app.get('/admin', adminMiddleware, async (c) => {
                     </svg>
                   </span>
                 </a>
+
+                <a
+                  href="/admin/settings"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                  data-testid="card-settings"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-gray-50 text-gray-700 group-hover:bg-gray-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Settings
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
+                  </div>
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
             </div>
           </div>
         </div>
@@ -4470,6 +4511,110 @@ app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
   await db.delete(pages).where(eq(pages.id, Number(id)));
 
   return c.redirect('/admin/pages');
+});
+
+// Settings routes
+app.get('/admin/settings', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const user = c.get('user');
+  
+  // Get current settings
+  const siteTitle = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'site_title'))
+    .get();
+    
+  const tagline = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'tagline'))
+    .get();
+
+  return c.html(
+    <Layout title="Settings - Utah Churches" user={user}>
+      <div class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                  Admin
+                </a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <span class="text-gray-900">Settings</span>
+              </li>
+            </ol>
+          </nav>
+
+          <SettingsForm 
+            siteTitle={siteTitle?.value || undefined}
+            tagline={tagline?.value || undefined}
+          />
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
+app.post('/admin/settings', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const body = await c.req.parseBody();
+  
+  const siteTitle = (body.siteTitle as string)?.trim();
+  const tagline = (body.tagline as string)?.trim();
+  
+  // Update or insert site title
+  const existingSiteTitle = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'site_title'))
+    .get();
+    
+  if (existingSiteTitle) {
+    await db
+      .update(settings)
+      .set({ value: siteTitle, updatedAt: new Date() })
+      .where(eq(settings.key, 'site_title'));
+  } else {
+    await db
+      .insert(settings)
+      .values({
+        key: 'site_title',
+        value: siteTitle,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+  }
+  
+  // Update or insert tagline
+  const existingTagline = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'tagline'))
+    .get();
+    
+  if (existingTagline) {
+    await db
+      .update(settings)
+      .set({ value: tagline, updatedAt: new Date() })
+      .where(eq(settings.key, 'tagline'));
+  } else {
+    await db
+      .insert(settings)
+      .values({
+        key: 'tagline',
+        value: tagline,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+  }
+
+  return c.redirect('/admin/settings');
 });
 
 // 404 catch-all route

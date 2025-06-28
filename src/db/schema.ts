@@ -104,3 +104,11 @@ export const pages = sqliteTable('pages', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });
+
+export const settings = sqliteTable('settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+});
