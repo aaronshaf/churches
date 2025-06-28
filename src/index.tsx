@@ -97,7 +97,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout currentPath="/" user={user}>
+      <Layout title="Christian Churches in Utah" currentPath="/" user={user}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
@@ -4177,6 +4177,290 @@ app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
   await db.delete(counties).where(eq(counties.id, Number(id)));
 
   return c.redirect('/admin/counties');
+});
+
+// Pages routes
+app.get('/admin/pages', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const user = c.get('user');
+  const allPages = await db.select().from(pages).orderBy(pages.title).all();
+
+  return c.html(
+    <Layout title="Manage Pages - Utah Churches" user={user}>
+      <div class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+              <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                  <li>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
+                  </li>
+                  <li>
+                    <span class="mx-2 text-gray-400">/</span>
+                  </li>
+                  <li>
+                    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Pages</h2>
+                  </li>
+                </ol>
+              </nav>
+            </div>
+            <div class="mt-4 flex md:mt-0 md:ml-4">
+              <a
+                href="/admin/pages/new"
+                class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                data-testid="btn-new-page"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Page
+              </a>
+            </div>
+          </div>
+
+          {/* Pages list */}
+          <div class="bg-white shadow rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Path
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th class="relative px-6 py-3">
+                    <span class="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {allPages.map((page) => (
+                  <tr key={page.id} data-testid={`page-row-${page.id}`}>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">{page.title}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900">/{page.path}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(page.createdAt).toLocaleDateString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a
+                        href={`/admin/pages/${page.id}/edit`}
+                        class="text-primary-600 hover:text-primary-900 mr-4"
+                        data-testid={`edit-page-${page.id}`}
+                      >
+                        Edit
+                      </a>
+                      <form method="POST" action={`/admin/pages/${page.id}/delete`} class="inline">
+                        <button
+                          type="submit"
+                          class="text-red-600 hover:text-red-900"
+                          data-testid={`delete-page-${page.id}`}
+                          onclick="return confirm('Are you sure you want to delete this page?')"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {allPages.length === 0 && (
+              <div class="text-center py-12">
+                <svg
+                  class="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No pages</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by creating a new page.</p>
+                <div class="mt-6">
+                  <a
+                    href="/admin/pages/new"
+                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  >
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Page
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
+app.get('/admin/pages/new', adminMiddleware, async (c) => {
+  const user = c.get('user');
+
+  return c.html(
+    <Layout title="New Page - Utah Churches" user={user}>
+      <div class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                  Admin
+                </a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <a href="/admin/pages" class="text-gray-500 hover:text-gray-700">
+                  Pages
+                </a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <span class="text-gray-900">New</span>
+              </li>
+            </ol>
+          </nav>
+
+          <PageForm />
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
+app.post('/admin/pages', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const body = await c.req.parseBody();
+  
+  const title = (body.title as string)?.trim();
+  const path = (body.path as string)?.trim();
+  const content = body.content as string;
+
+  const result = pageSchema.safeParse({ title, path, content });
+  if (!result.success) {
+    return c.text(result.error.errors[0].message, 400);
+  }
+
+  const pageData = {
+    title,
+    path,
+    content: content || null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  await db.insert(pages).values(pageData);
+
+  return c.redirect('/admin/pages');
+});
+
+app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const user = c.get('user');
+  const id = c.req.param('id');
+
+  const page = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, Number(id)))
+    .get();
+  
+  if (!page) {
+    return c.redirect('/admin/pages');
+  }
+
+  return c.html(
+    <Layout title={`Edit ${page.title} - Utah Churches`} user={user}>
+      <div class="bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+              <li>
+                <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                  Admin
+                </a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <a href="/admin/pages" class="text-gray-500 hover:text-gray-700">
+                  Pages
+                </a>
+              </li>
+              <li>
+                <span class="mx-2 text-gray-400">/</span>
+              </li>
+              <li>
+                <span class="text-gray-900">Edit</span>
+              </li>
+            </ol>
+          </nav>
+
+          <PageForm page={page} />
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
+app.post('/admin/pages/:id', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  
+  const title = (body.title as string)?.trim();
+  const path = (body.path as string)?.trim();
+  const content = body.content as string;
+
+  const result = pageSchema.safeParse({ title, path, content });
+  if (!result.success) {
+    return c.text(result.error.errors[0].message, 400);
+  }
+
+  const pageData = {
+    title,
+    path,
+    content: content || null,
+    updatedAt: new Date(),
+  };
+
+  await db.update(pages).set(pageData).where(eq(pages.id, Number(id)));
+
+  return c.redirect('/admin/pages');
+});
+
+app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
+  const db = createDb(c.env);
+  const id = c.req.param('id');
+
+  await db.delete(pages).where(eq(pages.id, Number(id)));
+
+  return c.redirect('/admin/pages');
 });
 
 // 404 catch-all route
