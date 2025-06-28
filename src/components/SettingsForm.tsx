@@ -3,10 +3,11 @@ import type { FC } from 'hono/jsx';
 type SettingsFormProps = {
   siteTitle?: string;
   tagline?: string;
+  frontPageTitle?: string;
   error?: string;
 };
 
-export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, error }) => {
+export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontPageTitle, error }) => {
   return (
     <>
       <form method="POST" action="/admin/settings" class="space-y-6" data-testid="settings-form">
@@ -71,6 +72,24 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, error 
                       placeholder="A directory of evangelical churches"
                     />
                     <p class="mt-2 text-sm text-gray-500">A short description of your site.</p>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-4">
+                  <label for="frontPageTitle" class="block text-sm font-medium leading-6 text-gray-900">
+                    Front Page Title
+                  </label>
+                  <div class="mt-2">
+                    <input
+                      type="text"
+                      name="frontPageTitle"
+                      id="frontPageTitle"
+                      value={frontPageTitle || 'Christian Churches in Utah'}
+                      data-testid="input-frontPageTitle"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      placeholder="Christian Churches in Utah"
+                    />
+                    <p class="mt-2 text-sm text-gray-500">The title shown in the browser tab on the homepage only.</p>
                   </div>
                 </div>
               </div>

@@ -78,6 +78,14 @@ app.get('/', async (c) => {
     if (sessionId) {
       user = await validateSession(sessionId, c.env);
     }
+    
+    // Get front page title from settings
+    const frontPageTitleSetting = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.key, 'front_page_title'))
+      .get();
+    const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches in Utah';
 
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
@@ -98,7 +106,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout title="Christian Churches in Utah" currentPath="/" user={user}>
+      <Layout title={frontPageTitle} currentPath="/" user={user}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
@@ -4530,6 +4538,12 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
     .from(settings)
     .where(eq(settings.key, 'tagline'))
     .get();
+    
+  const frontPageTitle = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'front_page_title'))
+    .get();
 
   return c.html(
     <Layout title="Settings - Utah Churches" user={user}>
@@ -4554,6 +4568,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
           <SettingsForm 
             siteTitle={siteTitle?.value || undefined}
             tagline={tagline?.value || undefined}
+            frontPageTitle={frontPageTitle?.value || undefined}
           />
         </div>
       </div>
@@ -4567,6 +4582,7 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
   
   const siteTitle = (body.siteTitle as string)?.trim();
   const tagline = (body.tagline as string)?.trim();
+  const frontPageTitle = (body.frontPageTitle as string)?.trim();
   
   // Update or insert site title
   const existingSiteTitle = await db
@@ -4609,6 +4625,29 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
       .values({
         key: 'tagline',
         value: tagline,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+  }
+  
+  // Update or insert front page title
+  const existingFrontPageTitle = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'front_page_title'))
+    .get();
+    
+  if (existingFrontPageTitle) {
+    await db
+      .update(settings)
+      .set({ value: frontPageTitle, updatedAt: new Date() })
+      .where(eq(settings.key, 'front_page_title'));
+  } else {
+    await db
+      .insert(settings)
+      .values({
+        key: 'front_page_title',
+        value: frontPageTitle,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
