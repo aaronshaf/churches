@@ -4255,6 +4255,14 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <a
+                        href={`/${page.path}`}
+                        target="_blank"
+                        class="text-primary-600 hover:text-primary-900 mr-4"
+                        data-testid={`view-page-${page.id}`}
+                      >
+                        View
+                      </a>
+                      <a
                         href={`/admin/pages/${page.id}/edit`}
                         class="text-primary-600 hover:text-primary-900 mr-4"
                         data-testid={`edit-page-${page.id}`}
@@ -4465,20 +4473,48 @@ app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
 
 // 404 catch-all route
 app.get('*', async (c) => {
-  // Check if this might be a church slug
   const path = c.req.path;
+  
+  // Check if this might be a bare slug (no slashes except at start)
   if (path.startsWith('/') && !path.includes('/', 1) && path.length > 1) {
-    const churchPath = path.substring(1);
-    
+    const slug = path.substring(1);
     const db = createDb(c.env);
+    
+    // First check if it's a page
+    const page = await db
+      .select()
+      .from(pages)
+      .where(eq(pages.path, slug))
+      .get();
+    
+    if (page) {
+      // Render the page content
+      return c.html(
+        <Layout title={`${page.title} - Utah Churches`}>
+          <div class="bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <div class="max-w-3xl mx-auto">
+                <h1 class="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
+                <div 
+                  class="prose prose-lg max-w-none"
+                  dangerouslySetInnerHTML={{ __html: page.content || '' }}
+                />
+              </div>
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+    
+    // Then check if it's a church redirect
     const church = await db
       .select({ id: churches.id })
       .from(churches)
-      .where(eq(churches.path, churchPath))
+      .where(eq(churches.path, slug))
       .get();
     
     if (church) {
-      return c.redirect(`/churches/${churchPath}`, 301);
+      return c.redirect(`/churches/${slug}`, 301);
     }
   }
   

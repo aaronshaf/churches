@@ -108,6 +108,12 @@ export const loginSchema = z.object({
 });
 
 // Page validation schema
+// Reserved paths that pages cannot use
+const RESERVED_PATHS = [
+  'admin', 'api', 'churches', 'counties', 'networks', 'map', 'data', 
+  'login', 'logout', 'churches.json', 'churches.yaml', 'churches.csv'
+];
+
 export const pageSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(255, 'Title too long'),
   path: z
@@ -116,7 +122,8 @@ export const pageSchema = z.object({
     .min(1, 'Path is required')
     .max(100, 'Path too long')
     .regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only')
-    .refine((val) => !val.startsWith('-') && !val.endsWith('-'), 'Path cannot start or end with hyphen'),
+    .refine((val) => !val.startsWith('-') && !val.endsWith('-'), 'Path cannot start or end with hyphen')
+    .refine((val) => !RESERVED_PATHS.includes(val), 'This path is reserved and cannot be used'),
   content: z.string().max(50000, 'Content too long').optional().nullable(),
 });
 

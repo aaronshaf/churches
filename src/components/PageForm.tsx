@@ -74,7 +74,7 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                       placeholder="about-us"
                     />
-                    <p class="mt-2 text-sm text-gray-500">This will be the URL: /pages/{page?.path || 'your-path'}</p>
+                    <p class="mt-2 text-sm text-gray-500">This will be the URL: /{page?.path || 'your-path'}</p>
                   </div>
                 </div>
 
