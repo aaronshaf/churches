@@ -487,10 +487,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="publicNotes"
                       id="publicNotes"
                       rows={3}
-                      value={church?.publicNotes || ''}
                       data-testid="textarea-publicNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    />
+                    >{church?.publicNotes || ''}</textarea>
                   </div>
                   <p class="mt-1 text-sm text-gray-500">These notes will be visible on the public website.</p>
                 </div>
@@ -504,10 +503,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       name="privateNotes"
                       id="privateNotes"
                       rows={3}
-                      value={church?.privateNotes || ''}
                       data-testid="textarea-privateNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    />
+                    >{church?.privateNotes || ''}</textarea>
                   </div>
                   <p class="mt-1 text-sm text-gray-500">These notes are only visible to administrators.</p>
                 </div>
