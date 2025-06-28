@@ -3,9 +3,10 @@ import type { FC } from 'hono/jsx';
 type FooterProps = {
   user?: any;
   churchId?: string;
+  countyId?: string;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -33,7 +34,24 @@ export const Footer: FC<FooterProps> = ({ user, churchId }) => {
                 Edit
               </a>
             )}
-            {user && !churchId && (
+            {user && countyId && (
+              <a
+                href={`/admin/counties/${countyId}/edit`}
+                class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
+                data-testid="edit-county-link"
+              >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit
+              </a>
+            )}
+            {user && !churchId && !countyId && (
               <a
                 href="/admin"
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"

@@ -383,7 +383,7 @@ app.get('/counties/:path', async (c) => {
   const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
 
   return c.html(
-    <Layout title={`${county.name} Churches - Utah Churches`} user={user}>
+    <Layout title={`${county.name} Churches - Utah Churches`} user={user} countyId={county.id.toString()}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -456,27 +456,6 @@ app.get('/counties/:path', async (c) => {
           )}
         </div>
 
-        {/* Edit button for logged-in users */}
-        {user && (
-          <div class="border-t border-gray-200 mt-12 pt-8">
-            <div class="flex justify-center">
-              <a
-                href={`/admin/counties/${county.id}/edit`}
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <svg class="mr-2 -ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                Edit County
-              </a>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* JavaScript for showing unlisted churches */}

@@ -9,9 +9,10 @@ type LayoutProps = {
   currentPath?: string;
   jsonLd?: any;
   churchId?: string;
+  countyId?: string;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId, countyId }) => {
   return (
     <html lang="en">
       <head>
@@ -245,7 +246,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} />
+        <Footer user={user} churchId={churchId} countyId={countyId} />
       </body>
     </html>
   );
