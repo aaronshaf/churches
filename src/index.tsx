@@ -4232,7 +4232,8 @@ app.get('*', (c) => {
   return c.html(
     <Layout title="Page Not Found - Utah Churches">
       <NotFound />
-    </Layout>
+    </Layout>,
+    404
   );
 });
 
