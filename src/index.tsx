@@ -13,9 +13,10 @@ import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
 import { LoginForm } from './components/LoginForm';
 import { NotFound } from './components/NotFound';
+import { PageForm } from './components/PageForm';
 import { UserForm } from './components/UserForm';
 import { createDb } from './db';
-import { affiliations, churchAffiliations, churches, churchGatherings, counties, users } from './db/schema';
+import { affiliations, churchAffiliations, churches, churchGatherings, counties, pages, users } from './db/schema';
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
@@ -24,6 +25,7 @@ import {
   churchWithGatheringsSchema,
   countySchema,
   loginSchema,
+  pageSchema,
   parseAffiliationsFromForm,
   parseFormBody,
   parseGatheringsFromForm,
@@ -1003,29 +1005,6 @@ app.get('/churches/:path', async (c) => {
             </div>
           </div>
         </div>
-
-        {/* Embedded Google Map */}
-        {church.latitude && church.longitude && (
-          <div class="mt-8">
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-              <div class="px-4 py-5 sm:p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">Location</h2>
-                <div class="w-full h-96 rounded-lg overflow-hidden">
-                  <iframe
-                    src={`https://www.google.com/maps/embed/v1/place?key=${c.env.GOOGLE_MAPS_API_KEY}&q=${church.latitude},${church.longitude}&zoom=15`}
-                    width="100%"
-                    height="100%"
-                    style="border:0;"
-                    allowfullscreen=""
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"
-                    title={`Map showing location of ${church.name}`}
-                  ></iframe>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
     </Layout>
@@ -2430,6 +2409,7 @@ app.get('/admin', adminMiddleware, async (c) => {
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
   const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
+  const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
 
   // Get 3 oldest non-closed churches for review
   const churchesForReview = await db
@@ -2672,6 +2652,40 @@ app.get('/admin', adminMiddleware, async (c) => {
                       Users ({userCount?.count || 0})
                     </h3>
                     <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
+                  </div>
+                  <span
+                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                    aria-hidden="true"
+                  >
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                    </svg>
+                  </span>
+                </a>
+
+                <a
+                  href="/admin/pages"
+                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                  data-testid="card-pages"
+                >
+                  <div>
+                    <span class="rounded-lg inline-flex p-3 bg-yellow-50 text-yellow-700 group-hover:bg-yellow-100">
+                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                  <div class="mt-4">
+                    <h3 class="text-lg font-medium">
+                      <span class="absolute inset-0" aria-hidden="true"></span>
+                      Pages ({pageCount?.count || 0})
+                    </h3>
+                    <p class="mt-2 text-sm text-gray-500">Manage static content pages</p>
                   </div>
                   <span
                     class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"

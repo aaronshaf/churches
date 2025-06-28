@@ -107,6 +107,19 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
 });
 
+// Page validation schema
+export const pageSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(255, 'Title too long'),
+  path: z
+    .string()
+    .trim()
+    .min(1, 'Path is required')
+    .max(100, 'Path too long')
+    .regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only')
+    .refine((val) => !val.startsWith('-') && !val.endsWith('-'), 'Path cannot start or end with hyphen'),
+  content: z.string().max(50000, 'Content too long').optional().nullable(),
+});
+
 // Password update schema
 export const passwordUpdateSchema = z
   .object({
