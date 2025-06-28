@@ -73,6 +73,9 @@ pnpm db:push      # Push schema to Turso
 pnpm db:studio    # Open Drizzle Studio
 pnpm db:seed      # Seed admin user
 pnpm db:reset-admin  # Reset admin password
+
+# Run custom migrations (when db:push doesn't work)
+pnpm tsx scripts/run-migration.ts
 ```
 
 ### Production Secrets
@@ -94,10 +97,12 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 ### Database Schema
 - **churches**: Church information including location, contacts, and status
 - **counties**: Utah counties
-- **affiliations**: Church networks/denominations
+- **affiliations**: Church networks/denominations with status (Listed, Unlisted, Heretical)
 - **church_affiliations**: Many-to-many relationship
+- **church_gatherings**: Service times and notes for each church
 - **users**: Admin/contributor accounts
 - **sessions**: User authentication sessions
+- **pages**: Custom content pages with title, path, and content
 
 ### Routes
 
@@ -115,11 +120,12 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - `/churches.csv` - CSV format (spreadsheet-compatible)
 
 #### Admin Routes
-- `/admin` - Dashboard
+- `/admin` - Dashboard with statistics
 - `/admin/churches` - Manage churches
 - `/admin/affiliations` - Manage affiliations
 - `/admin/counties` - Manage counties
 - `/admin/users` - Manage users
+- `/admin/pages` - Manage custom pages
 
 ### Key Features
 
@@ -145,6 +151,9 @@ wrangler secret put GOOGLE_MAPS_API_KEY
    - Responsive design
    - Improved loading indicators
    - Sticky footer with Bible verse
+   - Smart redirects (e.g., /church-name → /churches/church-name)
+   - Edit buttons in footer for authenticated users
+   - Heretical churches option on map (?heretical query param)
 
 ## Architectural Patterns & Conventions
 
@@ -192,3 +201,10 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - Use Drizzle migrations for schema changes
 - Prefer server-side rendering over client-side JavaScript
 - Keep components pure (no side effects in render)
+- Textarea elements in JSX must use children for content, not value attribute
+- Database column names use snake_case (e.g., public_notes)
+- TypeScript/JSX uses camelCase (e.g., publicNotes)
+- Footer component accepts user, churchId, and countyId props for edit links
+- Admin topnav is shown on /data page for authenticated admins
+- 404 pages implement smart redirects for church URLs
+- Networks page shows unlisted churches if only unlisted exist
