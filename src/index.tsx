@@ -21,6 +21,7 @@ import { affiliations, churchAffiliations, churches, churchGatherings, counties,
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
+import { uploadToCloudflareImages, deleteFromCloudflareImages, getCloudflareImageUrl } from './utils/cloudflare-images';
 import {
   affiliationSchema,
   churchWithGatheringsSchema,
@@ -39,6 +40,8 @@ type Bindings = {
   TURSO_DATABASE_URL: string;
   TURSO_AUTH_TOKEN: string;
   GOOGLE_MAPS_API_KEY: string;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  CLOUDFLARE_IMAGES_API_TOKEN: string;
 };
 
 type Variables = {
@@ -4423,10 +4426,41 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
     return c.text(result.error.errors[0].message, 400);
   }
 
+  let featuredImageId = null;
+  let featuredImageUrl = null;
+
+  // Handle image upload
+  const featuredImage = body.featuredImage as File;
+  if (featuredImage && featuredImage.size > 0) {
+    try {
+      const uploadResult = await uploadToCloudflareImages(
+        featuredImage,
+        c.env.CLOUDFLARE_ACCOUNT_ID,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+      );
+
+      if (uploadResult.success && uploadResult.result) {
+        featuredImageId = uploadResult.result.id;
+        // Get the account hash from the first variant URL
+        const variantUrl = uploadResult.result.variants[0];
+        const accountHash = variantUrl.split('/')[3]; // Extract from URL structure
+        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, 'public');
+      } else {
+        console.error('Image upload failed:', uploadResult.errors);
+        return c.text('Failed to upload image', 500);
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      return c.text('Error uploading image', 500);
+    }
+  }
+
   const pageData = {
     title,
     path,
     content: content || null,
+    featuredImageId,
+    featuredImageUrl,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -4500,10 +4534,57 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
     return c.text(result.error.errors[0].message, 400);
   }
 
+  // Get current page to check for existing image
+  const currentPage = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, Number(id)))
+    .get();
+
+  let featuredImageId = currentPage?.featuredImageId;
+  let featuredImageUrl = currentPage?.featuredImageUrl;
+
+  // Handle image upload
+  const featuredImage = body.featuredImage as File;
+  if (featuredImage && featuredImage.size > 0) {
+    try {
+      // Delete old image if exists
+      if (currentPage?.featuredImageId) {
+        await deleteFromCloudflareImages(
+          currentPage.featuredImageId,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
+      }
+
+      const uploadResult = await uploadToCloudflareImages(
+        featuredImage,
+        c.env.CLOUDFLARE_ACCOUNT_ID,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+      );
+
+      if (uploadResult.success && uploadResult.result) {
+        featuredImageId = uploadResult.result.id;
+        // Get the account hash from the first variant URL
+        const variantUrl = uploadResult.result.variants[0];
+        const accountHash = variantUrl.split('/')[3]; // Extract from URL structure
+        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, 'public');
+      } else {
+        console.error('Image upload failed:', uploadResult.errors);
+        return c.text('Failed to upload image', 500);
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      return c.text('Error uploading image', 500);
+    }
+  }
+
   const pageData = {
     title,
     path,
     content: content || null,
+    featuredImageId,
+    featuredImageUrl,
     updatedAt: new Date(),
   };
 
@@ -4515,6 +4596,26 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
 app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
+
+  // Get page to check for image
+  const page = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, Number(id)))
+    .get();
+
+  // Delete image from Cloudflare if exists
+  if (page?.featuredImageId) {
+    try {
+      await deleteFromCloudflareImages(
+        page.featuredImageId,
+        c.env.CLOUDFLARE_ACCOUNT_ID,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+      );
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+    }
+  }
 
   await db.delete(pages).where(eq(pages.id, Number(id)));
 
@@ -4544,6 +4645,12 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
     .from(settings)
     .where(eq(settings.key, 'front_page_title'))
     .get();
+    
+  const faviconUrl = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'favicon_url'))
+    .get();
 
   return c.html(
     <Layout title="Settings - Utah Churches" user={user}>
@@ -4569,6 +4676,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
             siteTitle={siteTitle?.value || undefined}
             tagline={tagline?.value || undefined}
             frontPageTitle={frontPageTitle?.value || undefined}
+            faviconUrl={faviconUrl?.value || undefined}
           />
         </div>
       </div>
@@ -4653,6 +4761,89 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
       });
   }
 
+  // Handle favicon upload
+  const favicon = body.favicon as File;
+  if (favicon && favicon.size > 0) {
+    try {
+      // Get current favicon to delete if exists
+      const existingFaviconId = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, 'favicon_id'))
+        .get();
+
+      // Delete old favicon if exists
+      if (existingFaviconId?.value) {
+        await deleteFromCloudflareImages(
+          existingFaviconId.value,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
+      }
+
+      const uploadResult = await uploadToCloudflareImages(
+        favicon,
+        c.env.CLOUDFLARE_ACCOUNT_ID,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+      );
+
+      if (uploadResult.success && uploadResult.result) {
+        const faviconId = uploadResult.result.id;
+        const variantUrl = uploadResult.result.variants[0];
+        const accountHash = variantUrl.split('/')[3];
+        const faviconUrl = getCloudflareImageUrl(faviconId, accountHash, 'public');
+
+        // Save favicon ID
+        const existingFaviconIdSetting = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, 'favicon_id'))
+          .get();
+
+        if (existingFaviconIdSetting) {
+          await db
+            .update(settings)
+            .set({ value: faviconId, updatedAt: new Date() })
+            .where(eq(settings.key, 'favicon_id'));
+        } else {
+          await db
+            .insert(settings)
+            .values({
+              key: 'favicon_id',
+              value: faviconId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+        }
+
+        // Save favicon URL
+        const existingFaviconUrl = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, 'favicon_url'))
+          .get();
+
+        if (existingFaviconUrl) {
+          await db
+            .update(settings)
+            .set({ value: faviconUrl, updatedAt: new Date() })
+            .where(eq(settings.key, 'favicon_url'));
+        } else {
+          await db
+            .insert(settings)
+            .values({
+              key: 'favicon_url',
+              value: faviconUrl,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Favicon upload error:', error);
+    }
+  }
+
   return c.redirect('/admin/settings');
 });
 
@@ -4684,6 +4875,15 @@ app.get('*', async (c) => {
                   class="prose prose-lg max-w-none"
                   dangerouslySetInnerHTML={{ __html: page.content || '' }}
                 />
+                {page.featuredImageUrl && (
+                  <div class="mt-12 border-t pt-8">
+                    <img 
+                      src={page.featuredImageUrl} 
+                      alt={page.title}
+                      class="w-full rounded-lg shadow-lg"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

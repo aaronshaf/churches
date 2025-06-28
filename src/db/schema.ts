@@ -101,6 +101,8 @@ export const pages = sqliteTable('pages', {
   title: text('title').notNull(),
   path: text('path').notNull().unique(),
   content: text('content'),
+  featuredImageId: text('featured_image_id'),
+  featuredImageUrl: text('featured_image_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });
