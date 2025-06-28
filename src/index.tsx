@@ -4345,7 +4345,7 @@ app.get('/admin/pages/new', adminMiddleware, async (c) => {
             </ol>
           </nav>
 
-          <PageForm />
+          <PageForm action="/admin/pages" isNew={true} />
         </div>
       </div>
     </Layout>
@@ -4421,7 +4421,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
             </ol>
           </nav>
 
-          <PageForm page={page} />
+          <PageForm action={`/admin/pages/${page.id}`} page={page} />
         </div>
       </div>
     </Layout>

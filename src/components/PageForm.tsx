@@ -51,7 +51,7 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       required
                       value={page?.title || ''}
                       data-testid="input-title"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                       placeholder="About Us"
                     />
                   </div>
@@ -71,7 +71,7 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       pattern="[a-z0-9\-]+"
                       title="Only lowercase letters, numbers, and hyphens allowed"
                       data-testid="input-path"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                       placeholder="about-us"
                     />
                     <p class="mt-2 text-sm text-gray-500">This will be the URL: /pages/{page?.path || 'your-path'}</p>
@@ -87,11 +87,10 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       name="content"
                       id="content"
                       rows={12}
-                      value={page?.content || ''}
                       data-testid="textarea-content"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                       placeholder="Enter page content here..."
-                    />
+                    >{page?.content || ''}</textarea>
                     <p class="mt-2 text-sm text-gray-500">HTML is supported for formatting.</p>
                   </div>
                 </div>
