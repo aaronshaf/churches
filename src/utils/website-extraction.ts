@@ -3,20 +3,26 @@ import { convert } from 'html-to-text';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
 
-1) Phone number (if found)
+1) Phone number - Format as "(XXX) XXX-XXXX" with space after area code (e.g., "(801) 295-9439")
 2) Physical address (if found)
-3) Service times as an array of objects with 'time' and optional 'notes'. Format times as just the time for Sunday services (e.g. '10:00 AM'), but include day for non-Sunday services (e.g. '6:30 PM (Wednesday)'). Notes can include things like 'Sunday School', 'Prayer Service', 'Children's ministry available', etc.
+3) Service times as an array of objects with 'time' and optional 'notes':
+   - Time MUST be an actual clock time with AM/PM (e.g., "10:00 AM", "6:30 PM")
+   - Do NOT use descriptive times like "First Sunday of month" - extract the actual time
+   - Include day for non-Sunday services (e.g., "6:30 PM (Wednesday)")
+   - Notes should be in normal sentence case, NOT ALL CAPS
+   - Fix any ALL CAPS text to normal capitalization (e.g., "CONTEMPORARY SERVICE" → "Contemporary service")
 4) Social media URLs: instagram, facebook, spotify, youtube - ONLY include if they are specific to this church (not just generic social media homepages)
 
 Only include properties that are found. Use these exact keys: phone, address, service_times, instagram, facebook, spotify, youtube
 
 Example format:
 {
+  "phone": "(801) 555-1234",
   "address": "123 Main St, City, State 12345",
   "service_times": [
-    {"time": "10:00 AM", "notes": "Traditional Service"},
-    {"time": "11:30 AM", "notes": "Contemporary Service with children's ministry"},
-    {"time": "6:30 PM (Wednesday)", "notes": "Prayer Service"}
+    {"time": "9:00 AM", "notes": "Traditional service"},
+    {"time": "11:00 AM", "notes": "Contemporary service with children's ministry"},
+    {"time": "6:30 PM (Wednesday)", "notes": "Prayer meeting and Bible study"}
   ],
   "facebook": "https://facebook.com/churchname",
   "instagram": "https://instagram.com/churchhandle"
@@ -114,7 +120,19 @@ export async function extractChurchDataFromWebsite(
     const cleanedData: ExtractedChurchData = {};
 
     if (extractedData.phone && typeof extractedData.phone === 'string') {
-      cleanedData.phone = extractedData.phone.trim();
+      let phone = extractedData.phone.trim();
+      
+      // Ensure proper phone formatting with space after area code
+      // Handle formats like (801)295-9439 -> (801) 295-9439
+      phone = phone.replace(/\((\d{3})\)(\d{3})/, '($1) $2');
+      
+      // Also handle formats without parentheses: 8012959439 -> (801) 295-9439
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length === 10) {
+        phone = `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
+      }
+      
+      cleanedData.phone = phone;
     }
 
     if (extractedData.address && typeof extractedData.address === 'string') {
@@ -125,11 +143,14 @@ export async function extractChurchDataFromWebsite(
       cleanedData.service_times = extractedData.service_times
         .filter((item): item is ServiceTime => {
           if (typeof item === 'object' && item !== null && 'time' in item) {
-            return typeof item.time === 'string' && item.time.trim() !== '';
+            const time = item.time.trim();
+            // Ensure time contains AM/PM
+            return time !== '' && /\d{1,2}:\d{2}\s*(AM|PM|am|pm)/i.test(time);
           }
           // Handle if AI returns strings instead of objects (backwards compatibility)
-          if (typeof item === 'string' && item.trim() !== '') {
-            return true;
+          if (typeof item === 'string') {
+            const time = item.trim();
+            return time !== '' && /\d{1,2}:\d{2}\s*(AM|PM|am|pm)/i.test(time);
           }
           return false;
         })
@@ -137,9 +158,24 @@ export async function extractChurchDataFromWebsite(
           if (typeof item === 'string') {
             return { time: item.trim() };
           }
+          
+          // Normalize notes capitalization
+          let notes = item.notes ? item.notes.trim() : undefined;
+          if (notes) {
+            // Convert ALL CAPS to sentence case
+            if (notes === notes.toUpperCase() && notes.length > 3) {
+              notes = notes.charAt(0).toUpperCase() + notes.slice(1).toLowerCase();
+            }
+            // Fix common patterns
+            notes = notes
+              .replace(/\bCHILDREN'S\b/gi, "Children's")
+              .replace(/\bBIBLE\b/gi, "Bible")
+              .replace(/\bSUNDAY SCHOOL\b/gi, "Sunday School");
+          }
+          
           return {
             time: item.time.trim(),
-            notes: item.notes ? item.notes.trim() : undefined
+            notes: notes
           };
         });
     }
