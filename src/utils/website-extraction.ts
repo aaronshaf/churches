@@ -47,19 +47,25 @@ export async function extractChurchDataFromWebsite(
     const html = await response.text();
 
     // Convert HTML to text using html-to-text package
-    const textContent = convert(html, {
+    const textContent = convert(html.slice(0, 100000), { // Pre-truncate very large HTML
       wordwrap: false,
       selectors: [
         { selector: 'script', format: 'skip' },
         { selector: 'style', format: 'skip' },
         { selector: 'noscript', format: 'skip' },
         { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { ignoreHref: true } }
+        { selector: 'a', options: { ignoreHref: true } },
+        { selector: 'nav', format: 'skip' }, // Skip navigation
+        { selector: 'header', format: 'skip' }, // Skip headers
+        { selector: 'footer', format: 'skip' }, // Skip footers
+        { selector: '.menu', format: 'skip' }, // Skip menus
+        { selector: '#menu', format: 'skip' }
       ],
       limits: {
-        maxInputLength: 50000,
+        maxInputLength: 100000,
+        ellipsis: '...'
       }
-    }).slice(0, 15000); // Limit to 15k chars for AI processing
+    }).slice(0, 10000); // Reduce to 10k chars for AI processing
 
     // Initialize OpenRouter client
     const openai = new OpenAI({
@@ -68,6 +74,8 @@ export async function extractChurchDataFromWebsite(
     });
 
     // Send to DeepSeek for extraction
+    console.log(`Sending ${textContent.length} characters to AI for extraction`);
+    
     const completion = await openai.chat.completions.create({
       model: 'deepseek/deepseek-chat-v3-0324:free',
       messages: [
