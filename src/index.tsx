@@ -2561,7 +2561,7 @@ app.get('/admin', adminMiddleware, async (c) => {
   const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
 
-  // Get 3 oldest non-closed churches for review
+  // Get 1 oldest non-closed church for review
   const churchesForReview = await db
     .select({
       id: churches.id,
@@ -2573,7 +2573,7 @@ app.get('/admin', adminMiddleware, async (c) => {
     .from(churches)
     .where(sql`${churches.status} != 'Closed' OR ${churches.status} IS NULL`)
     .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
-    .limit(3)
+    .limit(1)
     .all();
 
   return c.html(
@@ -2591,7 +2591,7 @@ app.get('/admin', adminMiddleware, async (c) => {
               <div class="flex items-start justify-between mb-4">
                 <div>
                   <h2 class="text-lg font-semibold text-gray-900">To Review</h2>
-                  <p class="text-sm text-gray-600 mt-1">Churches that haven't been updated recently</p>
+                  <p class="text-sm text-gray-600 mt-1">Church that hasn't been updated recently</p>
                 </div>
               </div>
 
