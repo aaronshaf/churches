@@ -3568,7 +3568,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 {allChurches.length} {allChurches.length === 1 ? 'church' : 'churches'}
               </div>
               <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-700">Sort by:</span>
+                <span class="text-sm text-gray-700 font-medium" style="min-width: 50px;">Sort by:</span>
                 <div class="inline-flex rounded-md shadow-sm" role="group">
                   <button
                     type="button"
@@ -3635,7 +3635,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                       class="church-row hover:bg-gray-50 transition-all duration-300"
                       id={`church-row-${church.id}`}
                       data-name={church.name}
-                      data-updated={church.lastUpdated || 0}
+                      data-updated={church.lastUpdated ? new Date(church.lastUpdated).getTime() : 0}
                       data-testid={`church-row-${church.id}`}
                     >
                       <td class="px-6 py-4">
@@ -3733,27 +3733,28 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
               const updatedBtn = document.getElementById('sort-updated');
               const oldestBtn = document.getElementById('sort-oldest');
               
-              // Reset all buttons to default style
-              [nameBtn, updatedBtn, oldestBtn].forEach(btn => {
-                btn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
-              });
+              // Define button classes
+              const baseClasses = 'px-3 py-1.5 text-sm font-medium focus:z-10 focus:ring-2 focus:ring-primary-500';
+              const activeClasses = 'text-white bg-primary-600 border-primary-600 hover:bg-primary-700';
+              const inactiveClasses = 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50';
               
-              // Style the active button
+              // Reset all buttons
+              nameBtn.className = baseClasses + ' ' + inactiveClasses + ' rounded-l-md border';
+              updatedBtn.className = baseClasses + ' ' + inactiveClasses + ' border-t border-b';
+              oldestBtn.className = baseClasses + ' ' + inactiveClasses + ' rounded-r-md border';
+              
+              // Sort and style based on selection
               if (sortBy === 'name') {
-                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-l-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                nameBtn.className = baseClasses + ' ' + activeClasses + ' rounded-l-md border';
                 
                 // Sort by name
                 rows.sort((a, b) => {
-                  const nameA = a.dataset.name.toLowerCase();
-                  const nameB = b.dataset.name.toLowerCase();
-                  return nameA.localeCompare(nameB);
+                  const nameA = a.dataset.name || '';
+                  const nameB = b.dataset.name || '';
+                  return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
                 });
               } else if (sortBy === 'updated-desc') {
-                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                updatedBtn.className = baseClasses + ' ' + activeClasses + ' border';
                 
                 // Sort by updated date (descending - most recent first)
                 rows.sort((a, b) => {
@@ -3762,9 +3763,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                   return updatedB - updatedA;
                 });
               } else if (sortBy === 'updated-asc') {
-                oldestBtn.className = 'px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-r-md hover:bg-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                nameBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
-                updatedBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300 hover:bg-gray-50 focus:z-10 focus:ring-2 focus:ring-primary-500';
+                oldestBtn.className = baseClasses + ' ' + activeClasses + ' rounded-r-md border';
                 
                 // Sort by updated date (ascending - oldest first)
                 rows.sort((a, b) => {
@@ -3774,7 +3773,8 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 });
               }
               
-              // Re-append rows in new order
+              // Clear tbody and re-append rows in new order
+              tbody.innerHTML = '';
               rows.forEach(row => tbody.appendChild(row));
               
               // Update aria-checked attributes
