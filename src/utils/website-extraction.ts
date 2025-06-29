@@ -1,5 +1,5 @@
-import TurndownService from 'turndown';
 import OpenAI from 'openai';
+import { htmlToText } from './html-to-text';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
 
@@ -46,20 +46,8 @@ export async function extractChurchDataFromWebsite(
 
     const html = await response.text();
 
-    // Convert HTML to Markdown
-    const turndownService = new TurndownService({
-      bulletListMarker: '-',
-      codeBlockStyle: 'fenced',
-      headingStyle: 'atx',
-    });
-
-    // Remove script and style elements
-    turndownService.remove(['script', 'style', 'noscript']);
-
-    const markdown = turndownService.turndown(html);
-
-    // Limit the content to prevent token overflow
-    const truncatedMarkdown = markdown.slice(0, 15000);
+    // Convert HTML to text
+    const textContent = htmlToText(html);
 
     // Initialize OpenRouter client
     const openai = new OpenAI({
@@ -73,7 +61,7 @@ export async function extractChurchDataFromWebsite(
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${truncatedMarkdown}`,
+          content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
         },
       ],
       temperature: 0.1,
