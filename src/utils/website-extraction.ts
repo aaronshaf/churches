@@ -126,19 +126,39 @@ export async function extractChurchDataFromWebsite(
     });
 
     // Send to Gemini for extraction
-    console.log(`Sending ${textContent.length} characters to Gemini for extraction`);
+    console.log(`Sending ${textContent.length} characters to AI for extraction`);
     
-    const completion = await openai.chat.completions.create({
-      model: 'google/gemini-2.0-flash-exp:free',
-      messages: [
-        {
-          role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 2000, // Increased for more detailed extraction
-    });
+    let completion;
+    try {
+      // Try free model first
+      completion = await openai.chat.completions.create({
+        model: 'google/gemini-2.0-flash-exp:free',
+        messages: [
+          {
+            role: 'user',
+            content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      });
+    } catch (error) {
+      console.log('Free model failed:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('Falling back to Gemini 2.5 Flash Lite');
+      
+      // Fallback to Gemini 2.5 Flash Lite
+      completion = await openai.chat.completions.create({
+        model: 'google/gemini-2.5-flash-lite-preview-06-17',
+        messages: [
+          {
+            role: 'user',
+            content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      });
+    }
 
     const responseContent = completion.choices[0]?.message?.content;
     if (!responseContent) {
