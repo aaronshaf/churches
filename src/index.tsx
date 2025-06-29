@@ -41,6 +41,7 @@ import {
   affiliationSchema,
   churchWithGatheringsSchema,
   countySchema,
+  generateUrlPath,
   loginSchema,
   pageSchema,
   parseAffiliationsFromForm,
@@ -373,7 +374,7 @@ app.get('/counties/:path', async (c) => {
       ? await db
           .select()
           .from(churchGatherings)
-          .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds, sql`, `)})`)
+          .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
           .all()
       : [];
 
@@ -1181,16 +1182,8 @@ app.get('/networks/:id', async (c) => {
   }
 
   // Get all churches for this affiliation
-  const affiliationChurches = await db
-    .select({
-      id: churches.id,
-      name: churches.name,
-      path: churches.path,
-      status: churches.status,
-      gatheringAddress: churches.gatheringAddress,
-      countyName: counties.name,
-      countyPath: counties.path,
-    })
+  const affiliationChurchesRaw = await db
+    .select()
     .from(churches)
     .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
     .leftJoin(counties, eq(churches.countyId, counties.id))
@@ -1200,9 +1193,44 @@ app.get('/networks/:id', async (c) => {
     .orderBy(churches.name)
     .all();
 
+  // Map the results to the expected structure
+  const affiliationChurches = affiliationChurchesRaw.map(row => ({
+    id: row.churches.id,
+    name: row.churches.name,
+    path: row.churches.path,
+    status: row.churches.status,
+    gatheringAddress: row.churches.gatheringAddress,
+    serviceTimes: row.churches.serviceTimes,
+    countyName: row.counties?.name || null,
+    countyPath: row.counties?.path || null,
+  }));
+
+  // Get gatherings for all churches
+  const churchIds = affiliationChurches.map(c => c.id);
+  const gatherings = churchIds.length > 0 ? await db
+    .select()
+    .from(churchGatherings)
+    .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+    .all() : [];
+
+  // Group gatherings by church ID
+  const gatheringsByChurch: Record<number, any[]> = {};
+  for (const gathering of gatherings) {
+    if (!gatheringsByChurch[gathering.churchId]) {
+      gatheringsByChurch[gathering.churchId] = [];
+    }
+    gatheringsByChurch[gathering.churchId].push(gathering);
+  }
+
+  // Add gatherings to churches
+  const churchesWithGatherings = affiliationChurches.map(church => ({
+    ...church,
+    gatherings: gatheringsByChurch[church.id] || []
+  }));
+
   // Separate listed and unlisted churches
-  const listedChurches = affiliationChurches.filter((c) => c.status === 'Listed');
-  const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
+  const listedChurches = churchesWithGatherings.filter((c) => c.status === 'Listed');
+  const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
 
   return c.html(
     <Layout title={`${affiliation.name} - Utah Churches`} user={user}>
@@ -3428,7 +3456,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
     );
   }
 
-  const { name, status, website, publicNotes, privateNotes } = validation.data;
+  const { name, path, status, website, publicNotes, privateNotes } = validation.data;
 
   // Check if name already exists
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
@@ -3451,8 +3479,12 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
     );
   }
 
+  // Generate path if not provided
+  const affiliationPath = path || generateUrlPath(name);
+
   await db.insert(affiliations).values({
     name,
+    path: affiliationPath,
     status: status as 'Listed' | 'Unlisted' | 'Heretical',
     website: website || null,
     publicNotes: publicNotes || null,
@@ -3529,18 +3561,56 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
+  const user = c.get('user');
+  const parsedBody = parseFormBody(body);
 
-  const name = body.name as string;
-  const status = body.status as string;
-  const website = body.website as string;
-  const publicNotes = body.publicNotes as string;
-  const privateNotes = body.privateNotes as string;
+  // Validate input
+  const validation = validateFormData(affiliationSchema, parsedBody);
+
+  if (!validation.success) {
+    // Get the current affiliation for the form
+    const affiliation = await db
+      .select()
+      .from(affiliations)
+      .where(eq(affiliations.id, Number(id)))
+      .get();
+
+    if (!affiliation) {
+      return c.redirect('/admin/affiliations');
+    }
+
+    return c.html(
+      <Layout title="Edit Affiliation - Utah Churches" user={user}>
+        <div class="bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
+                <p class="text-red-700">{validation.message}</p>
+              </div>
+              <AffiliationForm 
+                action={`/admin/affiliations/${id}`} 
+                isNew={false} 
+                affiliation={{ ...affiliation, ...parsedBody }} 
+              />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const { name, path, status, website, publicNotes, privateNotes } = validation.data;
+
+  // Generate path if not provided
+  const affiliationPath = path || generateUrlPath(name);
 
   // Update affiliation details
   await db
     .update(affiliations)
     .set({
       name,
+      path: affiliationPath,
       status: status as 'Listed' | 'Unlisted' | 'Heretical',
       website: website || null,
       publicNotes: publicNotes || null,

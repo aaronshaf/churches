@@ -68,6 +68,12 @@ export const churchWithGatheringsSchema = z.object({
 // Affiliation validation schema
 export const affiliationSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255, 'Name too long'),
+  path: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9-]*$/, 'Path can only contain lowercase letters, numbers, and hyphens')
+    .max(255, 'Path too long')
+    .optional(),
   status: z.enum(['Listed', 'Unlisted', 'Heretical']).default('Listed'),
   website: optionalUrl,
   privateNotes: z.string().max(2000, 'Private notes too long').optional(),
@@ -259,4 +265,15 @@ export function prepareChurchDataFromForm(body: Record<string, any>) {
     privateNotes: body.privateNotes || undefined,
     publicNotes: body.publicNotes || undefined,
   };
+}
+
+// Helper function to generate URL-friendly path from name
+export function generateUrlPath(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 }
