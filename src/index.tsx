@@ -4308,12 +4308,14 @@ app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
       extracted: extractedData,
       fields: {
         phone: !!extractedData.phone,
+        email: !!extractedData.email,
         address: !!extractedData.address,
         serviceTimes: !!extractedData.service_times?.length,
         instagram: !!extractedData.instagram,
         facebook: !!extractedData.facebook,
         spotify: !!extractedData.spotify,
         youtube: !!extractedData.youtube,
+        statementOfFaithUrl: !!extractedData.statement_of_faith_url,
       },
     };
 

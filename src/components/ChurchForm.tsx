@@ -713,6 +713,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               extractedCount++;
             }
             
+            if (fields.email && extracted.email) {
+              document.getElementById('email').value = extracted.email;
+              extractedList.innerHTML += '<li>✓ Email address</li>';
+              extractedCount++;
+            }
+            
             if (fields.address && extracted.address) {
               document.getElementById('gatheringAddress').value = extracted.address;
               extractedList.innerHTML += '<li>✓ Physical address</li>';
@@ -740,6 +746,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             if (fields.youtube && extracted.youtube) {
               document.getElementById('youtube').value = extracted.youtube;
               extractedList.innerHTML += '<li>✓ YouTube URL</li>';
+              extractedCount++;
+            }
+            
+            if (fields.statementOfFaithUrl && extracted.statement_of_faith_url) {
+              document.getElementById('statementOfFaith').value = extracted.statement_of_faith_url;
+              extractedList.innerHTML += '<li>✓ Statement of Faith URL</li>';
               extractedCount++;
             }
             

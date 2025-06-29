@@ -4,20 +4,23 @@ import { convert } from 'html-to-text';
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
 
 1) Phone number - Format as "(XXX) XXX-XXXX" with space after area code (e.g., "(801) 295-9439")
-2) Physical address (if found)
-3) Service times as an array of objects with 'time' and optional 'notes':
+2) Email address (if found) - Must be a valid email format
+3) Physical address (if found)
+4) Service times as an array of objects with 'time' and optional 'notes':
    - Time MUST be an actual clock time with AM/PM (e.g., "10:00 AM", "6:30 PM")
    - Do NOT use descriptive times like "First Sunday of month" - extract the actual time
    - Include day for non-Sunday services (e.g., "6:30 PM (Wednesday)")
    - Notes should be in normal sentence case, NOT ALL CAPS
    - Fix any ALL CAPS text to normal capitalization (e.g., "CONTEMPORARY SERVICE" → "Contemporary service")
-4) Social media URLs: instagram, facebook, spotify, youtube - ONLY include if they are specific to this church (not just generic social media homepages)
+5) Social media URLs: instagram, facebook, spotify, youtube - ONLY include if they are specific to this church (not just generic social media homepages)
+6) Statement of Faith URL - Look for links/pages titled "Statement of Faith", "What We Believe", "Our Beliefs", "Doctrinal Statement", etc.
 
-Only include properties that are found. Use these exact keys: phone, address, service_times, instagram, facebook, spotify, youtube
+Only include properties that are found. Use these exact keys: phone, email, address, service_times, instagram, facebook, spotify, youtube, statement_of_faith_url
 
 Example format:
 {
   "phone": "(801) 555-1234",
+  "email": "info@churchname.org",
   "address": "123 Main St, City, State 12345",
   "service_times": [
     {"time": "9:00 AM", "notes": "Traditional service"},
@@ -25,7 +28,8 @@ Example format:
     {"time": "6:30 PM (Wednesday)", "notes": "Prayer meeting and Bible study"}
   ],
   "facebook": "https://facebook.com/churchname",
-  "instagram": "https://instagram.com/churchhandle"
+  "instagram": "https://instagram.com/churchhandle",
+  "statement_of_faith_url": "https://churchname.org/what-we-believe"
 }`;
 
 export interface ServiceTime {
@@ -35,12 +39,14 @@ export interface ServiceTime {
 
 export interface ExtractedChurchData {
   phone?: string;
+  email?: string;
   address?: string;
   service_times?: ServiceTime[];
   instagram?: string;
   facebook?: string;
   spotify?: string;
   youtube?: string;
+  statement_of_faith_url?: string;
 }
 
 export async function extractChurchDataFromWebsite(
@@ -135,6 +141,14 @@ export async function extractChurchDataFromWebsite(
       cleanedData.phone = phone;
     }
 
+    if (extractedData.email && typeof extractedData.email === 'string') {
+      const email = extractedData.email.trim().toLowerCase();
+      // Basic email validation
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        cleanedData.email = email;
+      }
+    }
+
     if (extractedData.address && typeof extractedData.address === 'string') {
       cleanedData.address = extractedData.address.trim();
     }
@@ -203,6 +217,16 @@ export async function extractChurchDataFromWebsite(
         } catch {
           // Invalid URL, skip
         }
+      }
+    }
+
+    // Validate statement of faith URL
+    if (extractedData.statement_of_faith_url && typeof extractedData.statement_of_faith_url === 'string') {
+      try {
+        const url = new URL(extractedData.statement_of_faith_url.trim());
+        cleanedData.statement_of_faith_url = extractedData.statement_of_faith_url.trim();
+      } catch {
+        // Invalid URL, skip
       }
     }
 
