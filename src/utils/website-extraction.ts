@@ -5,23 +5,32 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 
 1) Phone number (if found)
 2) Physical address (if found)
-3) Service times as an array of strings. Format each time as just the time for Sunday services (e.g. '10:00 AM'), but include day for non-Sunday services (e.g. '6:30 PM (Wednesday)'). Include special service names like 'Sunday School', 'Prayer Service', etc. if mentioned.
-4) Social media URLs: instagram, facebook, spotify, youtube (if found)
+3) Service times as an array of objects with 'time' and optional 'notes'. Format times as just the time for Sunday services (e.g. '10:00 AM'), but include day for non-Sunday services (e.g. '6:30 PM (Wednesday)'). Notes can include things like 'Sunday School', 'Prayer Service', 'Children's ministry available', etc.
+4) Social media URLs: instagram, facebook, spotify, youtube - ONLY include if they are specific to this church (not just generic social media homepages)
 
 Only include properties that are found. Use these exact keys: phone, address, service_times, instagram, facebook, spotify, youtube
 
 Example format:
 {
   "address": "123 Main St, City, State 12345",
-  "service_times": ["10:00 AM", "6:30 PM (Wednesday)", "Sunday School 9:00 AM"],
-  "facebook": "https://facebook.com/...",
-  "instagram": "https://instagram.com/..."
+  "service_times": [
+    {"time": "10:00 AM", "notes": "Traditional Service"},
+    {"time": "11:30 AM", "notes": "Contemporary Service with children's ministry"},
+    {"time": "6:30 PM (Wednesday)", "notes": "Prayer Service"}
+  ],
+  "facebook": "https://facebook.com/churchname",
+  "instagram": "https://instagram.com/churchhandle"
 }`;
+
+export interface ServiceTime {
+  time: string;
+  notes?: string;
+}
 
 export interface ExtractedChurchData {
   phone?: string;
   address?: string;
-  service_times?: string[];
+  service_times?: ServiceTime[];
   instagram?: string;
   facebook?: string;
   spotify?: string;
@@ -47,25 +56,22 @@ export async function extractChurchDataFromWebsite(
     const html = await response.text();
 
     // Convert HTML to text using html-to-text package
-    const textContent = convert(html.slice(0, 100000), { // Pre-truncate very large HTML
+    // With Gemini's 1M context, we can process much more content
+    const textContent = convert(html.slice(0, 500000), { // Allow up to 500k HTML
       wordwrap: false,
       selectors: [
         { selector: 'script', format: 'skip' },
         { selector: 'style', format: 'skip' },
         { selector: 'noscript', format: 'skip' },
         { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { ignoreHref: true } },
-        { selector: 'nav', format: 'skip' }, // Skip navigation
-        { selector: 'header', format: 'skip' }, // Skip headers
-        { selector: 'footer', format: 'skip' }, // Skip footers
-        { selector: '.menu', format: 'skip' }, // Skip menus
-        { selector: '#menu', format: 'skip' }
+        { selector: 'a', options: { ignoreHref: true } }
+        // Don't skip nav/header/footer with Gemini - they might contain service times
       ],
       limits: {
-        maxInputLength: 100000,
+        maxInputLength: 500000,
         ellipsis: '...'
       }
-    }).slice(0, 10000); // Reduce to 10k chars for AI processing
+    }).slice(0, 100000); // Allow up to 100k chars for Gemini
 
     // Initialize OpenRouter client
     const openai = new OpenAI({
@@ -73,11 +79,11 @@ export async function extractChurchDataFromWebsite(
       apiKey,
     });
 
-    // Send to DeepSeek for extraction
-    console.log(`Sending ${textContent.length} characters to AI for extraction`);
+    // Send to Gemini for extraction
+    console.log(`Sending ${textContent.length} characters to Gemini for extraction`);
     
     const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'google/gemini-2.0-flash-exp:free',
       messages: [
         {
           role: 'user',
@@ -85,7 +91,7 @@ export async function extractChurchDataFromWebsite(
         },
       ],
       temperature: 0.1,
-      max_tokens: 1000,
+      max_tokens: 2000, // Increased for more detailed extraction
     });
 
     const responseContent = completion.choices[0]?.message?.content;
@@ -117,8 +123,25 @@ export async function extractChurchDataFromWebsite(
 
     if (Array.isArray(extractedData.service_times)) {
       cleanedData.service_times = extractedData.service_times
-        .filter((time): time is string => typeof time === 'string' && time.trim() !== '')
-        .map(time => time.trim());
+        .filter((item): item is ServiceTime => {
+          if (typeof item === 'object' && item !== null && 'time' in item) {
+            return typeof item.time === 'string' && item.time.trim() !== '';
+          }
+          // Handle if AI returns strings instead of objects (backwards compatibility)
+          if (typeof item === 'string' && item.trim() !== '') {
+            return true;
+          }
+          return false;
+        })
+        .map(item => {
+          if (typeof item === 'string') {
+            return { time: item.trim() };
+          }
+          return {
+            time: item.time.trim(),
+            notes: item.notes ? item.notes.trim() : undefined
+          };
+        });
     }
 
     // Validate and clean social media URLs
@@ -127,8 +150,20 @@ export async function extractChurchDataFromWebsite(
       const url = extractedData[key];
       if (url && typeof url === 'string') {
         try {
-          new URL(url); // Validate URL
-          cleanedData[key] = url.trim();
+          const urlObj = new URL(url);
+          const cleanUrl = url.trim();
+          
+          // Reject generic social media homepages
+          const genericPatterns = {
+            instagram: /^https?:\/\/(www\.)?instagram\.com\/?$/,
+            facebook: /^https?:\/\/(www\.)?facebook\.com\/?$/,
+            youtube: /^https?:\/\/(www\.)?youtube\.com\/?$/,
+            spotify: /^https?:\/\/(open\.)?spotify\.com\/?$/,
+          };
+          
+          if (!genericPatterns[key]?.test(cleanUrl)) {
+            cleanedData[key] = cleanUrl;
+          }
         } catch {
           // Invalid URL, skip
         }
@@ -143,43 +178,12 @@ export async function extractChurchDataFromWebsite(
 }
 
 // Helper to format service times into the gatherings format
-export function formatServiceTimesForGatherings(serviceTimes: string[]): Array<{
-  day: string;
+export function formatServiceTimesForGatherings(serviceTimes: ServiceTime[]): Array<{
   time: string;
-  type: string;
+  notes?: string;
 }> {
-  const gatherings: Array<{ day: string; time: string; type: string }> = [];
-
-  for (const serviceTime of serviceTimes) {
-    // Check if it includes a day in parentheses
-    const dayMatch = serviceTime.match(/\((Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\)/i);
-    
-    if (dayMatch) {
-      // Non-Sunday service
-      const day = dayMatch[1];
-      const time = serviceTime.replace(dayMatch[0], '').trim();
-      gatherings.push({
-        day,
-        time,
-        type: 'Service',
-      });
-    } else if (serviceTime.toLowerCase().includes('sunday school')) {
-      // Sunday School
-      const time = serviceTime.replace(/sunday school/i, '').trim();
-      gatherings.push({
-        day: 'Sunday',
-        time,
-        type: 'Sunday School',
-      });
-    } else {
-      // Regular Sunday service
-      gatherings.push({
-        day: 'Sunday',
-        time: serviceTime,
-        type: 'Service',
-      });
-    }
-  }
-
-  return gatherings;
+  return serviceTimes.map(service => ({
+    time: service.time,
+    notes: service.notes
+  }));
 }

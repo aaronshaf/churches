@@ -750,7 +750,11 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               gatheringsContainer.innerHTML = '';
               
               // Add each service time
-              extracted.service_times.forEach((time, index) => {
+              extracted.service_times.forEach((service, index) => {
+                // Handle both object format {time, notes} and string format
+                const serviceTime = typeof service === 'string' ? service : service.time;
+                const serviceNotes = typeof service === 'object' ? (service.notes || '') : '';
+                
                 const newGathering = document.createElement('div');
                 newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
                 newGathering.innerHTML = \`
@@ -761,7 +765,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <input
                       type="text"
                       name="gatherings[\${index}][time]"
-                      value="\${time}"
+                      value="\${serviceTime}"
                       required
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
@@ -773,7 +777,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <input
                       type="text"
                       name="gatherings[\${index}][notes]"
-                      value=""
+                      value="\${serviceNotes}"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
