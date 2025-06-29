@@ -22,7 +22,9 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
    - NEVER include placeholder URLs or explanations
    - If you only know they have YouTube/Facebook but no actual URL, skip it entirely
 6) Statement of Faith URL - Look for links titled "Statement of Faith", "What We Believe", etc.
-   - Include the EXACT URL as found in the text - DO NOT modify the domain name!
+   - Must be a FULL URL starting with https:// or http://
+   - If you find a relative path like "/beliefs" or "what-we-believe.html", construct the full URL
+   - Include the EXACT URL - DO NOT modify the domain name!
 
 Return ONLY the fields you find, using this EXACT format:
 
@@ -181,6 +183,10 @@ function normalizeAddress(address: string): string {
 
 export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: string): Promise<ExtractedChurchData> {
   try {
+    // Parse the base URL for potential use in constructing full URLs
+    const baseUrl = new URL(websiteUrl);
+    const origin = baseUrl.origin;
+    
     // Fetch the website content
     const response = await fetch(websiteUrl, {
       headers: {
@@ -406,6 +412,36 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
             invalidPatterns.some(pattern => pattern.test(cleanUrl))) {
           delete processedData[key];
         }
+      }
+    }
+
+    // Fix statement of faith URL if it's a relative path
+    if (processedData.statement_of_faith_url && typeof processedData.statement_of_faith_url === 'string') {
+      const url = processedData.statement_of_faith_url.trim();
+      
+      // Check if it's a relative URL
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // It's a relative path, construct full URL
+        if (url.startsWith('/')) {
+          processedData.statement_of_faith_url = origin + url;
+        } else {
+          // Relative to current path
+          processedData.statement_of_faith_url = origin + '/' + url;
+        }
+      }
+      
+      // Also filter out invalid statement of faith URLs
+      const invalidPatterns = [
+        /example/i,
+        /actualchurch/i,
+        /yourchurch/i,
+        /placeholder/i,
+        /sample/i,
+        /test/i,
+      ];
+      
+      if (invalidPatterns.some(pattern => pattern.test(processedData.statement_of_faith_url))) {
+        delete processedData.statement_of_faith_url;
       }
     }
 
