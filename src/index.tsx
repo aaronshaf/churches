@@ -50,7 +50,7 @@ import {
   userSchema,
   validateFormData,
 } from './utils/validation';
-import { extractChurchDataFromWebsite, formatServiceTimesForGatherings } from './utils/website-extraction';
+import { extractChurchDataFromWebsite } from './utils/website-extraction';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -4339,8 +4339,6 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
 // Extract church data from website
 app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
   try {
-    const db = createDb(c.env);
-    const id = c.req.param('id');
     const body = await c.req.parseBody();
     const websiteUrl = body.websiteUrl as string;
 
@@ -5034,7 +5032,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
 
   const faviconUrl = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
 
-  const logoUrl = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
+  const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
   return c.html(
     <Layout title="Settings - Utah Churches" user={user}>
@@ -5265,8 +5263,9 @@ app.get('*', async (c) => {
       user = await validateSession(sessionId, c.env);
     }
 
-    // Get favicon URL
+    // Get favicon URL and logo URL
     const faviconUrl = await getFaviconUrl(c.env);
+    const logoUrl = await getLogoUrl(c.env);
 
     // First check if it's a page
     const page = await db.select().from(pages).where(eq(pages.path, slug)).get();
@@ -5306,12 +5305,6 @@ app.get('*', async (c) => {
   if (sessionId) {
     user = await validateSession(sessionId, c.env);
   }
-
-  // Get favicon URL
-  const faviconUrl = await getFaviconUrl(c.env);
-
-  // Get logo URL
-  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
     <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>

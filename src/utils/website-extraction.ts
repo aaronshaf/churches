@@ -8,7 +8,8 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 2) Email address (if found) - Must be a valid email format
 3) Physical address (if found) - Use proper title case, not ALL CAPS. Format as "123 Main St, City, State ZIP"
 4) Service times as an array of objects with 'time' and optional 'notes':
-   - Time MUST be an actual clock time with AM/PM (e.g., "10:00 AM", "6:30 PM")
+   - Time MUST be an actual clock time with AM/PM (e.g., "10 AM", "10:30 AM", "6:30 PM")
+   - Always include a space before AM/PM (e.g., "9 AM" not "9AM")
    - Do NOT use descriptive times like "First Sunday of month" - extract the actual time
    - Include day for non-Sunday services (e.g., "6:30 PM (Wednesday)")
    - Notes should be in normal sentence case, NOT ALL CAPS
@@ -24,8 +25,8 @@ Example format:
   "email": "info@churchname.org",
   "address": "123 Main St, City, State 12345",
   "service_times": [
-    {"time": "9:00 AM", "notes": "Traditional service"},
-    {"time": "11:00 AM", "notes": "Contemporary service with children's ministry"},
+    {"time": "9 AM", "notes": "Traditional service"},
+    {"time": "11 AM", "notes": "Contemporary service with children's ministry"},
     {"time": "6:30 PM (Wednesday)", "notes": "Prayer meeting and Bible study"}
   ],
   "facebook": "https://facebook.com/churchname",
@@ -35,7 +36,7 @@ Example format:
 
 // Zod schemas for validation
 const serviceTimeSchema = z.object({
-  time: z.string().regex(/^\d{1,2}:\d{2}\s*(AM|PM|am|pm)(\s*\([^)]+\))?$/),
+  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s*\([^)]+\))?$/),
   notes: z.string().optional(),
 });
 
@@ -57,15 +58,37 @@ const extractedChurchDataSchema = z.object({
 export type ServiceTime = z.infer<typeof serviceTimeSchema>;
 export type ExtractedChurchData = z.infer<typeof extractedChurchDataSchema>;
 
+// Helper function to normalize time format (e.g., "9AM" -> "9 AM", "9:00am" -> "9:00 AM")
+function normalizeTimeFormat(timeStr: string): string {
+  // First, trim any whitespace
+  const normalized = timeStr.trim();
+
+  // Match time patterns: 9AM, 9:30AM, 9 am, 9:30 pm, etc.
+  const match = normalized.match(/^(\d{1,2})(:\d{2})?\s*(AM|PM|am|pm)/);
+  if (!match) return timeStr; // Return original if no match
+
+  const [_, hours, minutes, period] = match;
+  const normalizedPeriod = period.toUpperCase();
+
+  // Build normalized time with space before AM/PM
+  const timeBase = hours + (minutes || '');
+
+  // Check if there's additional content after the time (like day in parentheses)
+  const restMatch = normalized.match(/^(\d{1,2})(:\d{2})?\s*(AM|PM|am|pm)(.*)$/);
+  const rest = restMatch ? restMatch[4] : '';
+
+  return `${timeBase} ${normalizedPeriod}${rest}`;
+}
+
 // Helper function to parse time for sorting
 function parseTimeForSort(timeStr: string): number {
   // Extract time and period (AM/PM)
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/i);
+  const match = timeStr.match(/(\d{1,2})(:\d{2})?\s*(AM|PM|am|pm)/i);
   if (!match) return 0;
 
   const [_, hours, minutes, period] = match;
   let hour = parseInt(hours);
-  const minute = parseInt(minutes);
+  const minute = minutes ? parseInt(minutes.slice(1)) : 0; // Remove colon if present
 
   // Convert to 24-hour format for sorting
   if (period.toUpperCase() === 'PM' && hour !== 12) {
@@ -263,7 +286,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         .map((item: any) => {
           // Handle string format
           if (typeof item === 'string') {
-            return { time: item.trim() };
+            return { time: normalizeTimeFormat(item.trim()) };
           }
 
           // Handle object format
@@ -283,7 +306,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
             }
 
             return {
-              time: item.time.trim(),
+              time: normalizeTimeFormat(item.time.trim()),
               notes: notes,
             };
           }

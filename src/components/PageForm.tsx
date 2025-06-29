@@ -111,11 +111,7 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                   <div class="mt-2">
                     {page?.featuredImageUrl && (
                       <div class="mb-4">
-                        <img
-                          src={page.featuredImageUrl}
-                          alt="Current featured image"
-                          class="h-32 w-auto rounded-lg shadow-sm"
-                        />
+                        <img src={page.featuredImageUrl} alt="" class="h-32 w-auto rounded-lg shadow-sm" />
                         <p class="mt-2 text-sm text-gray-500">Current image</p>
                       </div>
                     )}
