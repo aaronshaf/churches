@@ -21,11 +21,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl }) =>
               onmouseout="cancelPrefetch()"
             >
               {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Utah Churches"
-                  class="h-10 sm:h-12 w-auto"
-                />
+                <img src={logoUrl} alt="Utah Churches" class="h-10 sm:h-12 w-auto" />
               ) : (
                 <span class="text-xl sm:text-2xl font-bold text-gray-900">Utah Churches</span>
               )}

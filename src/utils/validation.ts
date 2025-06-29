@@ -110,8 +110,18 @@ export const loginSchema = z.object({
 // Page validation schema
 // Reserved paths that pages cannot use
 const RESERVED_PATHS = [
-  'admin', 'api', 'churches', 'counties', 'networks', 'map', 'data', 
-  'login', 'logout', 'churches.json', 'churches.yaml', 'churches.csv'
+  'admin',
+  'api',
+  'churches',
+  'counties',
+  'networks',
+  'map',
+  'data',
+  'login',
+  'logout',
+  'churches.json',
+  'churches.yaml',
+  'churches.csv',
 ];
 
 export const pageSchema = z.object({

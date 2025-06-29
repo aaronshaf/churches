@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { eq, sql, desc } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
@@ -17,12 +17,26 @@ import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { UserForm } from './components/UserForm';
 import { createDb } from './db';
-import { affiliations, churchAffiliations, churches, churchGatherings, churchImages, counties, pages, settings, users } from './db/schema';
+import {
+  affiliations,
+  churchAffiliations,
+  churches,
+  churchGatherings,
+  churchImages,
+  counties,
+  pages,
+  settings,
+  users,
+} from './db/schema';
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { uploadToCloudflareImages, deleteFromCloudflareImages, getCloudflareImageUrl, IMAGE_VARIANTS } from './utils/cloudflare-images';
-import { extractChurchDataFromWebsite, formatServiceTimesForGatherings } from './utils/website-extraction';
+import {
+  deleteFromCloudflareImages,
+  getCloudflareImageUrl,
+  IMAGE_VARIANTS,
+  uploadToCloudflareImages,
+} from './utils/cloudflare-images';
 import {
   affiliationSchema,
   churchWithGatheringsSchema,
@@ -36,6 +50,7 @@ import {
   userSchema,
   validateFormData,
 } from './utils/validation';
+import { extractChurchDataFromWebsite, formatServiceTimesForGatherings } from './utils/website-extraction';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -58,25 +73,16 @@ app.use('/api/*', cors());
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   const db = createDb(env);
-  const faviconUrlSetting = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'favicon_url'))
-    .get();
+  const faviconUrlSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
   return faviconUrlSetting?.value || undefined;
 }
 
 // Helper function to fetch logo URL
 async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   const db = createDb(env);
-  const logoUrlSetting = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'logo_url'))
-    .get();
+  const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
   return logoUrlSetting?.value || undefined;
 }
-
 
 // Global error handler
 app.onError((err, c) => {
@@ -99,25 +105,21 @@ app.onError((err, c) => {
 app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
-    
+
     // Check for user session
     let user = null;
     const sessionId = getCookie(c, 'session');
     if (sessionId) {
       user = await validateSession(sessionId, c.env);
     }
-    
+
     // Get front page title from settings
-    const frontPageTitleSetting = await db
-      .select()
-      .from(settings)
-      .where(eq(settings.key, 'front_page_title'))
-      .get();
+    const frontPageTitleSetting = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
     const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches in Utah';
-    
+
     // Get favicon URL from settings
     const faviconUrl = await getFaviconUrl(c.env);
-    
+
     // Get logo URL from settings
     const logoUrl = await getLogoUrl(c.env);
 
@@ -313,7 +315,6 @@ app.get('/', async (c) => {
             `,
             }}
           />
-
         </div>
       </Layout>
     );
@@ -400,12 +401,18 @@ app.get('/counties/:path', async (c) => {
 
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
-    <Layout title={`${county.name} Churches - Utah Churches`} user={user} countyId={county.id.toString()} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+    <Layout
+      title={`${county.name} Churches - Utah Churches`}
+      user={user}
+      countyId={county.id.toString()}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+    >
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -477,7 +484,6 @@ app.get('/counties/:path', async (c) => {
             </div>
           )}
         </div>
-
       </div>
 
       {/* JavaScript for showing unlisted churches */}
@@ -563,12 +569,18 @@ app.get('/networks', async (c) => {
 
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
-    <Layout title="Church Networks - Utah Churches" currentPath="/networks" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+    <Layout
+      title="Church Networks - Utah Churches"
+      currentPath="/networks"
+      user={user}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+    >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -620,7 +632,6 @@ app.get('/networks', async (c) => {
             )}
           </div>
         </div>
-
       </div>
     </Layout>
   );
@@ -732,7 +743,7 @@ app.get('/churches/:path', async (c) => {
 
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
@@ -776,7 +787,14 @@ app.get('/churches/:path', async (c) => {
   };
 
   return c.html(
-    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user} churchId={church.id} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+    <Layout
+      title={`${church.name} - Utah Churches`}
+      jsonLd={jsonLd}
+      user={user}
+      churchId={church.id}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+    >
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700" data-testid="church-header">
@@ -882,7 +900,10 @@ app.get('/churches/:path', async (c) => {
                     {church.email && (
                       <div data-testid="church-email">
                         <h3 class="text-base font-medium text-gray-500">Email</h3>
-                        <a href={`mailto:${church.email}`} class="mt-1 text-base text-primary-600 hover:text-primary-500">
+                        <a
+                          href={`mailto:${church.email}`}
+                          class="mt-1 text-base text-primary-600 hover:text-primary-500"
+                        >
                           {church.email}
                         </a>
                       </div>
@@ -1032,14 +1053,16 @@ app.get('/churches/:path', async (c) => {
                       {churchImagesList.map((image, index) => (
                         <div class="relative group">
                           <img
-                            src={getCloudflareImageUrl(image.imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.MEDIUM)}
+                            src={getCloudflareImageUrl(
+                              image.imageId,
+                              c.env.CLOUDFLARE_ACCOUNT_HASH,
+                              IMAGE_VARIANTS.MEDIUM
+                            )}
                             alt={image.caption || `${church.name} photo ${index + 1}`}
                             class="rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer hover:opacity-95 transition-opacity"
                             onclick={`showImageModal('${getCloudflareImageUrl(image.imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE)}', '${(image.caption || '').replace(/'/g, "\\'")}')`}
                           />
-                          {image.caption && (
-                            <p class="mt-2 text-sm text-gray-600">{image.caption}</p>
-                          )}
+                          {image.caption && <p class="mt-2 text-sm text-gray-600">{image.caption}</p>}
                         </div>
                       ))}
                     </div>
@@ -1049,18 +1072,32 @@ app.get('/churches/:path', async (c) => {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Image Modal */}
-      <div id="imageModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div
+        id="imageModal"
+        class="hidden fixed inset-0 z-50 overflow-y-auto"
+        aria-labelledby="modal-title"
+        role="dialog"
+        aria-modal="true"
+      >
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeImageModal()"></div>
-          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          <div
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            aria-hidden="true"
+            onclick="closeImageModal()"
+          ></div>
+          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+            &#8203;
+          </span>
           <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div class="relative">
-                <button onclick="closeImageModal()" class="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
+                <button
+                  onclick="closeImageModal()"
+                  class="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+                >
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1323,7 +1360,7 @@ app.get('/map', async (c) => {
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
-      showHereticalOption 
+      showHereticalOption
         ? sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL`
         : sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`
     )
@@ -1336,7 +1373,7 @@ app.get('/map', async (c) => {
 
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
@@ -2249,7 +2286,13 @@ app.get('/data', async (c) => {
     const faviconUrl = await getFaviconUrl(c.env);
 
     return c.html(
-      <Layout title="Download Data - Utah Churches" currentPath="/data" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+      <Layout
+        title="Download Data - Utah Churches"
+        currentPath="/data"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
+      >
         <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -2507,7 +2550,7 @@ app.get('/logout', async (c) => {
 app.get('/admin', adminMiddleware, async (c) => {
   const user = c.get('user');
   const db = createDb(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
@@ -2554,7 +2597,10 @@ app.get('/admin', adminMiddleware, async (c) => {
 
               <div class="space-y-3">
                 {churchesForReview.map((church) => (
-                  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 overflow-hidden" data-testid={`church-review-${church.id}`}>
+                  <div
+                    class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 overflow-hidden"
+                    data-testid={`church-review-${church.id}`}
+                  >
                     <div class="p-4">
                       <div class="flex items-start justify-between">
                         <div class="flex-1">
@@ -2566,16 +2612,16 @@ app.get('/admin', adminMiddleware, async (c) => {
                                   church.status === 'Listed'
                                     ? 'bg-green-50 text-green-700 ring-green-600/20'
                                     : church.status === 'Ready to list'
-                                    ? 'bg-blue-50 text-blue-700 ring-blue-600/20'
-                                    : church.status === 'Assess'
-                                    ? 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
-                                    : church.status === 'Needs data'
-                                    ? 'bg-orange-50 text-orange-700 ring-orange-600/20'
-                                    : church.status === 'Unlisted'
-                                    ? 'bg-gray-50 text-gray-700 ring-gray-600/20'
-                                    : church.status === 'Heretical'
-                                    ? 'bg-red-50 text-red-700 ring-red-600/20'
-                                    : 'bg-gray-50 text-gray-700 ring-gray-600/20'
+                                      ? 'bg-blue-50 text-blue-700 ring-blue-600/20'
+                                      : church.status === 'Assess'
+                                        ? 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
+                                        : church.status === 'Needs data'
+                                          ? 'bg-orange-50 text-orange-700 ring-orange-600/20'
+                                          : church.status === 'Unlisted'
+                                            ? 'bg-gray-50 text-gray-700 ring-gray-600/20'
+                                            : church.status === 'Heretical'
+                                              ? 'bg-red-50 text-red-700 ring-red-600/20'
+                                              : 'bg-gray-50 text-gray-700 ring-gray-600/20'
                                 }`}
                               >
                                 {church.status}
@@ -2623,7 +2669,10 @@ app.get('/admin', adminMiddleware, async (c) => {
               </div>
 
               <div class="mt-4">
-                <a href="/admin/churches?sort=oldest" class="text-sm font-medium text-primary-600 hover:text-primary-500">
+                <a
+                  href="/admin/churches?sort=oldest"
+                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                >
                   View all churches needing review →
                 </a>
               </div>
@@ -2634,215 +2683,215 @@ app.get('/admin', adminMiddleware, async (c) => {
           <div class="mb-8" data-testid="manage-section">
             <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <a
-                  href="/admin/churches"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-churches"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Churches ({churchCount?.count || 0})
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Add, edit, or remove church listings</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/churches"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-churches"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Churches ({churchCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Add, edit, or remove church listings</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
 
-                <a
-                  href="/admin/affiliations"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-affiliations"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Affiliations ({affiliationCount?.count || 0})
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Manage denominations and networks</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/affiliations"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-affiliations"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Affiliations ({affiliationCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Manage denominations and networks</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
 
-                <a
-                  href="/admin/counties"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-counties"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Counties ({countyCount?.count || 0})
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/counties"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-counties"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Counties ({countyCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
 
-                <a
-                  href="/admin/users"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-users"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Users ({userCount?.count || 0})
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/users"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-users"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Users ({userCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
 
-                <a
-                  href="/admin/pages"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-pages"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-yellow-50 text-yellow-700 group-hover:bg-yellow-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Pages ({pageCount?.count || 0})
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Manage static content pages</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/pages"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-pages"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-yellow-50 text-yellow-700 group-hover:bg-yellow-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Pages ({pageCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Manage static content pages</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
 
-                <a
-                  href="/admin/settings"
-                  class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                  data-testid="card-settings"
-                >
-                  <div>
-                    <span class="rounded-lg inline-flex p-3 bg-gray-50 text-gray-700 group-hover:bg-gray-100">
-                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                    </span>
-                  </div>
-                  <div class="mt-4">
-                    <h3 class="text-lg font-medium">
-                      <span class="absolute inset-0" aria-hidden="true"></span>
-                      Settings
-                    </h3>
-                    <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
-                  </div>
-                  <span
-                    class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                    aria-hidden="true"
-                  >
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+              <a
+                href="/admin/settings"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-settings"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-gray-50 text-gray-700 group-hover:bg-gray-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
                     </svg>
                   </span>
-                </a>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Settings
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
             </div>
           </div>
         </div>
@@ -2855,10 +2904,10 @@ app.get('/admin', adminMiddleware, async (c) => {
 app.get('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
-  
+
   const allUsers = await db.select().from(users).all();
 
   return c.html(
@@ -2954,7 +3003,11 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a href={`/admin/users/${user.id}/edit`} class="text-primary-600 hover:text-primary-900 mr-4" data-testid={`btn-edit-user-${user.id}`}>
+                      <a
+                        href={`/admin/users/${user.id}/edit`}
+                        class="text-primary-600 hover:text-primary-900 mr-4"
+                        data-testid={`btn-edit-user-${user.id}`}
+                      >
                         Edit
                       </a>
                       {user.username !== 'admin' && (
@@ -3568,7 +3621,9 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
                 {allChurches.length} {allChurches.length === 1 ? 'church' : 'churches'}
               </div>
               <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-700 font-medium" style="min-width: 50px;">Sort by:</span>
+                <span class="text-sm text-gray-700 font-medium" style="min-width: 50px;">
+                  Sort by:
+                </span>
                 <div class="inline-flex rounded-md shadow-sm" role="group">
                   <button
                     type="button"
@@ -3919,8 +3974,8 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
 
     // Handle multiple image uploads
     const churchImagesFiles = body.churchImages;
-    const images = Array.isArray(churchImagesFiles) ? churchImagesFiles : (churchImagesFiles ? [churchImagesFiles] : []);
-    
+    const images = Array.isArray(churchImagesFiles) ? churchImagesFiles : churchImagesFiles ? [churchImagesFiles] : [];
+
     let displayOrder = 0;
     for (const imageFile of images) {
       if (imageFile instanceof File && imageFile.size > 0) {
@@ -3934,7 +3989,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
           if (uploadResult.success && uploadResult.result) {
             const imageId = uploadResult.result.id;
             const imageUrl = getCloudflareImageUrl(imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
-            
+
             await db.insert(churchImages).values({
               churchId,
               imageId,
@@ -4134,12 +4189,8 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
 
       if (shouldDelete) {
         // Get image details for deletion
-        const image = await db
-          .select()
-          .from(churchImages)
-          .where(eq(churchImages.id, imageId))
-          .get();
-        
+        const image = await db.select().from(churchImages).where(eq(churchImages.id, imageId)).get();
+
         if (image) {
           // Delete from Cloudflare
           try {
@@ -4151,7 +4202,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
           } catch (error) {
             console.error('Failed to delete image from Cloudflare:', error);
           }
-          
+
           // Delete from database
           await db.delete(churchImages).where(eq(churchImages.id, imageId));
         }
@@ -4166,23 +4217,27 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
           })
           .where(eq(churchImages.id, imageId));
       }
-      
+
       imageIndex++;
     }
 
     // Handle new image uploads
     const churchImagesFiles = body.churchImages;
-    const newImages = Array.isArray(churchImagesFiles) ? churchImagesFiles : (churchImagesFiles ? [churchImagesFiles] : []);
-    
+    const newImages = Array.isArray(churchImagesFiles)
+      ? churchImagesFiles
+      : churchImagesFiles
+        ? [churchImagesFiles]
+        : [];
+
     // Get current max display order
     const maxOrderResult = await db
       .select({ maxOrder: sql<number>`MAX(display_order)` })
       .from(churchImages)
       .where(eq(churchImages.churchId, Number(id)))
       .get();
-    
+
     let nextOrder = (maxOrderResult?.maxOrder || 0) + 1;
-    
+
     for (const imageFile of newImages) {
       if (imageFile instanceof File && imageFile.size > 0) {
         try {
@@ -4195,7 +4250,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
           if (uploadResult.success && uploadResult.result) {
             const imageId = uploadResult.result.id;
             const imageUrl = getCloudflareImageUrl(imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
-            
+
             await db.insert(churchImages).values({
               churchId: Number(id),
               imageId,
@@ -4260,11 +4315,7 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
     // Delete all images from Cloudflare
     for (const image of images) {
       try {
-        await deleteFromCloudflareImages(
-          image.imageId,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
-        );
+        await deleteFromCloudflareImages(image.imageId, c.env.CLOUDFLARE_ACCOUNT_ID, c.env.CLOUDFLARE_IMAGES_API_TOKEN);
       } catch (error) {
         console.error('Failed to delete church image:', error);
       }
@@ -4298,10 +4349,7 @@ app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
     }
 
     // Extract data using AI
-    const extractedData = await extractChurchDataFromWebsite(
-      websiteUrl,
-      c.env.OPENROUTER_API_KEY
-    );
+    const extractedData = await extractChurchDataFromWebsite(websiteUrl, c.env.OPENROUTER_API_KEY);
 
     // Format the response to include which fields were extracted
     const response = {
@@ -4525,10 +4573,10 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
-  
+
   const county = await db
     .select()
     .from(counties)
@@ -4632,12 +4680,8 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Path
-                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Path</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
                   </th>
@@ -4769,7 +4813,7 @@ app.get('/admin/pages/new', adminMiddleware, async (c) => {
 app.post('/admin/pages', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  
+
   const title = (body.title as string)?.trim();
   const path = (body.path as string)?.trim();
   const content = body.content as string;
@@ -4788,7 +4832,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
     try {
       console.log('Cloudflare Account ID:', c.env.CLOUDFLARE_ACCOUNT_ID);
       console.log('Has API Token:', !!c.env.CLOUDFLARE_IMAGES_API_TOKEN);
-      
+
       const uploadResult = await uploadToCloudflareImages(
         featuredImage,
         c.env.CLOUDFLARE_ACCOUNT_ID,
@@ -4834,7 +4878,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
     .from(pages)
     .where(eq(pages.id, Number(id)))
     .get();
-  
+
   if (!page) {
     return c.redirect('/admin/pages');
   }
@@ -4878,7 +4922,7 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  
+
   const title = (body.title as string)?.trim();
   const path = (body.path as string)?.trim();
   const content = body.content as string;
@@ -4939,7 +4983,10 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
     updatedAt: new Date(),
   };
 
-  await db.update(pages).set(pageData).where(eq(pages.id, Number(id)));
+  await db
+    .update(pages)
+    .set(pageData)
+    .where(eq(pages.id, Number(id)));
 
   return c.redirect('/admin/pages');
 });
@@ -4977,37 +5024,17 @@ app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
 app.get('/admin/settings', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  
+
   // Get current settings
-  const siteTitle = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'site_title'))
-    .get();
-    
-  const tagline = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'tagline'))
-    .get();
-    
-  const frontPageTitle = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'front_page_title'))
-    .get();
-    
-  const faviconUrl = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'favicon_url'))
-    .get();
-    
-  const logoUrl = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'logo_url'))
-    .get();
+  const siteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
+
+  const tagline = await db.select().from(settings).where(eq(settings.key, 'tagline')).get();
+
+  const frontPageTitle = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
+
+  const faviconUrl = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
+
+  const logoUrl = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
   return c.html(
     <Layout title="Settings - Utah Churches" user={user}>
@@ -5029,7 +5056,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
             </ol>
           </nav>
 
-          <SettingsForm 
+          <SettingsForm
             siteTitle={siteTitle?.value || undefined}
             tagline={tagline?.value || undefined}
             frontPageTitle={frontPageTitle?.value || undefined}
@@ -5045,78 +5072,54 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
 app.post('/admin/settings', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  
+
   const siteTitle = (body.siteTitle as string)?.trim();
   const tagline = (body.tagline as string)?.trim();
   const frontPageTitle = (body.frontPageTitle as string)?.trim();
-  
+
   // Update or insert site title
-  const existingSiteTitle = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'site_title'))
-    .get();
-    
+  const existingSiteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
+
   if (existingSiteTitle) {
-    await db
-      .update(settings)
-      .set({ value: siteTitle, updatedAt: new Date() })
-      .where(eq(settings.key, 'site_title'));
+    await db.update(settings).set({ value: siteTitle, updatedAt: new Date() }).where(eq(settings.key, 'site_title'));
   } else {
-    await db
-      .insert(settings)
-      .values({
-        key: 'site_title',
-        value: siteTitle,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    await db.insert(settings).values({
+      key: 'site_title',
+      value: siteTitle,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   }
-  
+
   // Update or insert tagline
-  const existingTagline = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'tagline'))
-    .get();
-    
+  const existingTagline = await db.select().from(settings).where(eq(settings.key, 'tagline')).get();
+
   if (existingTagline) {
-    await db
-      .update(settings)
-      .set({ value: tagline, updatedAt: new Date() })
-      .where(eq(settings.key, 'tagline'));
+    await db.update(settings).set({ value: tagline, updatedAt: new Date() }).where(eq(settings.key, 'tagline'));
   } else {
-    await db
-      .insert(settings)
-      .values({
-        key: 'tagline',
-        value: tagline,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    await db.insert(settings).values({
+      key: 'tagline',
+      value: tagline,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   }
-  
+
   // Update or insert front page title
-  const existingFrontPageTitle = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, 'front_page_title'))
-    .get();
-    
+  const existingFrontPageTitle = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
+
   if (existingFrontPageTitle) {
     await db
       .update(settings)
       .set({ value: frontPageTitle, updatedAt: new Date() })
       .where(eq(settings.key, 'front_page_title'));
   } else {
-    await db
-      .insert(settings)
-      .values({
-        key: 'front_page_title',
-        value: frontPageTitle,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    await db.insert(settings).values({
+      key: 'front_page_title',
+      value: frontPageTitle,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   }
 
   // Handle favicon upload
@@ -5124,11 +5127,7 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
   if (favicon && favicon.size > 0) {
     try {
       // Get current favicon to delete if exists
-      const existingFaviconId = await db
-        .select()
-        .from(settings)
-        .where(eq(settings.key, 'favicon_id'))
-        .get();
+      const existingFaviconId = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
 
       // Delete old favicon if exists
       if (existingFaviconId?.value) {
@@ -5150,11 +5149,7 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
         const faviconUrl = getCloudflareImageUrl(faviconId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.FAVICON);
 
         // Save favicon ID
-        const existingFaviconIdSetting = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'favicon_id'))
-          .get();
+        const existingFaviconIdSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
 
         if (existingFaviconIdSetting) {
           await db
@@ -5162,22 +5157,16 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
             .set({ value: faviconId, updatedAt: new Date() })
             .where(eq(settings.key, 'favicon_id'));
         } else {
-          await db
-            .insert(settings)
-            .values({
-              key: 'favicon_id',
-              value: faviconId,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
+          await db.insert(settings).values({
+            key: 'favicon_id',
+            value: faviconId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }
 
         // Save favicon URL
-        const existingFaviconUrl = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'favicon_url'))
-          .get();
+        const existingFaviconUrl = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
 
         if (existingFaviconUrl) {
           await db
@@ -5185,14 +5174,12 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
             .set({ value: faviconUrl, updatedAt: new Date() })
             .where(eq(settings.key, 'favicon_url'));
         } else {
-          await db
-            .insert(settings)
-            .values({
-              key: 'favicon_url',
-              value: faviconUrl,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
+          await db.insert(settings).values({
+            key: 'favicon_url',
+            value: faviconUrl,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }
       }
     } catch (error) {
@@ -5205,11 +5192,7 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
   if (logo && logo.size > 0) {
     try {
       // Get current logo to delete if exists
-      const existingLogoId = await db
-        .select()
-        .from(settings)
-        .where(eq(settings.key, 'logo_id'))
-        .get();
+      const existingLogoId = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
 
       // Delete old logo if exists
       if (existingLogoId?.value) {
@@ -5231,49 +5214,31 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
         const logoUrl = getCloudflareImageUrl(logoId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.SMALL);
 
         // Save logo ID
-        const existingLogoIdSetting = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'logo_id'))
-          .get();
+        const existingLogoIdSetting = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
 
         if (existingLogoIdSetting) {
-          await db
-            .update(settings)
-            .set({ value: logoId, updatedAt: new Date() })
-            .where(eq(settings.key, 'logo_id'));
+          await db.update(settings).set({ value: logoId, updatedAt: new Date() }).where(eq(settings.key, 'logo_id'));
         } else {
-          await db
-            .insert(settings)
-            .values({
-              key: 'logo_id',
-              value: logoId,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
+          await db.insert(settings).values({
+            key: 'logo_id',
+            value: logoId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }
 
         // Save logo URL
-        const existingLogoUrl = await db
-          .select()
-          .from(settings)
-          .where(eq(settings.key, 'logo_url'))
-          .get();
+        const existingLogoUrl = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
         if (existingLogoUrl) {
-          await db
-            .update(settings)
-            .set({ value: logoUrl, updatedAt: new Date() })
-            .where(eq(settings.key, 'logo_url'));
+          await db.update(settings).set({ value: logoUrl, updatedAt: new Date() }).where(eq(settings.key, 'logo_url'));
         } else {
-          await db
-            .insert(settings)
-            .values({
-              key: 'logo_url',
-              value: logoUrl,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
+          await db.insert(settings).values({
+            key: 'logo_url',
+            value: logoUrl,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }
       }
     } catch (error) {
@@ -5287,29 +5252,25 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
 // 404 catch-all route
 app.get('*', async (c) => {
   const path = c.req.path;
-  
+
   // Check if this might be a bare slug (no slashes except at start)
   if (path.startsWith('/') && !path.includes('/', 1) && path.length > 1) {
     const slug = path.substring(1);
     const db = createDb(c.env);
-    
+
     // Check for user session
     let user = null;
     const sessionId = getCookie(c, 'session');
     if (sessionId) {
       user = await validateSession(sessionId, c.env);
     }
-    
+
     // Get favicon URL
     const faviconUrl = await getFaviconUrl(c.env);
-    
+
     // First check if it's a page
-    const page = await db
-      .select()
-      .from(pages)
-      .where(eq(pages.path, slug))
-      .get();
-    
+    const page = await db.select().from(pages).where(eq(pages.path, slug)).get();
+
     if (page) {
       // Render the page content
       return c.html(
@@ -5318,17 +5279,10 @@ app.get('*', async (c) => {
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div class="max-w-3xl mx-auto">
                 <h1 class="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
-                <div 
-                  class="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: page.content || '' }}
-                />
+                <div class="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: page.content || '' }} />
                 {page.featuredImageUrl && (
                   <div class="mt-12 border-t pt-8">
-                    <img 
-                      src={page.featuredImageUrl} 
-                      alt={page.title}
-                      class="w-full rounded-lg shadow-lg"
-                    />
+                    <img src={page.featuredImageUrl} alt={page.title} class="w-full rounded-lg shadow-lg" />
                   </div>
                 )}
               </div>
@@ -5337,32 +5291,28 @@ app.get('*', async (c) => {
         </Layout>
       );
     }
-    
+
     // Then check if it's a church redirect
-    const church = await db
-      .select({ id: churches.id })
-      .from(churches)
-      .where(eq(churches.path, slug))
-      .get();
-    
+    const church = await db.select({ id: churches.id }).from(churches).where(eq(churches.path, slug)).get();
+
     if (church) {
       return c.redirect(`/churches/${slug}`, 301);
     }
   }
-  
+
   // For 404 page, also check for user session
   let user = null;
   const sessionId = getCookie(c, 'session');
   if (sessionId) {
     user = await validateSession(sessionId, c.env);
   }
-  
+
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
-  
+
   return c.html(
     <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <NotFound />

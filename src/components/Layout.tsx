@@ -1,6 +1,6 @@
 import type { FC } from 'hono/jsx';
-import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+import { Navbar } from './Navbar';
 
 type LayoutProps = {
   title?: string;
@@ -14,7 +14,17 @@ type LayoutProps = {
   logoUrl?: string;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId, countyId, faviconUrl, logoUrl }) => {
+export const Layout: FC<LayoutProps> = ({
+  title = 'Utah Churches',
+  children,
+  user,
+  currentPath,
+  jsonLd,
+  churchId,
+  countyId,
+  faviconUrl,
+  logoUrl,
+}) => {
   return (
     <html lang="en">
       <head>

@@ -162,7 +162,9 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
                 </div>
               )}
 
-              {church.publicNotes && church.status === 'Unlisted' && <p class="text-sm text-gray-600 italic mt-3">{church.publicNotes}</p>}
+              {church.publicNotes && church.status === 'Unlisted' && (
+                <p class="text-sm text-gray-600 italic mt-3">{church.publicNotes}</p>
+              )}
             </div>
 
             {/* Status Badge */}

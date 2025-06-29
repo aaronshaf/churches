@@ -10,7 +10,13 @@ type AffiliationFormProps = {
 export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation, error, isNew = false }) => {
   return (
     <>
-      <form method="POST" action={action} class="space-y-8 divide-y divide-gray-200" onsubmit="handleFormSubmit(event)" data-testid="affiliation-form">
+      <form
+        method="POST"
+        action={action}
+        class="space-y-8 divide-y divide-gray-200"
+        onsubmit="handleFormSubmit(event)"
+        data-testid="affiliation-form"
+      >
         {error && (
           <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-affiliation-form">
             <div class="flex">

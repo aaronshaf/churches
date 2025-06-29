@@ -123,7 +123,11 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin/users" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
+            <a
+              href="/admin/users"
+              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+              data-testid="btn-cancel"
+            >
               Cancel
             </a>
             <button

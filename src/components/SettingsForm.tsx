@@ -9,16 +9,27 @@ type SettingsFormProps = {
   error?: string;
 };
 
-export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontPageTitle, faviconUrl, logoUrl, error }) => {
+export const SettingsForm: FC<SettingsFormProps> = ({
+  siteTitle,
+  tagline,
+  frontPageTitle,
+  faviconUrl,
+  logoUrl,
+  error,
+}) => {
   return (
     <>
-      <form method="POST" action="/admin/settings" class="space-y-6" data-testid="settings-form" enctype="multipart/form-data">
+      <form
+        method="POST"
+        action="/admin/settings"
+        class="space-y-6"
+        data-testid="settings-form"
+        enctype="multipart/form-data"
+      >
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
-              <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-8">
-                Site Settings
-              </h2>
+              <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-8">Site Settings</h2>
 
               {error && (
                 <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-settings-form">
@@ -102,11 +113,7 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
                   <div class="mt-2">
                     {faviconUrl && (
                       <div class="mb-4 flex items-center space-x-4">
-                        <img 
-                          src={faviconUrl} 
-                          alt="Current favicon" 
-                          class="h-8 w-8 rounded"
-                        />
+                        <img src={faviconUrl} alt="Current favicon" class="h-8 w-8 rounded" />
                         <p class="text-sm text-gray-500">Current favicon</p>
                       </div>
                     )}
@@ -118,7 +125,9 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
                       data-testid="input-favicon"
                       class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-2 text-sm text-gray-500">Upload a square image (64x64 or larger). Supports JPEG, PNG, WebP, and other formats.</p>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Upload a square image (64x64 or larger). Supports JPEG, PNG, WebP, and other formats.
+                    </p>
                   </div>
                 </div>
 
@@ -129,11 +138,7 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
                   <div class="mt-2">
                     {logoUrl && (
                       <div class="mb-4 flex items-center space-x-4">
-                        <img 
-                          src={logoUrl} 
-                          alt="Current logo" 
-                          class="h-12 w-auto"
-                        />
+                        <img src={logoUrl} alt="Current logo" class="h-12 w-auto" />
                         <p class="text-sm text-gray-500">Current logo</p>
                       </div>
                     )}
@@ -145,7 +150,9 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
                       data-testid="input-logo"
                       class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-2 text-sm text-gray-500">Upload a logo image (recommended height: 40-60px). Will be displayed in the navigation bar.</p>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Upload a logo image (recommended height: 40-60px). Will be displayed in the navigation bar.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -153,7 +160,11 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
+            <a
+              href="/admin"
+              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+              data-testid="btn-cancel"
+            >
               Cancel
             </a>
             <button

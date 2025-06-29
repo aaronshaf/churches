@@ -28,7 +28,14 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
   return (
     <>
-      <form method="POST" action={action} class="space-y-8" onsubmit="handleFormSubmit(event)" data-testid="church-form" enctype="multipart/form-data">
+      <form
+        method="POST"
+        action={action}
+        class="space-y-8"
+        onsubmit="handleFormSubmit(event)"
+        data-testid="church-form"
+        enctype="multipart/form-data"
+      >
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
@@ -263,39 +270,60 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     const index = container.children.length;
                     const newGathering = document.createElement('div');
                     newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
-                    newGathering.innerHTML = \`
-                      <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                          Time <span class="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="gatherings[\${index}][time]"
-                          placeholder="e.g., Sunday 10:30 AM"
-                          required
-                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                        />
-                      </div>
-                      <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                          Notes (optional)
-                        </label>
-                        <input
-                          type="text"
-                          name="gatherings[\${index}][notes]"
-                          placeholder="e.g., Children's ministry available"
-                          class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onclick="this.closest('.flex').remove()"
-                        data-testid="btn-remove-gathering"
-                        class="mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                      >
-                        Remove
-                      </button>
-                    \`;
+                    
+                    // Create time input container
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'flex-1';
+                    
+                    const timeLabel = document.createElement('label');
+                    timeLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    timeLabel.textContent = 'Time ';
+                    
+                    const timeRequired = document.createElement('span');
+                    timeRequired.className = 'text-red-500';
+                    timeRequired.textContent = '*';
+                    timeLabel.appendChild(timeRequired);
+                    
+                    const timeInput = document.createElement('input');
+                    timeInput.type = 'text';
+                    timeInput.name = 'gatherings[' + index + '][time]';
+                    timeInput.placeholder = 'e.g., Sunday 10:30 AM';
+                    timeInput.required = true;
+                    timeInput.className = 'block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6';
+                    
+                    timeDiv.appendChild(timeLabel);
+                    timeDiv.appendChild(timeInput);
+                    
+                    // Create notes input container
+                    const notesDiv = document.createElement('div');
+                    notesDiv.className = 'flex-1';
+                    
+                    const notesLabel = document.createElement('label');
+                    notesLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    notesLabel.textContent = 'Notes (optional)';
+                    
+                    const notesInput = document.createElement('input');
+                    notesInput.type = 'text';
+                    notesInput.name = 'gatherings[' + index + '][notes]';
+                    notesInput.placeholder = 'e.g., Children\\'s ministry available';
+                    notesInput.className = 'block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6';
+                    
+                    notesDiv.appendChild(notesLabel);
+                    notesDiv.appendChild(notesInput);
+                    
+                    // Create remove button
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.onclick = function() { this.closest('.flex').remove(); };
+                    removeButton.setAttribute('data-testid', 'btn-remove-gathering');
+                    removeButton.className = 'mt-6 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500';
+                    removeButton.textContent = 'Remove';
+                    
+                    // Assemble the gathering element
+                    newGathering.appendChild(timeDiv);
+                    newGathering.appendChild(notesDiv);
+                    newGathering.appendChild(removeButton);
+                    
                     container.appendChild(newGathering);
                   `}
                     class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
@@ -336,7 +364,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                           data-testid="btn-extract"
                         >
                           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                            />
                           </svg>
                           Extract Info from Website
                         </button>
@@ -512,7 +545,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       rows={3}
                       data-testid="textarea-publicNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    >{church?.publicNotes || ''}</textarea>
+                    >
+                      {church?.publicNotes || ''}
+                    </textarea>
                   </div>
                   <p class="mt-1 text-sm text-gray-500">These notes will be visible on the public website.</p>
                 </div>
@@ -528,37 +563,29 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       rows={3}
                       data-testid="textarea-privateNotes"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    >{church?.privateNotes || ''}</textarea>
+                    >
+                      {church?.privateNotes || ''}
+                    </textarea>
                   </div>
                   <p class="mt-1 text-sm text-gray-500">These notes are only visible to administrators.</p>
                 </div>
 
                 <div class="sm:col-span-6">
-                  <label class="block text-sm font-medium leading-6 text-gray-900">
-                    Church Images
-                  </label>
-                  
+                  <label class="block text-sm font-medium leading-6 text-gray-900">Church Images</label>
+
                   {/* Display existing images */}
                   {images.length > 0 && (
                     <div class="mt-4 mb-6">
                       <p class="text-sm text-gray-500 mb-3">Current images (drag to reorder):</p>
                       <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="existing-images">
                         {images.map((image, index) => (
-                          <div 
-                            class="relative group" 
-                            data-image-id={image.id}
-                            draggable="true"
-                          >
-                            <img 
-                              src={image.imageUrl} 
+                          <div class="relative group" data-image-id={image.id} draggable="true">
+                            <img
+                              src={image.imageUrl}
                               alt={image.caption || `Church image ${index + 1}`}
                               class="h-32 w-full object-cover rounded-lg shadow-sm"
                             />
-                            <input
-                              type="hidden"
-                              name={`existingImages[${index}][id]`}
-                              value={image.id}
-                            />
+                            <input type="hidden" name={`existingImages[${index}][id]`} value={image.id} />
                             <input
                               type="hidden"
                               name={`existingImages[${index}][order]`}
@@ -579,20 +606,21 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                               title="Remove image"
                             >
                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
                               </svg>
                             </button>
-                            <input
-                              type="hidden"
-                              name={`existingImages[${index}][delete]`}
-                              value="false"
-                            />
+                            <input type="hidden" name={`existingImages[${index}][delete]`} value="false" />
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Upload new images */}
                   <div class="mt-2">
                     <label for="churchImages" class="block text-sm font-medium text-gray-700 mb-2">
@@ -607,7 +635,10 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       data-testid="input-churchImages"
                       class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-2 text-sm text-gray-500">Upload multiple images of the church building, congregation, or events. You can select multiple files at once.</p>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Upload multiple images of the church building, congregation, or events. You can select multiple
+                      files at once.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -615,7 +646,11 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin/churches" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
+            <a
+              href="/admin/churches"
+              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+              data-testid="btn-cancel"
+            >
               Cancel
             </a>
             <button
@@ -682,7 +717,32 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           
           // Disable button and show loading state
           extractBtn.disabled = true;
-          extractBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Extracting...';
+          // Clear button content
+          while (extractBtn.firstChild) {
+            extractBtn.removeChild(extractBtn.firstChild);
+          }
+          // Add spinner
+          const spinner = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          spinner.setAttribute('class', 'animate-spin h-4 w-4 mr-2');
+          spinner.setAttribute('fill', 'none');
+          spinner.setAttribute('stroke', 'currentColor');
+          spinner.setAttribute('viewBox', '0 0 24 24');
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('class', 'opacity-25');
+          circle.setAttribute('cx', '12');
+          circle.setAttribute('cy', '12');
+          circle.setAttribute('r', '10');
+          circle.setAttribute('stroke', 'currentColor');
+          circle.setAttribute('stroke-width', '4');
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('class', 'opacity-75');
+          path.setAttribute('fill', 'currentColor');
+          path.setAttribute('d', 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z');
+          spinner.appendChild(circle);
+          spinner.appendChild(path);
+          extractBtn.appendChild(spinner);
+          extractBtn.appendChild(document.createTextNode('Extracting...'));
+          
           extractStatus.textContent = 'Analyzing website...';
           extractStatus.className = 'text-sm text-gray-500';
           extractedFields.classList.add('hidden');
@@ -704,54 +764,74 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             
             // Apply extracted data to form fields
             const { extracted, fields } = data;
-            extractedList.innerHTML = '';
+            
+            // Clear existing list items
+            while (extractedList.firstChild) {
+              extractedList.removeChild(extractedList.firstChild);
+            }
+            
+            let changedCount = 0;
             let extractedCount = 0;
             
-            // Helper to check if value changed
-            const updateFieldIfChanged = (fieldId, newValue, fieldName) => {
+            // Helper to create list item
+            const addListItem = (text, wasChanged = false) => {
+              const li = document.createElement('li');
+              li.textContent = '✓ ' + text;
+              if (wasChanged) {
+                li.style.fontWeight = 'bold';
+              }
+              extractedList.appendChild(li);
+            };
+            
+            // Helper to check if value changed and update field
+            const updateField = (fieldId, newValue, fieldName) => {
               const field = document.getElementById(fieldId);
               const oldValue = field.value.trim();
               const cleanNewValue = newValue.trim();
               
+              extractedCount++;
+              
               if (oldValue !== cleanNewValue) {
                 field.value = cleanNewValue;
-                extractedList.innerHTML += \`<li>✓ \${fieldName}\${oldValue ? ' (updated)' : ''}</li>\`;
-                extractedCount++;
+                addListItem(fieldName + (oldValue ? ' (updated)' : ' (new)'), true);
+                changedCount++;
                 return true;
+              } else {
+                addListItem(fieldName, false);
+                return false;
               }
-              return false;
             };
             
             if (fields.phone && extracted.phone) {
-              updateFieldIfChanged('phone', extracted.phone, 'Phone number');
+              updateField('phone', extracted.phone, 'Phone number');
             }
             
             if (fields.email && extracted.email) {
-              updateFieldIfChanged('email', extracted.email, 'Email address');
+              updateField('email', extracted.email, 'Email address');
             }
             
             if (fields.address && extracted.address) {
-              updateFieldIfChanged('gatheringAddress', extracted.address, 'Physical address');
+              updateField('gatheringAddress', extracted.address, 'Physical address');
             }
             
             if (fields.instagram && extracted.instagram) {
-              updateFieldIfChanged('instagram', extracted.instagram, 'Instagram URL');
+              updateField('instagram', extracted.instagram, 'Instagram URL');
             }
             
             if (fields.facebook && extracted.facebook) {
-              updateFieldIfChanged('facebook', extracted.facebook, 'Facebook URL');
+              updateField('facebook', extracted.facebook, 'Facebook URL');
             }
             
             if (fields.spotify && extracted.spotify) {
-              updateFieldIfChanged('spotify', extracted.spotify, 'Spotify URL');
+              updateField('spotify', extracted.spotify, 'Spotify URL');
             }
             
             if (fields.youtube && extracted.youtube) {
-              updateFieldIfChanged('youtube', extracted.youtube, 'YouTube URL');
+              updateField('youtube', extracted.youtube, 'YouTube URL');
             }
             
             if (fields.statementOfFaithUrl && extracted.statement_of_faith_url) {
-              updateFieldIfChanged('statementOfFaith', extracted.statement_of_faith_url, 'Statement of Faith URL');
+              updateField('statementOfFaith', extracted.statement_of_faith_url, 'Statement of Faith URL');
             }
             
             // Handle service times
@@ -773,7 +853,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               
               if (hasChanges) {
                 // Clear existing gatherings
-                gatheringsContainer.innerHTML = '';
+                while (gatheringsContainer.firstChild) {
+                  gatheringsContainer.removeChild(gatheringsContainer.firstChild);
+                }
                 
                 // Add each service time
                 extracted.service_times.forEach((service, index) => {
@@ -783,58 +865,96 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   
                   const newGathering = document.createElement('div');
                   newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
-                  newGathering.innerHTML = \`
-                    <div class="flex-1">
-                      <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Time <span class="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="gatherings[\${index}][time]"
-                        value="\${serviceTime}"
-                        required
-                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                      />
-                    </div>
-                    <div class="flex-1">
-                      <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Notes (optional)
-                      </label>
-                      <input
-                        type="text"
-                        name="gatherings[\${index}][notes]"
-                        value="\${serviceNotes}"
-                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onclick="this.parentElement.remove()"
-                      class="mt-7 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Remove gathering"
-                    >
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  \`;
+                  
+                  // Create time input container
+                  const timeDiv = document.createElement('div');
+                  timeDiv.className = 'flex-1';
+                  
+                  const timeLabel = document.createElement('label');
+                  timeLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                  timeLabel.textContent = 'Time ';
+                  
+                  const timeRequired = document.createElement('span');
+                  timeRequired.className = 'text-red-500';
+                  timeRequired.textContent = '*';
+                  timeLabel.appendChild(timeRequired);
+                  
+                  const timeInput = document.createElement('input');
+                  timeInput.type = 'text';
+                  timeInput.name = \`gatherings[\${index}][time]\`;
+                  timeInput.value = serviceTime;
+                  timeInput.required = true;
+                  timeInput.className = 'block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6';
+                  
+                  timeDiv.appendChild(timeLabel);
+                  timeDiv.appendChild(timeInput);
+                  
+                  // Create notes input container
+                  const notesDiv = document.createElement('div');
+                  notesDiv.className = 'flex-1';
+                  
+                  const notesLabel = document.createElement('label');
+                  notesLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                  notesLabel.textContent = 'Notes (optional)';
+                  
+                  const notesInput = document.createElement('input');
+                  notesInput.type = 'text';
+                  notesInput.name = \`gatherings[\${index}][notes]\`;
+                  notesInput.value = serviceNotes;
+                  notesInput.className = 'block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6';
+                  
+                  notesDiv.appendChild(notesLabel);
+                  notesDiv.appendChild(notesInput);
+                  
+                  // Create remove button
+                  const removeButton = document.createElement('button');
+                  removeButton.type = 'button';
+                  removeButton.className = 'mt-7 text-gray-400 hover:text-red-500 transition-colors';
+                  removeButton.title = 'Remove gathering';
+                  removeButton.onclick = function() { this.parentElement.remove(); };
+                  
+                  const removeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                  removeSvg.setAttribute('class', 'h-5 w-5');
+                  removeSvg.setAttribute('fill', 'none');
+                  removeSvg.setAttribute('stroke', 'currentColor');
+                  removeSvg.setAttribute('viewBox', '0 0 24 24');
+                  
+                  const removePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                  removePath.setAttribute('stroke-linecap', 'round');
+                  removePath.setAttribute('stroke-linejoin', 'round');
+                  removePath.setAttribute('stroke-width', '2');
+                  removePath.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+                  
+                  removeSvg.appendChild(removePath);
+                  removeButton.appendChild(removeSvg);
+                  
+                  // Assemble the gathering element
+                  newGathering.appendChild(timeDiv);
+                  newGathering.appendChild(notesDiv);
+                  newGathering.appendChild(removeButton);
+                  
                   gatheringsContainer.appendChild(newGathering);
                 });
                 
-                const changeType = existingTimes.length === 0 ? '' : ' (updated)';
-                extractedList.innerHTML += \`<li>✓ Service times (\${extracted.service_times.length} found)\${changeType}</li>\`;
-                extractedCount++;
+                const changeType = existingTimes.length === 0 ? ' (new)' : ' (updated)';
+                addListItem(\`Service times (\${extracted.service_times.length} found)\${changeType}\`, true);
+                changedCount++;
+              } else {
+                addListItem(\`Service times (\${extracted.service_times.length} found)\`, false);
               }
+              extractedCount++;
             }
             
             // Show results
             if (extractedCount > 0) {
               extractedFields.classList.remove('hidden');
-              extractStatus.textContent = \`Successfully updated \${extractedCount} field\${extractedCount > 1 ? 's' : ''}\`;
-              extractStatus.className = 'text-sm text-green-600';
-            } else if (Object.keys(extracted).length > 0) {
-              extractStatus.textContent = 'All extracted data matches existing values';
-              extractStatus.className = 'text-sm text-blue-600';
+              if (changedCount > 0) {
+                extractStatus.textContent = \`Successfully extracted \${extractedCount} field\${extractedCount > 1 ? 's' : ''} (\${changedCount} \${changedCount === 1 ? 'change' : 'changes'})\`;
+                extractStatus.className = 'text-sm text-green-600';
+              } else {
+                extractStatus.textContent = \`Successfully extracted \${extractedCount} field\${extractedCount > 1 ? 's' : ''} (no changes needed)\`;
+                extractStatus.className = 'text-sm text-blue-600';
+              }
             } else {
               extractStatus.textContent = 'No data could be extracted from the website';
               extractStatus.className = 'text-sm text-yellow-600';
@@ -847,7 +967,24 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           } finally {
             // Re-enable button
             extractBtn.disabled = false;
-            extractBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>Extract Info from Website';
+            // Clear button content
+            while (extractBtn.firstChild) {
+              extractBtn.removeChild(extractBtn.firstChild);
+            }
+            // Add icon
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'w-4 h-4 mr-2');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('d', 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10');
+            svg.appendChild(path);
+            extractBtn.appendChild(svg);
+            extractBtn.appendChild(document.createTextNode('Extract Info from Website'));
           }
         }
         

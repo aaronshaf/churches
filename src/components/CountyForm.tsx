@@ -10,7 +10,13 @@ type CountyFormProps = {
 export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew = false }) => {
   return (
     <>
-      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-8 divide-y divide-gray-200" data-testid="county-form">
+      <form
+        method="POST"
+        action={action}
+        onsubmit="handleFormSubmit(event)"
+        class="space-y-8 divide-y divide-gray-200"
+        data-testid="county-form"
+      >
         {error && (
           <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-county-form">
             <div class="flex">

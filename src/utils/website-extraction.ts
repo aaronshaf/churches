@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
 import { convert } from 'html-to-text';
+import OpenAI from 'openai';
 import { z } from 'zod';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
@@ -40,7 +40,10 @@ const serviceTimeSchema = z.object({
 });
 
 const extractedChurchDataSchema = z.object({
-  phone: z.string().regex(/^\(\d{3}\)\s\d{3}-\d{4}$/).optional(),
+  phone: z
+    .string()
+    .regex(/^\(\d{3}\)\s\d{3}-\d{4}$/)
+    .optional(),
   email: z.string().email().optional(),
   address: z.string().optional(),
   service_times: z.array(serviceTimeSchema).optional(),
@@ -59,22 +62,22 @@ function parseTimeForSort(timeStr: string): number {
   // Extract time and period (AM/PM)
   const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/i);
   if (!match) return 0;
-  
-  let [_, hours, minutes, period] = match;
+
+  const [_, hours, minutes, period] = match;
   let hour = parseInt(hours);
   const minute = parseInt(minutes);
-  
+
   // Convert to 24-hour format for sorting
   if (period.toUpperCase() === 'PM' && hour !== 12) {
     hour += 12;
   } else if (period.toUpperCase() === 'AM' && hour === 12) {
     hour = 0;
   }
-  
+
   // Check if it's a weekday service (has day in parentheses)
   const dayMatch = timeStr.match(/\((Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\)/i);
   const dayOffset = dayMatch ? 10000 : 0; // Weekday services sort after Sunday
-  
+
   return dayOffset + (hour * 60 + minute);
 }
 
@@ -87,52 +90,55 @@ function sortServiceTimes(times: ServiceTime[]): ServiceTime[] {
 function normalizeAddress(address: string): string {
   // First, trim and handle basic formatting
   let normalized = address.trim();
-  
+
   // Add comma before state if missing (e.g., "NORTH SALT LAKE UT" -> "NORTH SALT LAKE, UT")
-  normalized = normalized.replace(/\s+(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5}(-\d{4})?)$/i, ', $1 $2');
-  
+  normalized = normalized.replace(
+    /\s+(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5}(-\d{4})?)$/i,
+    ', $1 $2'
+  );
+
   // Split by comma to handle each part
-  const parts = normalized.split(',').map(part => part.trim());
-  
+  const parts = normalized.split(',').map((part) => part.trim());
+
   // Process each part
   const processedParts = parts.map((part, index) => {
     // Last part is usually state and zip, keep uppercase for state
     if (index === parts.length - 1 && /^[A-Z]{2}\s+\d{5}(-\d{4})?$/.test(part)) {
       return part;
     }
-    
+
     // Convert to title case but preserve certain patterns
-    return part.split(/\s+/).map(word => {
-      // Keep numbers as-is
-      if (/^\d/.test(word)) return word;
-      
-      // Handle abbreviations (N., S., E., W., ST., AVE., etc.)
-      if (/^(N|S|E|W|NE|NW|SE|SW|ST|AVE|BLVD|DR|RD|LN|CT|PL|PKWY|HWY)\.?$/i.test(word)) {
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase().replace(/\.$/, '');
-      }
-      
-      // Handle PO Box
-      if (/^(PO|P\.O\.)$/i.test(word)) return 'PO';
-      if (/^BOX$/i.test(word)) return 'Box';
-      
-      // Handle ordinals (1ST, 2ND, 3RD, 4TH, etc.)
-      if (/^\d+(ST|ND|RD|TH)$/i.test(word)) {
-        return word.toLowerCase();
-      }
-      
-      // Title case for regular words
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    }).join(' ');
+    return part
+      .split(/\s+/)
+      .map((word) => {
+        // Keep numbers as-is
+        if (/^\d/.test(word)) return word;
+
+        // Handle abbreviations (N., S., E., W., ST., AVE., etc.)
+        if (/^(N|S|E|W|NE|NW|SE|SW|ST|AVE|BLVD|DR|RD|LN|CT|PL|PKWY|HWY)\.?$/i.test(word)) {
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase().replace(/\.$/, '');
+        }
+
+        // Handle PO Box
+        if (/^(PO|P\.O\.)$/i.test(word)) return 'PO';
+        if (/^BOX$/i.test(word)) return 'Box';
+
+        // Handle ordinals (1ST, 2ND, 3RD, 4TH, etc.)
+        if (/^\d+(ST|ND|RD|TH)$/i.test(word)) {
+          return word.toLowerCase();
+        }
+
+        // Title case for regular words
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
   });
-  
+
   // Rejoin with commas
   return processedParts.join(', ');
 }
 
-export async function extractChurchDataFromWebsite(
-  websiteUrl: string,
-  apiKey: string
-): Promise<ExtractedChurchData> {
+export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: string): Promise<ExtractedChurchData> {
   try {
     // Fetch the website content
     const response = await fetch(websiteUrl, {
@@ -149,20 +155,21 @@ export async function extractChurchDataFromWebsite(
 
     // Convert HTML to text using html-to-text package
     // With Gemini's 1M context, we can process much more content
-    const textContent = convert(html.slice(0, 500000), { // Allow up to 500k HTML
+    const textContent = convert(html.slice(0, 500000), {
+      // Allow up to 500k HTML
       wordwrap: false,
       selectors: [
         { selector: 'script', format: 'skip' },
         { selector: 'style', format: 'skip' },
         { selector: 'noscript', format: 'skip' },
         { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { ignoreHref: true } }
+        { selector: 'a', options: { ignoreHref: true } },
         // Don't skip nav/header/footer with Gemini - they might contain service times
       ],
       limits: {
         maxInputLength: 500000,
-        ellipsis: '...'
-      }
+        ellipsis: '...',
+      },
     }).slice(0, 100000); // Allow up to 100k chars for Gemini
 
     // Initialize OpenRouter client
@@ -173,8 +180,8 @@ export async function extractChurchDataFromWebsite(
 
     // Send to Gemini for extraction
     console.log(`Sending ${textContent.length} characters to AI for extraction`);
-    
-    let completion;
+
+    let completion: any;
     try {
       // Try free model first
       completion = await openai.chat.completions.create({
@@ -191,7 +198,7 @@ export async function extractChurchDataFromWebsite(
     } catch (error) {
       console.log('Free model failed:', error instanceof Error ? error.message : 'Unknown error');
       console.log('Falling back to Gemini 2.5 Flash Lite');
-      
+
       // Fallback to Gemini 2.5 Flash Lite
       completion = await openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-lite-preview-06-17',
@@ -212,9 +219,8 @@ export async function extractChurchDataFromWebsite(
     }
 
     // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = responseContent.match(/```json\n?([\s\S]*?)\n?```/) || 
-                      responseContent.match(/({[\s\S]*})/);
-    
+    const jsonMatch = responseContent.match(/```json\n?([\s\S]*?)\n?```/) || responseContent.match(/({[\s\S]*})/);
+
     if (!jsonMatch) {
       throw new Error('No JSON found in response');
     }
@@ -228,16 +234,16 @@ export async function extractChurchDataFromWebsite(
     // Fix phone formatting if needed
     if (processedData.phone && typeof processedData.phone === 'string') {
       let phone = processedData.phone.trim();
-      
+
       // Handle formats like (801)295-9439 -> (801) 295-9439
       phone = phone.replace(/\((\d{3})\)(\d{3})/, '($1) $2');
-      
+
       // Handle formats without parentheses: 8012959439 -> (801) 295-9439
       const digitsOnly = phone.replace(/\D/g, '');
       if (digitsOnly.length === 10) {
         phone = `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
       }
-      
+
       processedData.phone = phone;
     }
 
@@ -259,7 +265,7 @@ export async function extractChurchDataFromWebsite(
           if (typeof item === 'string') {
             return { time: item.trim() };
           }
-          
+
           // Handle object format
           if (typeof item === 'object' && item !== null && 'time' in item) {
             // Normalize notes capitalization
@@ -272,16 +278,16 @@ export async function extractChurchDataFromWebsite(
               // Fix common patterns
               notes = notes
                 .replace(/\bCHILDREN'S\b/gi, "Children's")
-                .replace(/\bBIBLE\b/gi, "Bible")
-                .replace(/\bSUNDAY SCHOOL\b/gi, "Sunday School");
+                .replace(/\bBIBLE\b/gi, 'Bible')
+                .replace(/\bSUNDAY SCHOOL\b/gi, 'Sunday School');
             }
-            
+
             return {
               time: item.time.trim(),
-              notes: notes
+              notes: notes,
             };
           }
-          
+
           return null;
         })
         .filter((item: any) => item !== null);
@@ -293,7 +299,7 @@ export async function extractChurchDataFromWebsite(
       const url = processedData[key];
       if (url && typeof url === 'string') {
         const cleanUrl = url.trim();
-        
+
         // Reject generic social media homepages
         const genericPatterns = {
           instagram: /^https?:\/\/(www\.)?instagram\.com\/?$/,
@@ -301,7 +307,7 @@ export async function extractChurchDataFromWebsite(
           youtube: /^https?:\/\/(www\.)?youtube\.com\/?$/,
           spotify: /^https?:\/\/(open\.)?spotify\.com\/?$/,
         };
-        
+
         if (genericPatterns[key]?.test(cleanUrl)) {
           delete processedData[key];
         }
@@ -310,12 +316,12 @@ export async function extractChurchDataFromWebsite(
 
     // Parse and validate with Zod
     const parseResult = extractedChurchDataSchema.safeParse(processedData);
-    
+
     if (!parseResult.success) {
       console.warn('Validation errors:', parseResult.error.issues);
       // Return partial data that was valid
       const partialData: ExtractedChurchData = {};
-      
+
       // Try to salvage valid fields
       for (const [key, value] of Object.entries(processedData)) {
         const fieldSchema = extractedChurchDataSchema.shape[key as keyof typeof extractedChurchDataSchema.shape];
@@ -326,21 +332,21 @@ export async function extractChurchDataFromWebsite(
           }
         }
       }
-      
+
       // Sort and deduplicate service times if present
       if (partialData.service_times) {
         // Deduplicate based on time
         const uniqueTimes = new Map<string, ServiceTime>();
-        partialData.service_times.forEach(service => {
+        partialData.service_times.forEach((service) => {
           const existing = uniqueTimes.get(service.time);
           if (!existing || (service.notes && !existing.notes)) {
             uniqueTimes.set(service.time, service);
           }
         });
-        
+
         partialData.service_times = sortServiceTimes(Array.from(uniqueTimes.values()));
       }
-      
+
       return partialData;
     }
 
@@ -348,14 +354,14 @@ export async function extractChurchDataFromWebsite(
     if (parseResult.data.service_times) {
       // Deduplicate based on time
       const uniqueTimes = new Map<string, ServiceTime>();
-      parseResult.data.service_times.forEach(service => {
+      parseResult.data.service_times.forEach((service) => {
         const existing = uniqueTimes.get(service.time);
         if (!existing || (service.notes && !existing.notes)) {
           // Keep the one with notes if duplicate times exist
           uniqueTimes.set(service.time, service);
         }
       });
-      
+
       parseResult.data.service_times = sortServiceTimes(Array.from(uniqueTimes.values()));
     }
 
@@ -372,8 +378,8 @@ export function formatServiceTimesForGatherings(serviceTimes: ServiceTime[]): Ar
   notes?: string;
 }> {
   // Already sorted by extraction process
-  return serviceTimes.map(service => ({
+  return serviceTimes.map((service) => ({
     time: service.time,
-    notes: service.notes
+    notes: service.notes,
   }));
 }

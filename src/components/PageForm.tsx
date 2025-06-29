@@ -10,7 +10,14 @@ type PageFormProps = {
 export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false }) => {
   return (
     <>
-      <form method="POST" action={action} onsubmit="handleFormSubmit(event)" class="space-y-6" data-testid="page-form" enctype="multipart/form-data">
+      <form
+        method="POST"
+        action={action}
+        onsubmit="handleFormSubmit(event)"
+        class="space-y-6"
+        data-testid="page-form"
+        enctype="multipart/form-data"
+      >
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
@@ -90,7 +97,9 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       data-testid="textarea-content"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                       placeholder="Enter page content here..."
-                    >{page?.content || ''}</textarea>
+                    >
+                      {page?.content || ''}
+                    </textarea>
                     <p class="mt-2 text-sm text-gray-500">HTML is supported for formatting.</p>
                   </div>
                 </div>
@@ -102,9 +111,9 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                   <div class="mt-2">
                     {page?.featuredImageUrl && (
                       <div class="mb-4">
-                        <img 
-                          src={page.featuredImageUrl} 
-                          alt="Current featured image" 
+                        <img
+                          src={page.featuredImageUrl}
+                          alt="Current featured image"
                           class="h-32 w-auto rounded-lg shadow-sm"
                         />
                         <p class="mt-2 text-sm text-gray-500">Current image</p>
@@ -118,7 +127,9 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                       data-testid="input-featuredImage"
                       class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-2 text-sm text-gray-500">Upload an image to display on the church page. Recommended size: 1200x630px.</p>
+                    <p class="mt-2 text-sm text-gray-500">
+                      Upload an image to display on the church page. Recommended size: 1200x630px.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -126,7 +137,11 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
           </div>
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a href="/admin/pages" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700" data-testid="btn-cancel">
+            <a
+              href="/admin/pages"
+              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+              data-testid="btn-cancel"
+            >
               Cancel
             </a>
             <button
