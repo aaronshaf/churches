@@ -17,11 +17,11 @@ import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { UserForm } from './components/UserForm';
 import { createDb } from './db';
-import { affiliations, churchAffiliations, churches, churchGatherings, counties, pages, settings, users } from './db/schema';
+import { affiliations, churchAffiliations, churches, churchGatherings, churchImages, counties, pages, settings, users } from './db/schema';
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { uploadToCloudflareImages, deleteFromCloudflareImages, getCloudflareImageUrl } from './utils/cloudflare-images';
+import { uploadToCloudflareImages, deleteFromCloudflareImages, getCloudflareImageUrl, IMAGE_VARIANTS } from './utils/cloudflare-images';
 import {
   affiliationSchema,
   churchWithGatheringsSchema,
@@ -41,6 +41,7 @@ type Bindings = {
   TURSO_AUTH_TOKEN: string;
   GOOGLE_MAPS_API_KEY: string;
   CLOUDFLARE_ACCOUNT_ID: string;
+  CLOUDFLARE_ACCOUNT_HASH: string;
   CLOUDFLARE_IMAGES_API_TOKEN: string;
 };
 
@@ -51,6 +52,28 @@ type Variables = {
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use('/api/*', cors());
+
+// Helper function to fetch favicon URL
+async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
+  const db = createDb(env);
+  const faviconUrlSetting = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'favicon_url'))
+    .get();
+  return faviconUrlSetting?.value || undefined;
+}
+
+// Helper function to fetch logo URL
+async function getLogoUrl(env: Bindings): Promise<string | undefined> {
+  const db = createDb(env);
+  const logoUrlSetting = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'logo_url'))
+    .get();
+  return logoUrlSetting?.value || undefined;
+}
 
 
 // Global error handler
@@ -89,6 +112,12 @@ app.get('/', async (c) => {
       .where(eq(settings.key, 'front_page_title'))
       .get();
     const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches in Utah';
+    
+    // Get favicon URL from settings
+    const faviconUrl = await getFaviconUrl(c.env);
+    
+    // Get logo URL from settings
+    const logoUrl = await getLogoUrl(c.env);
 
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
@@ -109,7 +138,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout title={frontPageTitle} currentPath="/" user={user}>
+      <Layout title={frontPageTitle} currentPath="/" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
@@ -367,8 +396,14 @@ app.get('/counties/:path', async (c) => {
   const listedChurches = churchesWithGatherings.filter((c) => c.status === 'Listed');
   const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
 
+  // Get favicon URL
+  const faviconUrl = await getFaviconUrl(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+
   return c.html(
-    <Layout title={`${county.name} Churches - Utah Churches`} user={user} countyId={county.id.toString()}>
+    <Layout title={`${county.name} Churches - Utah Churches`} user={user} countyId={county.id.toString()} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -524,8 +559,14 @@ app.get('/networks', async (c) => {
     .orderBy(affiliations.name)
     .all();
 
+  // Get favicon URL
+  const faviconUrl = await getFaviconUrl(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+
   return c.html(
-    <Layout title="Church Networks - Utah Churches" currentPath="/networks" user={user}>
+    <Layout title="Church Networks - Utah Churches" currentPath="/networks" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -647,6 +688,8 @@ app.get('/churches/:path', async (c) => {
       instagram: churches.instagram,
       youtube: churches.youtube,
       spotify: churches.spotify,
+      imageId: churches.imageId,
+      imageUrl: churches.imageUrl,
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
@@ -676,6 +719,20 @@ app.get('/churches/:path', async (c) => {
     .where(eq(churchGatherings.churchId, church.id))
     .orderBy(churchGatherings.id)
     .all();
+
+  // Get church images
+  const churchImagesList = await db
+    .select()
+    .from(churchImages)
+    .where(eq(churchImages.churchId, church.id))
+    .orderBy(churchImages.displayOrder)
+    .all();
+
+  // Get favicon URL
+  const faviconUrl = await getFaviconUrl(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
 
   // Build JSON-LD structured data
   const jsonLd = {
@@ -717,7 +774,7 @@ app.get('/churches/:path', async (c) => {
   };
 
   return c.html(
-    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user} churchId={church.id}>
+    <Layout title={`${church.name} - Utah Churches`} jsonLd={jsonLd} user={user} churchId={church.id} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700" data-testid="church-header">
@@ -965,12 +1022,84 @@ app.get('/churches/:path', async (c) => {
                     <p class="text-base text-gray-700">{church.publicNotes}</p>
                   </div>
                 )}
+
+                {churchImagesList.length > 0 && (
+                  <div class="mt-6 pt-6 border-t border-gray-200" data-testid="church-images">
+                    <h3 class="text-base font-medium text-gray-500 mb-4">Photos</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {churchImagesList.map((image, index) => (
+                        <div class="relative group">
+                          <img
+                            src={getCloudflareImageUrl(image.imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.MEDIUM)}
+                            alt={image.caption || `${church.name} photo ${index + 1}`}
+                            class="rounded-lg shadow-lg w-full h-64 object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            onclick={`showImageModal('${getCloudflareImageUrl(image.imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE)}', '${(image.caption || '').replace(/'/g, "\\'")}')`}
+                          />
+                          {image.caption && (
+                            <p class="mt-2 text-sm text-gray-600">{image.caption}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
       </div>
+
+      {/* Image Modal */}
+      <div id="imageModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeImageModal()"></div>
+          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div class="relative">
+                <button onclick="closeImageModal()" class="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <img id="modalImage" src="" alt="" class="w-full h-auto" />
+                <p id="modalCaption" class="mt-4 text-gray-700 text-center"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            function showImageModal(imageUrl, caption) {
+              const modal = document.getElementById('imageModal');
+              const modalImage = document.getElementById('modalImage');
+              const modalCaption = document.getElementById('modalCaption');
+              
+              modalImage.src = imageUrl;
+              modalCaption.textContent = caption || '';
+              modal.classList.remove('hidden');
+              document.body.style.overflow = 'hidden';
+            }
+            
+            function closeImageModal() {
+              const modal = document.getElementById('imageModal');
+              modal.classList.add('hidden');
+              document.body.style.overflow = '';
+            }
+            
+            // Close modal on escape key
+            document.addEventListener('keydown', function(e) {
+              if (e.key === 'Escape') {
+                closeImageModal();
+              }
+            });
+          `,
+        }}
+      />
     </Layout>
   );
 });
@@ -1203,8 +1332,14 @@ app.get('/map', async (c) => {
   const unlistedChurches = allChurchesWithCoords.filter((c) => c.status === 'Unlisted');
   const hereticalChurches = showHereticalOption ? allChurchesWithCoords.filter((c) => c.status === 'Heretical') : [];
 
+  // Get favicon URL
+  const faviconUrl = await getFaviconUrl(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+
   return c.html(
-    <Layout title="Church Map - Utah Churches" currentPath="/map" user={user}>
+    <Layout title="Church Map - Utah Churches" currentPath="/map" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -2108,8 +2243,11 @@ app.get('/data', async (c) => {
       .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
       .get();
 
+    // Get favicon URL
+    const faviconUrl = await getFaviconUrl(c.env);
+
     return c.html(
-      <Layout title="Download Data - Utah Churches" currentPath="/data" user={user}>
+      <Layout title="Download Data - Utah Churches" currentPath="/data" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
         <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -3753,7 +3891,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
       affiliations: selectedAffiliations,
     } = validation.data;
 
-    // Create church
+    // Create church (without single image fields)
     const result = await db
       .insert(churches)
       .values({
@@ -3762,6 +3900,39 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
       })
       .returning({ id: churches.id });
     const churchId = result[0].id;
+
+    // Handle multiple image uploads
+    const churchImagesFiles = body.churchImages;
+    const images = Array.isArray(churchImagesFiles) ? churchImagesFiles : (churchImagesFiles ? [churchImagesFiles] : []);
+    
+    let displayOrder = 0;
+    for (const imageFile of images) {
+      if (imageFile instanceof File && imageFile.size > 0) {
+        try {
+          const uploadResult = await uploadToCloudflareImages(
+            imageFile,
+            c.env.CLOUDFLARE_ACCOUNT_ID,
+            c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          );
+
+          if (uploadResult.success && uploadResult.result) {
+            const imageId = uploadResult.result.id;
+            const imageUrl = getCloudflareImageUrl(imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
+            
+            await db.insert(churchImages).values({
+              churchId,
+              imageId,
+              imageUrl,
+              displayOrder: displayOrder++,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+        }
+      }
+    }
 
     // Insert gatherings
     for (const gathering of validatedGatherings) {
@@ -3820,6 +3991,13 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
     .orderBy(churchGatherings.id)
     .all();
 
+  const currentImages = await db
+    .select()
+    .from(churchImages)
+    .where(eq(churchImages.churchId, Number(id)))
+    .orderBy(churchImages.displayOrder)
+    .all();
+
   return c.html(
     <Layout title="Edit Church - Utah Churches" user={user}>
       <div class="bg-gray-50">
@@ -3854,6 +4032,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
             affiliations={allAffiliations}
             counties={allCounties}
             churchAffiliations={currentAffiliations}
+            images={currentImages}
           />
         </div>
       </div>
@@ -3919,7 +4098,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
       affiliations: selectedAffiliations,
     } = validationResult.data;
 
-    // Update church
+    // Update church (remove single image fields from church data)
     await db
       .update(churches)
       .set({
@@ -3927,6 +4106,93 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         lastUpdated: new Date(),
       })
       .where(eq(churches.id, Number(id)));
+
+    // Handle existing images updates (captions, order, deletions)
+    let imageIndex = 0;
+    while (body[`existingImages[${imageIndex}][id]`]) {
+      const imageId = Number(body[`existingImages[${imageIndex}][id]`]);
+      const shouldDelete = body[`existingImages[${imageIndex}][delete]`] === 'true';
+      const caption = body[`existingImages[${imageIndex}][caption]`] as string;
+      const order = Number(body[`existingImages[${imageIndex}][order]`]);
+
+      if (shouldDelete) {
+        // Get image details for deletion
+        const image = await db
+          .select()
+          .from(churchImages)
+          .where(eq(churchImages.id, imageId))
+          .get();
+        
+        if (image) {
+          // Delete from Cloudflare
+          try {
+            await deleteFromCloudflareImages(
+              image.imageId,
+              c.env.CLOUDFLARE_ACCOUNT_ID,
+              c.env.CLOUDFLARE_IMAGES_API_TOKEN
+            );
+          } catch (error) {
+            console.error('Failed to delete image from Cloudflare:', error);
+          }
+          
+          // Delete from database
+          await db.delete(churchImages).where(eq(churchImages.id, imageId));
+        }
+      } else {
+        // Update caption and order
+        await db
+          .update(churchImages)
+          .set({
+            caption: caption || null,
+            displayOrder: order,
+            updatedAt: new Date(),
+          })
+          .where(eq(churchImages.id, imageId));
+      }
+      
+      imageIndex++;
+    }
+
+    // Handle new image uploads
+    const churchImagesFiles = body.churchImages;
+    const newImages = Array.isArray(churchImagesFiles) ? churchImagesFiles : (churchImagesFiles ? [churchImagesFiles] : []);
+    
+    // Get current max display order
+    const maxOrderResult = await db
+      .select({ maxOrder: sql<number>`MAX(display_order)` })
+      .from(churchImages)
+      .where(eq(churchImages.churchId, Number(id)))
+      .get();
+    
+    let nextOrder = (maxOrderResult?.maxOrder || 0) + 1;
+    
+    for (const imageFile of newImages) {
+      if (imageFile instanceof File && imageFile.size > 0) {
+        try {
+          const uploadResult = await uploadToCloudflareImages(
+            imageFile,
+            c.env.CLOUDFLARE_ACCOUNT_ID,
+            c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          );
+
+          if (uploadResult.success && uploadResult.result) {
+            const imageId = uploadResult.result.id;
+            const imageUrl = getCloudflareImageUrl(imageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
+            
+            await db.insert(churchImages).values({
+              churchId: Number(id),
+              imageId,
+              imageUrl,
+              displayOrder: nextOrder++,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+        }
+      }
+    }
 
     // Update gatherings
     // First, delete existing gatherings
@@ -3967,9 +4233,30 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
     const db = createDb(c.env);
     const id = c.req.param('id');
 
+    // Get all church images for deletion
+    const images = await db
+      .select()
+      .from(churchImages)
+      .where(eq(churchImages.churchId, Number(id)))
+      .all();
+
+    // Delete all images from Cloudflare
+    for (const image of images) {
+      try {
+        await deleteFromCloudflareImages(
+          image.imageId,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
+      } catch (error) {
+        console.error('Failed to delete church image:', error);
+      }
+    }
+
     // Delete related data first
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, Number(id)));
     await db.delete(churchGatherings).where(eq(churchGatherings.churchId, Number(id)));
+    await db.delete(churchImages).where(eq(churchImages.churchId, Number(id)));
 
     // Then delete the church
     await db.delete(churches).where(eq(churches.id, Number(id)));
@@ -4433,6 +4720,9 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
   const featuredImage = body.featuredImage as File;
   if (featuredImage && featuredImage.size > 0) {
     try {
+      console.log('Cloudflare Account ID:', c.env.CLOUDFLARE_ACCOUNT_ID);
+      console.log('Has API Token:', !!c.env.CLOUDFLARE_IMAGES_API_TOKEN);
+      
       const uploadResult = await uploadToCloudflareImages(
         featuredImage,
         c.env.CLOUDFLARE_ACCOUNT_ID,
@@ -4441,10 +4731,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
 
       if (uploadResult.success && uploadResult.result) {
         featuredImageId = uploadResult.result.id;
-        // Get the account hash from the first variant URL
-        const variantUrl = uploadResult.result.variants[0];
-        const accountHash = variantUrl.split('/')[3]; // Extract from URL structure
-        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, 'public');
+        featuredImageUrl = getCloudflareImageUrl(featuredImageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
       } else {
         console.error('Image upload failed:', uploadResult.errors);
         return c.text('Failed to upload image', 500);
@@ -4565,10 +4852,7 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
 
       if (uploadResult.success && uploadResult.result) {
         featuredImageId = uploadResult.result.id;
-        // Get the account hash from the first variant URL
-        const variantUrl = uploadResult.result.variants[0];
-        const accountHash = variantUrl.split('/')[3]; // Extract from URL structure
-        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, 'public');
+        featuredImageUrl = getCloudflareImageUrl(featuredImageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
       } else {
         console.error('Image upload failed:', uploadResult.errors);
         return c.text('Failed to upload image', 500);
@@ -4651,6 +4935,12 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
     .from(settings)
     .where(eq(settings.key, 'favicon_url'))
     .get();
+    
+  const logoUrl = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, 'logo_url'))
+    .get();
 
   return c.html(
     <Layout title="Settings - Utah Churches" user={user}>
@@ -4677,6 +4967,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
             tagline={tagline?.value || undefined}
             frontPageTitle={frontPageTitle?.value || undefined}
             faviconUrl={faviconUrl?.value || undefined}
+            logoUrl={logoUrl?.value || undefined}
           />
         </div>
       </div>
@@ -4789,9 +5080,7 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
 
       if (uploadResult.success && uploadResult.result) {
         const faviconId = uploadResult.result.id;
-        const variantUrl = uploadResult.result.variants[0];
-        const accountHash = variantUrl.split('/')[3];
-        const faviconUrl = getCloudflareImageUrl(faviconId, accountHash, 'public');
+        const faviconUrl = getCloudflareImageUrl(faviconId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.FAVICON);
 
         // Save favicon ID
         const existingFaviconIdSetting = await db
@@ -4844,6 +5133,87 @@ app.post('/admin/settings', adminMiddleware, async (c) => {
     }
   }
 
+  // Handle logo upload
+  const logo = body.logo as File;
+  if (logo && logo.size > 0) {
+    try {
+      // Get current logo to delete if exists
+      const existingLogoId = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, 'logo_id'))
+        .get();
+
+      // Delete old logo if exists
+      if (existingLogoId?.value) {
+        await deleteFromCloudflareImages(
+          existingLogoId.value,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
+      }
+
+      const uploadResult = await uploadToCloudflareImages(
+        logo,
+        c.env.CLOUDFLARE_ACCOUNT_ID,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+      );
+
+      if (uploadResult.success && uploadResult.result) {
+        const logoId = uploadResult.result.id;
+        const logoUrl = getCloudflareImageUrl(logoId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.SMALL);
+
+        // Save logo ID
+        const existingLogoIdSetting = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, 'logo_id'))
+          .get();
+
+        if (existingLogoIdSetting) {
+          await db
+            .update(settings)
+            .set({ value: logoId, updatedAt: new Date() })
+            .where(eq(settings.key, 'logo_id'));
+        } else {
+          await db
+            .insert(settings)
+            .values({
+              key: 'logo_id',
+              value: logoId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+        }
+
+        // Save logo URL
+        const existingLogoUrl = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, 'logo_url'))
+          .get();
+
+        if (existingLogoUrl) {
+          await db
+            .update(settings)
+            .set({ value: logoUrl, updatedAt: new Date() })
+            .where(eq(settings.key, 'logo_url'));
+        } else {
+          await db
+            .insert(settings)
+            .values({
+              key: 'logo_url',
+              value: logoUrl,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+    }
+  }
+
   return c.redirect('/admin/settings');
 });
 
@@ -4856,6 +5226,16 @@ app.get('*', async (c) => {
     const slug = path.substring(1);
     const db = createDb(c.env);
     
+    // Check for user session
+    let user = null;
+    const sessionId = getCookie(c, 'session');
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
+    
+    // Get favicon URL
+    const faviconUrl = await getFaviconUrl(c.env);
+    
     // First check if it's a page
     const page = await db
       .select()
@@ -4866,7 +5246,7 @@ app.get('*', async (c) => {
     if (page) {
       // Render the page content
       return c.html(
-        <Layout title={`${page.title} - Utah Churches`}>
+        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
           <div class="bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div class="max-w-3xl mx-auto">
@@ -4903,8 +5283,21 @@ app.get('*', async (c) => {
     }
   }
   
+  // For 404 page, also check for user session
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
+  
+  // Get favicon URL
+  const faviconUrl = await getFaviconUrl(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+  
   return c.html(
-    <Layout title="Page Not Found - Utah Churches">
+    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <NotFound />
     </Layout>,
     404

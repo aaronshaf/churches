@@ -7,6 +7,7 @@ type ChurchFormProps = {
   affiliations?: any[];
   churchAffiliations?: any[];
   counties?: any[];
+  images?: any[];
   error?: string;
   isNew?: boolean;
 };
@@ -18,6 +19,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   affiliations = [],
   churchAffiliations = [],
   counties = [],
+  images = [],
   error,
   isNew = false,
 }) => {
@@ -26,7 +28,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
   return (
     <>
-      <form method="POST" action={action} class="space-y-8" onsubmit="handleFormSubmit(event)" data-testid="church-form">
+      <form method="POST" action={action} class="space-y-8" onsubmit="handleFormSubmit(event)" data-testid="church-form" enctype="multipart/form-data">
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">
@@ -509,6 +511,84 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </div>
                   <p class="mt-1 text-sm text-gray-500">These notes are only visible to administrators.</p>
                 </div>
+
+                <div class="sm:col-span-6">
+                  <label class="block text-sm font-medium leading-6 text-gray-900">
+                    Church Images
+                  </label>
+                  
+                  {/* Display existing images */}
+                  {images.length > 0 && (
+                    <div class="mt-4 mb-6">
+                      <p class="text-sm text-gray-500 mb-3">Current images (drag to reorder):</p>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="existing-images">
+                        {images.map((image, index) => (
+                          <div 
+                            class="relative group" 
+                            data-image-id={image.id}
+                            draggable="true"
+                          >
+                            <img 
+                              src={image.imageUrl} 
+                              alt={image.caption || `Church image ${index + 1}`}
+                              class="h-32 w-full object-cover rounded-lg shadow-sm"
+                            />
+                            <input
+                              type="hidden"
+                              name={`existingImages[${index}][id]`}
+                              value={image.id}
+                            />
+                            <input
+                              type="hidden"
+                              name={`existingImages[${index}][order]`}
+                              value={image.displayOrder || index}
+                              class="image-order"
+                            />
+                            <input
+                              type="text"
+                              name={`existingImages[${index}][caption]`}
+                              value={image.caption || ''}
+                              placeholder="Add caption..."
+                              class="mt-2 block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            />
+                            <button
+                              type="button"
+                              onclick={`this.closest('.relative').style.display='none'; this.closest('.relative').querySelector('input[name*="delete"]').value='true';`}
+                              class="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove image"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                            <input
+                              type="hidden"
+                              name={`existingImages[${index}][delete]`}
+                              value="false"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Upload new images */}
+                  <div class="mt-2">
+                    <label for="churchImages" class="block text-sm font-medium text-gray-700 mb-2">
+                      Upload new images
+                    </label>
+                    <input
+                      type="file"
+                      name="churchImages"
+                      id="churchImages"
+                      accept="image/*"
+                      multiple
+                      data-testid="input-churchImages"
+                      class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    <p class="mt-2 text-sm text-gray-500">Upload multiple images of the church building, congregation, or events. You can select multiple files at once.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -564,6 +644,67 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           // Add a subtle pulse animation to the button
           submitButton.classList.add('animate-pulse');
         }
+        
+        // Drag and drop functionality for image reordering
+        document.addEventListener('DOMContentLoaded', function() {
+          const container = document.getElementById('existing-images');
+          if (!container) return;
+          
+          let draggedElement = null;
+          
+          container.addEventListener('dragstart', function(e) {
+            if (e.target.closest('[draggable="true"]')) {
+              draggedElement = e.target.closest('[draggable="true"]');
+              draggedElement.style.opacity = '0.5';
+            }
+          });
+          
+          container.addEventListener('dragend', function(e) {
+            if (e.target.closest('[draggable="true"]')) {
+              e.target.closest('[draggable="true"]').style.opacity = '';
+            }
+          });
+          
+          container.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement == null) {
+              container.appendChild(draggedElement);
+            } else {
+              container.insertBefore(draggedElement, afterElement);
+            }
+          });
+          
+          container.addEventListener('drop', function(e) {
+            e.preventDefault();
+            updateImageOrder();
+          });
+          
+          function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not([style*="opacity: 0.5"])')];
+            
+            return draggableElements.reduce((closest, child) => {
+              const box = child.getBoundingClientRect();
+              const offset = y - box.top - box.height / 2;
+              
+              if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+              } else {
+                return closest;
+              }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+          }
+          
+          function updateImageOrder() {
+            const images = container.querySelectorAll('[draggable="true"]');
+            images.forEach((img, index) => {
+              const orderInput = img.querySelector('.image-order');
+              if (orderInput) {
+                orderInput.value = index;
+              }
+            });
+          }
+        });
       `,
         }}
       />

@@ -23,6 +23,8 @@ export const churches = sqliteTable('churches', {
   youtube: text('youtube'),
   spotify: text('spotify'),
   language: text('language').notNull().default('English'),
+  imageId: text('image_id'),
+  imageUrl: text('image_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });
@@ -111,6 +113,19 @@ export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   key: text('key').notNull().unique(),
   value: text('value'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+});
+
+export const churchImages = sqliteTable('church_images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  churchId: integer('church_id')
+    .notNull()
+    .references(() => churches.id),
+  imageId: text('image_id').notNull(),
+  imageUrl: text('image_url').notNull(),
+  caption: text('caption'),
+  displayOrder: integer('display_order').default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });

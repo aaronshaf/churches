@@ -5,10 +5,11 @@ type SettingsFormProps = {
   tagline?: string;
   frontPageTitle?: string;
   faviconUrl?: string;
+  logoUrl?: string;
   error?: string;
 };
 
-export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontPageTitle, faviconUrl, error }) => {
+export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontPageTitle, faviconUrl, logoUrl, error }) => {
   return (
     <>
       <form method="POST" action="/admin/settings" class="space-y-6" data-testid="settings-form" enctype="multipart/form-data">
@@ -113,11 +114,38 @@ export const SettingsForm: FC<SettingsFormProps> = ({ siteTitle, tagline, frontP
                       type="file"
                       name="favicon"
                       id="favicon"
-                      accept="image/png,image/x-icon,image/svg+xml"
+                      accept="image/*"
                       data-testid="input-favicon"
                       class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-2 text-sm text-gray-500">Upload a square image (32x32 or larger). PNG, ICO, or SVG format.</p>
+                    <p class="mt-2 text-sm text-gray-500">Upload a square image (64x64 or larger). Supports JPEG, PNG, WebP, and other formats.</p>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-4">
+                  <label for="logo" class="block text-sm font-medium leading-6 text-gray-900">
+                    Site Logo
+                  </label>
+                  <div class="mt-2">
+                    {logoUrl && (
+                      <div class="mb-4 flex items-center space-x-4">
+                        <img 
+                          src={logoUrl} 
+                          alt="Current logo" 
+                          class="h-12 w-auto"
+                        />
+                        <p class="text-sm text-gray-500">Current logo</p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      name="logo"
+                      id="logo"
+                      accept="image/*"
+                      data-testid="input-logo"
+                      class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    <p class="mt-2 text-sm text-gray-500">Upload a logo image (recommended height: 40-60px). Will be displayed in the navigation bar.</p>
                   </div>
                 </div>
               </div>

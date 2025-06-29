@@ -3,9 +3,10 @@ import type { FC } from 'hono/jsx';
 type NavbarProps = {
   user?: any;
   currentPath?: string;
+  logoUrl?: string;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,11 +20,15 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/' }) => {
               onmouseover="prefetchAfterDelay('/', 200)"
               onmouseout="cancelPrefetch()"
             >
-              <img
-                src="https://images.squarespace-cdn.com/content/v1/66844914d5f76b6f0a0d4b96/2e88a07c-afb4-43ed-9876-a783f09f399b/UtahChurches.jpg?format=256w"
-                alt="Utah Churches"
-                class="h-10 sm:h-12 w-auto"
-              />
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Utah Churches"
+                  class="h-10 sm:h-12 w-auto"
+                />
+              ) : (
+                <span class="text-xl sm:text-2xl font-bold text-gray-900">Utah Churches</span>
+              )}
             </a>
           </div>
 

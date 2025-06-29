@@ -10,15 +10,23 @@ type LayoutProps = {
   jsonLd?: any;
   churchId?: string;
   countyId?: string;
+  faviconUrl?: string;
+  logoUrl?: string;
 };
 
-export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId, countyId }) => {
+export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, user, currentPath, jsonLd, churchId, countyId, faviconUrl, logoUrl }) => {
   return (
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
+        {faviconUrl && (
+          <>
+            <link rel="icon" type="image/png" href={faviconUrl} />
+            <link rel="apple-touch-icon" href={faviconUrl} />
+          </>
+        )}
         <script src="https://cdn.tailwindcss.com"></script>
         <script
           dangerouslySetInnerHTML={{
@@ -242,7 +250,7 @@ export const Layout: FC<LayoutProps> = ({ title = 'Utah Churches', children, use
         >
           Skip to main content
         </a>
-        <Navbar user={user} currentPath={currentPath} />
+        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} />
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
