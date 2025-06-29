@@ -2505,6 +2505,9 @@ app.get('/logout', async (c) => {
 app.get('/admin', adminMiddleware, async (c) => {
   const user = c.get('user');
   const db = createDb(c.env);
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
 
   // Get statistics using COUNT for efficiency
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
@@ -2529,7 +2532,7 @@ app.get('/admin', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin">
+    <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin" logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -2850,10 +2853,14 @@ app.get('/admin', adminMiddleware, async (c) => {
 app.get('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+  
   const allUsers = await db.select().from(users).all();
 
   return c.html(
-    <Layout title="Manage Users - Utah Churches" user={user}>
+    <Layout title="Manage Users - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -2974,8 +2981,9 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
 
 // Create new user
 app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
+  const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create User - Utah Churches">
+    <Layout title="Create User - Utah Churches" logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <UserForm action="/admin/users" isNew={true} />
       </div>
@@ -3035,6 +3043,7 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
 // Edit user
 app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
+  const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
   const user = await db
     .select()
@@ -3054,7 +3063,7 @@ app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title="Edit User - Utah Churches">
+    <Layout title="Edit User - Utah Churches" logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <UserForm action={`/admin/users/${id}`} user={user} isOnlyAdmin={isOnlyAdmin} />
       </div>
@@ -3131,6 +3140,7 @@ app.post('/admin/users/:id/delete', requireAdminMiddleware, async (c) => {
 app.get('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
 
   // Get all affiliations first
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
@@ -3155,7 +3165,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
   }));
 
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches" user={user}>
+    <Layout title="Manage Affiliations - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3322,8 +3332,9 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
 // Create new affiliation
 app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create Affiliation - Utah Churches" user={user}>
+    <Layout title="Create Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3401,6 +3412,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const affiliation = await db
     .select()
     .from(affiliations)
@@ -3412,7 +3424,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title="Edit Affiliation - Utah Churches" user={user}>
+    <Layout title="Edit Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3466,6 +3478,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const user = c.get('user');
+    const logoUrl = await getLogoUrl(c.env);
     const allChurches = await db
       .select({
         id: churches.id,
@@ -3492,7 +3505,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     };
 
     return c.html(
-      <Layout title="Manage Churches - Utah Churches" user={user}>
+      <Layout title="Manage Churches - Utah Churches" user={user} logoUrl={logoUrl}>
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -3802,12 +3815,13 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
 app.get('/admin/churches/new', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
 
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
   return c.html(
-    <Layout title="Create Church - Utah Churches" user={user}>
+    <Layout title="Create Church - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -3963,6 +3977,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
 app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
 
   const church = await db
@@ -3999,7 +4014,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Edit Church - Utah Churches" user={user}>
+    <Layout title="Edit Church - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4272,10 +4287,11 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
 app.get('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
   return c.html(
-    <Layout title="Manage Counties - Utah Churches" user={user}>
+    <Layout title="Manage Counties - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4399,8 +4415,9 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
 // Create new county
 app.get('/admin/counties/new', adminMiddleware, async (c) => {
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create County - Utah Churches" user={user}>
+    <Layout title="Create County - Utah Churches" user={user} logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action="/admin/counties" isNew={true} />
       </div>
@@ -4465,6 +4482,10 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
+  
   const county = await db
     .select()
     .from(counties)
@@ -4476,7 +4497,7 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title="Edit County - Utah Churches" user={user}>
+    <Layout title="Edit County - Utah Churches" user={user} logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action={`/admin/counties/${id}`} county={county} />
       </div>
@@ -4522,10 +4543,11 @@ app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
 app.get('/admin/pages', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const allPages = await db.select().from(pages).orderBy(pages.title).all();
 
   return c.html(
-    <Layout title="Manage Pages - Utah Churches" user={user}>
+    <Layout title="Manage Pages - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4664,9 +4686,10 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
 
 app.get('/admin/pages/new', adminMiddleware, async (c) => {
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
-    <Layout title="New Page - Utah Churches" user={user}>
+    <Layout title="New Page - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4760,6 +4783,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
 app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
+  const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
 
   const page = await db
@@ -4773,7 +4797,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title={`Edit ${page.title} - Utah Churches`} user={user}>
+    <Layout title={`Edit ${page.title} - Utah Churches`} user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4967,7 +4991,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
             tagline={tagline?.value || undefined}
             frontPageTitle={frontPageTitle?.value || undefined}
             faviconUrl={faviconUrl?.value || undefined}
-            logoUrl={logoUrl?.value || undefined}
+            logoUrl={logoUrlSetting?.value || undefined}
           />
         </div>
       </div>
