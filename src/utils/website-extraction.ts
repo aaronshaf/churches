@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { convert } from 'html-to-text';
+import { z } from 'zod';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
 
@@ -32,21 +33,54 @@ Example format:
   "statement_of_faith_url": "https://churchname.org/what-we-believe"
 }`;
 
-export interface ServiceTime {
-  time: string;
-  notes?: string;
+// Zod schemas for validation
+const serviceTimeSchema = z.object({
+  time: z.string().regex(/^\d{1,2}:\d{2}\s*(AM|PM|am|pm)(\s*\([^)]+\))?$/),
+  notes: z.string().optional(),
+});
+
+const extractedChurchDataSchema = z.object({
+  phone: z.string().regex(/^\(\d{3}\)\s\d{3}-\d{4}$/).optional(),
+  email: z.string().email().optional(),
+  address: z.string().optional(),
+  service_times: z.array(serviceTimeSchema).optional(),
+  instagram: z.string().url().optional(),
+  facebook: z.string().url().optional(),
+  spotify: z.string().url().optional(),
+  youtube: z.string().url().optional(),
+  statement_of_faith_url: z.string().url().optional(),
+});
+
+export type ServiceTime = z.infer<typeof serviceTimeSchema>;
+export type ExtractedChurchData = z.infer<typeof extractedChurchDataSchema>;
+
+// Helper function to parse time for sorting
+function parseTimeForSort(timeStr: string): number {
+  // Extract time and period (AM/PM)
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/i);
+  if (!match) return 0;
+  
+  let [_, hours, minutes, period] = match;
+  let hour = parseInt(hours);
+  const minute = parseInt(minutes);
+  
+  // Convert to 24-hour format for sorting
+  if (period.toUpperCase() === 'PM' && hour !== 12) {
+    hour += 12;
+  } else if (period.toUpperCase() === 'AM' && hour === 12) {
+    hour = 0;
+  }
+  
+  // Check if it's a weekday service (has day in parentheses)
+  const dayMatch = timeStr.match(/\((Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\)/i);
+  const dayOffset = dayMatch ? 10000 : 0; // Weekday services sort after Sunday
+  
+  return dayOffset + (hour * 60 + minute);
 }
 
-export interface ExtractedChurchData {
-  phone?: string;
-  email?: string;
-  address?: string;
-  service_times?: ServiceTime[];
-  instagram?: string;
-  facebook?: string;
-  spotify?: string;
-  youtube?: string;
-  statement_of_faith_url?: string;
+// Sort service times by time of day
+function sortServiceTimes(times: ServiceTime[]): ServiceTime[] {
+  return times.sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time));
 }
 
 export async function extractChurchDataFromWebsite(
@@ -120,117 +154,122 @@ export async function extractChurchDataFromWebsite(
     }
 
     const jsonStr = jsonMatch[1];
-    const extractedData = JSON.parse(jsonStr) as ExtractedChurchData;
+    const rawData = JSON.parse(jsonStr);
 
-    // Validate and clean the data
-    const cleanedData: ExtractedChurchData = {};
+    // Pre-process data before validation
+    const processedData: any = { ...rawData };
 
-    if (extractedData.phone && typeof extractedData.phone === 'string') {
-      let phone = extractedData.phone.trim();
+    // Fix phone formatting if needed
+    if (processedData.phone && typeof processedData.phone === 'string') {
+      let phone = processedData.phone.trim();
       
-      // Ensure proper phone formatting with space after area code
       // Handle formats like (801)295-9439 -> (801) 295-9439
       phone = phone.replace(/\((\d{3})\)(\d{3})/, '($1) $2');
       
-      // Also handle formats without parentheses: 8012959439 -> (801) 295-9439
+      // Handle formats without parentheses: 8012959439 -> (801) 295-9439
       const digitsOnly = phone.replace(/\D/g, '');
       if (digitsOnly.length === 10) {
         phone = `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
       }
       
-      cleanedData.phone = phone;
+      processedData.phone = phone;
     }
 
-    if (extractedData.email && typeof extractedData.email === 'string') {
-      const email = extractedData.email.trim().toLowerCase();
-      // Basic email validation
-      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        cleanedData.email = email;
-      }
+    // Normalize email to lowercase
+    if (processedData.email && typeof processedData.email === 'string') {
+      processedData.email = processedData.email.trim().toLowerCase();
     }
 
-    if (extractedData.address && typeof extractedData.address === 'string') {
-      cleanedData.address = extractedData.address.trim();
-    }
-
-    if (Array.isArray(extractedData.service_times)) {
-      cleanedData.service_times = extractedData.service_times
-        .filter((item): item is ServiceTime => {
-          if (typeof item === 'object' && item !== null && 'time' in item) {
-            const time = item.time.trim();
-            // Ensure time contains AM/PM
-            return time !== '' && /\d{1,2}:\d{2}\s*(AM|PM|am|pm)/i.test(time);
-          }
-          // Handle if AI returns strings instead of objects (backwards compatibility)
-          if (typeof item === 'string') {
-            const time = item.trim();
-            return time !== '' && /\d{1,2}:\d{2}\s*(AM|PM|am|pm)/i.test(time);
-          }
-          return false;
-        })
-        .map(item => {
+    // Process service times
+    if (Array.isArray(processedData.service_times)) {
+      processedData.service_times = processedData.service_times
+        .map((item: any) => {
+          // Handle string format
           if (typeof item === 'string') {
             return { time: item.trim() };
           }
           
-          // Normalize notes capitalization
-          let notes = item.notes ? item.notes.trim() : undefined;
-          if (notes) {
-            // Convert ALL CAPS to sentence case
-            if (notes === notes.toUpperCase() && notes.length > 3) {
-              notes = notes.charAt(0).toUpperCase() + notes.slice(1).toLowerCase();
+          // Handle object format
+          if (typeof item === 'object' && item !== null && 'time' in item) {
+            // Normalize notes capitalization
+            let notes = item.notes ? item.notes.trim() : undefined;
+            if (notes) {
+              // Convert ALL CAPS to sentence case
+              if (notes === notes.toUpperCase() && notes.length > 3) {
+                notes = notes.charAt(0).toUpperCase() + notes.slice(1).toLowerCase();
+              }
+              // Fix common patterns
+              notes = notes
+                .replace(/\bCHILDREN'S\b/gi, "Children's")
+                .replace(/\bBIBLE\b/gi, "Bible")
+                .replace(/\bSUNDAY SCHOOL\b/gi, "Sunday School");
             }
-            // Fix common patterns
-            notes = notes
-              .replace(/\bCHILDREN'S\b/gi, "Children's")
-              .replace(/\bBIBLE\b/gi, "Bible")
-              .replace(/\bSUNDAY SCHOOL\b/gi, "Sunday School");
+            
+            return {
+              time: item.time.trim(),
+              notes: notes
+            };
           }
           
-          return {
-            time: item.time.trim(),
-            notes: notes
-          };
-        });
+          return null;
+        })
+        .filter((item: any) => item !== null);
     }
 
-    // Validate and clean social media URLs
+    // Filter out generic social media URLs
     const socialMediaKeys = ['instagram', 'facebook', 'spotify', 'youtube'] as const;
     for (const key of socialMediaKeys) {
-      const url = extractedData[key];
+      const url = processedData[key];
       if (url && typeof url === 'string') {
-        try {
-          const urlObj = new URL(url);
-          const cleanUrl = url.trim();
-          
-          // Reject generic social media homepages
-          const genericPatterns = {
-            instagram: /^https?:\/\/(www\.)?instagram\.com\/?$/,
-            facebook: /^https?:\/\/(www\.)?facebook\.com\/?$/,
-            youtube: /^https?:\/\/(www\.)?youtube\.com\/?$/,
-            spotify: /^https?:\/\/(open\.)?spotify\.com\/?$/,
-          };
-          
-          if (!genericPatterns[key]?.test(cleanUrl)) {
-            cleanedData[key] = cleanUrl;
-          }
-        } catch {
-          // Invalid URL, skip
+        const cleanUrl = url.trim();
+        
+        // Reject generic social media homepages
+        const genericPatterns = {
+          instagram: /^https?:\/\/(www\.)?instagram\.com\/?$/,
+          facebook: /^https?:\/\/(www\.)?facebook\.com\/?$/,
+          youtube: /^https?:\/\/(www\.)?youtube\.com\/?$/,
+          spotify: /^https?:\/\/(open\.)?spotify\.com\/?$/,
+        };
+        
+        if (genericPatterns[key]?.test(cleanUrl)) {
+          delete processedData[key];
         }
       }
     }
 
-    // Validate statement of faith URL
-    if (extractedData.statement_of_faith_url && typeof extractedData.statement_of_faith_url === 'string') {
-      try {
-        const url = new URL(extractedData.statement_of_faith_url.trim());
-        cleanedData.statement_of_faith_url = extractedData.statement_of_faith_url.trim();
-      } catch {
-        // Invalid URL, skip
+    // Parse and validate with Zod
+    const parseResult = extractedChurchDataSchema.safeParse(processedData);
+    
+    if (!parseResult.success) {
+      console.warn('Validation errors:', parseResult.error.issues);
+      // Return partial data that was valid
+      const partialData: ExtractedChurchData = {};
+      
+      // Try to salvage valid fields
+      for (const [key, value] of Object.entries(processedData)) {
+        const fieldSchema = extractedChurchDataSchema.shape[key as keyof typeof extractedChurchDataSchema.shape];
+        if (fieldSchema) {
+          const fieldResult = fieldSchema.safeParse(value);
+          if (fieldResult.success) {
+            (partialData as any)[key] = fieldResult.data;
+          }
+        }
       }
+      
+      // Sort service times if present
+      if (partialData.service_times) {
+        partialData.service_times = sortServiceTimes(partialData.service_times);
+      }
+      
+      return partialData;
     }
 
-    return cleanedData;
+    // Sort service times
+    if (parseResult.data.service_times) {
+      parseResult.data.service_times = sortServiceTimes(parseResult.data.service_times);
+    }
+
+    return parseResult.data;
   } catch (error) {
     console.error('Extraction error:', error);
     throw new Error(`Failed to extract church data: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -242,6 +281,7 @@ export function formatServiceTimesForGatherings(serviceTimes: ServiceTime[]): Ar
   time: string;
   notes?: string;
 }> {
+  // Already sorted by extraction process
   return serviceTimes.map(service => ({
     time: service.time,
     notes: service.notes
