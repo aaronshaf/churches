@@ -16,6 +16,8 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - 📊 **Data Export** - Download church data in JSON, YAML, CSV, or XLSX formats
 - 🌐 **Multi-language Support** - Track churches serving in different languages
 - 🔐 **Admin Dashboard** - Manage churches, affiliations, and users
+- 🤖 **AI-Powered Data Extraction** - Automatically extract church information from websites
+- 🖼️ **Image Management** - Upload church images via Cloudflare Images integration
 
 ## Technology Stack
 
@@ -25,6 +27,8 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - **ORM**: Drizzle ORM
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: pnpm
+- **AI Integration**: OpenRouter API with DeepSeek
+- **Image Storage**: Cloudflare Images
 
 ## Development Setup
 
@@ -43,6 +47,10 @@ Create a `.dev.vars` file in the root directory:
 TURSO_DATABASE_URL=your_database_url
 TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
+CLOUDFLARE_IMAGES_API_TOKEN=your_cloudflare_images_token
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ### Installation
@@ -98,8 +106,11 @@ The application uses the following main tables:
 - `affiliations` - Church networks/denominations
 - `church_affiliations` - Many-to-many relationship
 - `church_gatherings` - Service times and details
+- `church_images` - Church photos and images
 - `users` - Admin/contributor accounts
 - `sessions` - Authentication sessions
+- `pages` - Static pages (FAQ, About, etc.)
+- `settings` - Site configuration
 
 ## Church Status Types
 
@@ -133,6 +144,33 @@ The application uses the following main tables:
 - `GET /admin/affiliations` - Manage affiliations
 - `GET /admin/counties` - Manage counties
 - `GET /admin/users` - Manage users
+- `GET /admin/settings` - Site settings and configuration
+- `GET /admin/pages` - Manage static pages
+- `POST /admin/churches/:id/extract` - Extract church data from website
+
+## AI-Powered Data Extraction
+
+The application includes an AI-powered feature to automatically extract church information from websites:
+
+### How it Works
+1. Enter a church website URL in the edit form
+2. Click "Extract Info from Website"
+3. The system fetches and converts the webpage to Markdown
+4. DeepSeek AI (via OpenRouter) analyzes the content
+5. Extracted data is automatically filled into the form
+
+### Extracted Information
+- Phone numbers
+- Physical addresses
+- Service times (with day/time parsing)
+- Social media links (Facebook, Instagram, YouTube, Spotify)
+
+### Setup
+1. Sign up for a free [OpenRouter](https://openrouter.ai) account
+2. Generate an API key
+3. Add to `.dev.vars` and production secrets
+
+The extraction uses the free DeepSeek model, so there's no cost per extraction.
 
 ## Deployment
 
@@ -143,6 +181,10 @@ The application uses the following main tables:
 wrangler secret put TURSO_DATABASE_URL
 wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
+wrangler secret put CLOUDFLARE_ACCOUNT_ID
+wrangler secret put CLOUDFLARE_ACCOUNT_HASH
+wrangler secret put CLOUDFLARE_IMAGES_API_TOKEN
+wrangler secret put OPENROUTER_API_KEY
 
 # Deploy
 pnpm deploy
