@@ -707,115 +707,134 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             extractedList.innerHTML = '';
             let extractedCount = 0;
             
+            // Helper to check if value changed
+            const updateFieldIfChanged = (fieldId, newValue, fieldName) => {
+              const field = document.getElementById(fieldId);
+              const oldValue = field.value.trim();
+              const cleanNewValue = newValue.trim();
+              
+              if (oldValue !== cleanNewValue) {
+                field.value = cleanNewValue;
+                extractedList.innerHTML += \`<li>✓ \${fieldName}\${oldValue ? ' (updated)' : ''}</li>\`;
+                extractedCount++;
+                return true;
+              }
+              return false;
+            };
+            
             if (fields.phone && extracted.phone) {
-              document.getElementById('phone').value = extracted.phone;
-              extractedList.innerHTML += '<li>✓ Phone number</li>';
-              extractedCount++;
+              updateFieldIfChanged('phone', extracted.phone, 'Phone number');
             }
             
             if (fields.email && extracted.email) {
-              document.getElementById('email').value = extracted.email;
-              extractedList.innerHTML += '<li>✓ Email address</li>';
-              extractedCount++;
+              updateFieldIfChanged('email', extracted.email, 'Email address');
             }
             
             if (fields.address && extracted.address) {
-              document.getElementById('gatheringAddress').value = extracted.address;
-              extractedList.innerHTML += '<li>✓ Physical address</li>';
-              extractedCount++;
+              updateFieldIfChanged('gatheringAddress', extracted.address, 'Physical address');
             }
             
             if (fields.instagram && extracted.instagram) {
-              document.getElementById('instagram').value = extracted.instagram;
-              extractedList.innerHTML += '<li>✓ Instagram URL</li>';
-              extractedCount++;
+              updateFieldIfChanged('instagram', extracted.instagram, 'Instagram URL');
             }
             
             if (fields.facebook && extracted.facebook) {
-              document.getElementById('facebook').value = extracted.facebook;
-              extractedList.innerHTML += '<li>✓ Facebook URL</li>';
-              extractedCount++;
+              updateFieldIfChanged('facebook', extracted.facebook, 'Facebook URL');
             }
             
             if (fields.spotify && extracted.spotify) {
-              document.getElementById('spotify').value = extracted.spotify;
-              extractedList.innerHTML += '<li>✓ Spotify URL</li>';
-              extractedCount++;
+              updateFieldIfChanged('spotify', extracted.spotify, 'Spotify URL');
             }
             
             if (fields.youtube && extracted.youtube) {
-              document.getElementById('youtube').value = extracted.youtube;
-              extractedList.innerHTML += '<li>✓ YouTube URL</li>';
-              extractedCount++;
+              updateFieldIfChanged('youtube', extracted.youtube, 'YouTube URL');
             }
             
             if (fields.statementOfFaithUrl && extracted.statement_of_faith_url) {
-              document.getElementById('statementOfFaith').value = extracted.statement_of_faith_url;
-              extractedList.innerHTML += '<li>✓ Statement of Faith URL</li>';
-              extractedCount++;
+              updateFieldIfChanged('statementOfFaith', extracted.statement_of_faith_url, 'Statement of Faith URL');
             }
             
             // Handle service times
             if (fields.serviceTimes && extracted.service_times) {
-              // Clear existing gatherings
               const gatheringsContainer = document.getElementById('gatherings-container');
-              gatheringsContainer.innerHTML = '';
               
-              // Add each service time
-              extracted.service_times.forEach((service, index) => {
-                // Handle both object format {time, notes} and string format
-                const serviceTime = typeof service === 'string' ? service : service.time;
-                const serviceNotes = typeof service === 'object' ? (service.notes || '') : '';
+              // Get existing service times
+              const existingTimes = Array.from(gatheringsContainer.querySelectorAll('input[name*="[time]"]'))
+                .map(input => input.value.trim())
+                .filter(time => time !== '');
+              
+              // Check if service times have changed
+              const extractedTimes = extracted.service_times.map(service => 
+                typeof service === 'string' ? service : service.time
+              );
+              
+              const hasChanges = existingTimes.length !== extractedTimes.length ||
+                !existingTimes.every((time, i) => time === extractedTimes[i]);
+              
+              if (hasChanges) {
+                // Clear existing gatherings
+                gatheringsContainer.innerHTML = '';
                 
-                const newGathering = document.createElement('div');
-                newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
-                newGathering.innerHTML = \`
-                  <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                      Time <span class="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="gatherings[\${index}][time]"
-                      value="\${serviceTime}"
-                      required
-                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    />
-                  </div>
-                  <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                      Notes (optional)
-                    </label>
-                    <input
-                      type="text"
-                      name="gatherings[\${index}][notes]"
-                      value="\${serviceNotes}"
-                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onclick="this.parentElement.remove()"
-                    class="mt-7 text-gray-400 hover:text-red-500 transition-colors"
-                    title="Remove gathering"
-                  >
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                \`;
-                gatheringsContainer.appendChild(newGathering);
-              });
-              
-              extractedList.innerHTML += \`<li>✓ Service times (\${extracted.service_times.length} found)</li>\`;
-              extractedCount++;
+                // Add each service time
+                extracted.service_times.forEach((service, index) => {
+                  // Handle both object format {time, notes} and string format
+                  const serviceTime = typeof service === 'string' ? service : service.time;
+                  const serviceNotes = typeof service === 'object' ? (service.notes || '') : '';
+                  
+                  const newGathering = document.createElement('div');
+                  newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
+                  newGathering.innerHTML = \`
+                    <div class="flex-1">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Time <span class="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="gatherings[\${index}][time]"
+                        value="\${serviceTime}"
+                        required
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      />
+                    </div>
+                    <div class="flex-1">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Notes (optional)
+                      </label>
+                      <input
+                        type="text"
+                        name="gatherings[\${index}][notes]"
+                        value="\${serviceNotes}"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onclick="this.parentElement.remove()"
+                      class="mt-7 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remove gathering"
+                    >
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  \`;
+                  gatheringsContainer.appendChild(newGathering);
+                });
+                
+                const changeType = existingTimes.length === 0 ? '' : ' (updated)';
+                extractedList.innerHTML += \`<li>✓ Service times (\${extracted.service_times.length} found)\${changeType}</li>\`;
+                extractedCount++;
+              }
             }
             
             // Show results
             if (extractedCount > 0) {
               extractedFields.classList.remove('hidden');
-              extractStatus.textContent = \`Successfully extracted \${extractedCount} field\${extractedCount > 1 ? 's' : ''}\`;
+              extractStatus.textContent = \`Successfully updated \${extractedCount} field\${extractedCount > 1 ? 's' : ''}\`;
               extractStatus.className = 'text-sm text-green-600';
+            } else if (Object.keys(extracted).length > 0) {
+              extractStatus.textContent = 'All extracted data matches existing values';
+              extractStatus.className = 'text-sm text-blue-600';
             } else {
               extractStatus.textContent = 'No data could be extracted from the website';
               extractStatus.className = 'text-sm text-yellow-600';
