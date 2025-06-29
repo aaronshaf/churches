@@ -32,11 +32,11 @@ ADDRESS: 123 Main St, City, State 12345
 SERVICE: 9 AM Sunday | Traditional
 SERVICE: 11 AM Sunday | Contemporary
 SERVICE: 6:30 PM Wednesday | Bible study
-FACEBOOK: https://facebook.com/example
-INSTAGRAM: https://instagram.com/example
-YOUTUBE: https://youtube.com/channel/example123
-SPOTIFY: https://open.spotify.com/show/example123
-STATEMENT_OF_FAITH: https://example.org/beliefs
+FACEBOOK: https://facebook.com/actualpagename
+INSTAGRAM: https://instagram.com/actualusername
+YOUTUBE: https://youtube.com/channel/UCactualchannelid
+SPOTIFY: https://open.spotify.com/show/actualshowid
+STATEMENT_OF_FAITH: https://actualchurchwebsite.org/what-we-believe
 
 Important:
 - Use the exact field names above (PHONE, EMAIL, etc.)
@@ -380,7 +380,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       if (url && typeof url === 'string') {
         const cleanUrl = url.trim();
 
-        // Reject generic social media homepages
+        // Reject generic social media homepages and example URLs
         const genericPatterns = {
           instagram: /^https?:\/\/(www\.)?instagram\.com\/?$/,
           facebook: /^https?:\/\/(www\.)?facebook\.com\/?$/,
@@ -388,7 +388,22 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
           spotify: /^https?:\/\/(open\.)?spotify\.com\/?$/,
         };
 
-        if (genericPatterns[key]?.test(cleanUrl)) {
+        const invalidPatterns = [
+          /example/i,
+          /actualpage/i,
+          /actualusername/i,
+          /actualchannel/i,
+          /actualshow/i,
+          /churchname/i,
+          /yourchurch/i,
+          /placeholder/i,
+          /sample/i,
+          /test/i,
+        ];
+
+        // Check if URL is generic or contains invalid patterns
+        if (genericPatterns[key]?.test(cleanUrl) || 
+            invalidPatterns.some(pattern => pattern.test(cleanUrl))) {
           delete processedData[key];
         }
       }
