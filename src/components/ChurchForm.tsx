@@ -938,65 +938,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
         
         // Drag and drop functionality for image reordering
         document.addEventListener('DOMContentLoaded', function() {
-          const container = document.getElementById('existing-images');
-          if (!container) return;
-          
-          let draggedElement = null;
-          
-          container.addEventListener('dragstart', function(e) {
-            if (e.target.closest('[draggable="true"]')) {
-              draggedElement = e.target.closest('[draggable="true"]');
-              draggedElement.style.opacity = '0.5';
-            }
-          });
-          
-          container.addEventListener('dragend', function(e) {
-            if (e.target.closest('[draggable="true"]')) {
-              e.target.closest('[draggable="true"]').style.opacity = '';
-            }
-          });
-          
-          container.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(container, e.clientY);
-            if (afterElement == null) {
-              container.appendChild(draggedElement);
-            } else {
-              container.insertBefore(draggedElement, afterElement);
-            }
-          });
-          
-          container.addEventListener('drop', function(e) {
-            e.preventDefault();
-            updateImageOrder();
-          });
-          
-          function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not([style*="opacity: 0.5"])')];
-            
-            return draggableElements.reduce((closest, child) => {
-              const box = child.getBoundingClientRect();
-              const offset = y - box.top - box.height / 2;
-              
-              if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-              } else {
-                return closest;
-              }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-          }
-          
-          function updateImageOrder() {
-            const images = container.querySelectorAll('[draggable="true"]');
-            images.forEach((img, index) => {
-              const orderInput = img.querySelector('.image-order');
-              if (orderInput) {
-                orderInput.value = index;
-              }
-            });
-          }
-          
-          // Initialize extraction UI
+          // Initialize extraction UI and add service button first
           const churchId = ${church?.id || 'null'};
           if (churchId) {
             initExtractionUI(churchId);
@@ -1057,6 +999,65 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             );
             
             addServiceContainer.appendChild(addServiceBtn);
+          }
+          
+          // Handle image drag and drop
+          const container = document.getElementById('existing-images');
+          if (!container) return;
+          
+          let draggedElement = null;
+          
+          container.addEventListener('dragstart', function(e) {
+            if (e.target.closest('[draggable="true"]')) {
+              draggedElement = e.target.closest('[draggable="true"]');
+              draggedElement.style.opacity = '0.5';
+            }
+          });
+          
+          container.addEventListener('dragend', function(e) {
+            if (e.target.closest('[draggable="true"]')) {
+              e.target.closest('[draggable="true"]').style.opacity = '';
+            }
+          });
+          
+          container.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement == null) {
+              container.appendChild(draggedElement);
+            } else {
+              container.insertBefore(draggedElement, afterElement);
+            }
+          });
+          
+          container.addEventListener('drop', function(e) {
+            e.preventDefault();
+            updateImageOrder();
+          });
+          
+          function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not([style*="opacity: 0.5"])')];
+            
+            return draggableElements.reduce((closest, child) => {
+              const box = child.getBoundingClientRect();
+              const offset = y - box.top - box.height / 2;
+              
+              if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+              } else {
+                return closest;
+              }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+          }
+          
+          function updateImageOrder() {
+            const images = container.querySelectorAll('[draggable="true"]');
+            images.forEach((img, index) => {
+              const orderInput = img.querySelector('.image-order');
+              if (orderInput) {
+                orderInput.value = index;
+              }
+            });
           }
         });
       `,
