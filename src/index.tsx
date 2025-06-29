@@ -3468,6 +3468,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  
   const affiliation = await db
     .select()
     .from(affiliations)
@@ -3478,12 +3479,45 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
     return c.redirect('/admin/affiliations');
   }
 
+  // Get churches affiliated with this affiliation
+  const affiliatedChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      status: churches.status,
+      countyName: counties.name,
+    })
+    .from(churches)
+    .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(eq(churchAffiliations.affiliationId, Number(id)))
+    .orderBy(churches.name)
+    .all();
+
+  // Get all churches for the checkbox list
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      status: churches.status,
+      countyName: counties.name,
+    })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .orderBy(churches.name)
+    .all();
+
   return c.html(
     <Layout title="Edit Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
-            <AffiliationForm action={`/admin/affiliations/${id}`} affiliation={affiliation} />
+            <AffiliationForm 
+              action={`/admin/affiliations/${id}`} 
+              affiliation={affiliation}
+              affiliatedChurches={affiliatedChurches}
+              allChurches={allChurches}
+            />
           </div>
         </div>
       </div>
@@ -3502,6 +3536,7 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const publicNotes = body.publicNotes as string;
   const privateNotes = body.privateNotes as string;
 
+  // Update affiliation details
   await db
     .update(affiliations)
     .set({
@@ -3513,6 +3548,49 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
       updatedAt: new Date(),
     })
     .where(eq(affiliations.id, Number(id)));
+
+  // Handle church associations
+  const selectedChurches = body.churches 
+    ? Array.isArray(body.churches) 
+      ? body.churches.map(Number) 
+      : [Number(body.churches)]
+    : [];
+
+  // Get current church associations
+  const currentAssociations = await db
+    .select({ churchId: churchAffiliations.churchId })
+    .from(churchAffiliations)
+    .where(eq(churchAffiliations.affiliationId, Number(id)))
+    .all();
+
+  const currentChurchIds = currentAssociations.map(a => a.churchId);
+
+  // Find churches to add and remove
+  const churchesToAdd = selectedChurches.filter(churchId => !currentChurchIds.includes(churchId));
+  const churchesToRemove = currentChurchIds.filter(churchId => !selectedChurches.includes(churchId));
+
+  // Remove unselected churches
+  if (churchesToRemove.length > 0) {
+    await db
+      .delete(churchAffiliations)
+      .where(sql`${churchAffiliations.affiliationId} = ${Number(id)} AND ${churchAffiliations.churchId} IN (${sql.join(churchesToRemove.map(id => sql`${id}`), sql`, `)})`);
+  }
+
+  // Add newly selected churches
+  for (const churchId of churchesToAdd) {
+    // Get the next order value for this church
+    const maxOrder = await db
+      .select({ maxOrder: sql<number>`COALESCE(MAX(${churchAffiliations.order}), 0)` })
+      .from(churchAffiliations)
+      .where(eq(churchAffiliations.churchId, churchId))
+      .get();
+
+    await db.insert(churchAffiliations).values({
+      churchId,
+      affiliationId: Number(id),
+      order: (maxOrder?.maxOrder || 0) + 1,
+    });
+  }
 
   return c.redirect('/admin/affiliations');
 });
@@ -4290,6 +4368,24 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         affiliationId: selectedAffiliations[i],
         order: i + 1,
       });
+    }
+
+    // Check if "Save and continue" was clicked
+    if (body.continue === 'true') {
+      // Find the next church with the oldest update date (excluding the current church)
+      const nextChurch = await db
+        .select({
+          id: churches.id,
+        })
+        .from(churches)
+        .where(sql`(${churches.status} != 'Closed' OR ${churches.status} IS NULL) AND ${churches.id} != ${Number(id)}`)
+        .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
+        .limit(1)
+        .get();
+      
+      if (nextChurch) {
+        return c.redirect(`/admin/churches/${nextChurch.id}/edit`);
+      }
     }
 
     return c.redirect('/admin/churches');
@@ -5305,6 +5401,10 @@ app.get('*', async (c) => {
   if (sessionId) {
     user = await validateSession(sessionId, c.env);
   }
+
+  // Get favicon and logo URLs for 404 page
+  const faviconUrl = await getFaviconUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
     <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>

@@ -396,6 +396,24 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                 {/* Affiliations */}
                 <div class="sm:col-span-6">
                   <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Affiliations</h3>
+                  
+                  {/* Currently selected affiliations */}
+                  {selectedAffiliationIds.length > 0 && (
+                    <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                      <p class="text-sm font-medium text-blue-900 mb-2">Currently selected:</p>
+                      <div class="flex flex-wrap gap-2">
+                        {selectedAffiliationIds.map(id => {
+                          const affiliation = affiliations.find(a => a.id === id);
+                          return affiliation ? (
+                            <span key={id} class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
+                              {affiliation.name}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p class="text-sm text-gray-500 mb-4">Select all that apply</p>
                   <div class="space-y-3 max-h-48 overflow-y-auto border rounded-md p-4">
                     {affiliations.map((affiliation) => (
@@ -558,6 +576,34 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             >
               Cancel
             </a>
+            {!isNew && (
+              <button
+                type="submit"
+                name="continue"
+                value="true"
+                id="submit-continue-button"
+                data-testid="btn-submit-continue"
+                class="rounded-md bg-gray-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <span class="button-text">Save and continue</span>
+                <span class="button-spinner hidden">
+                  <svg
+                    class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Saving...
+                </span>
+              </button>
+            )}
             <button
               type="submit"
               id="submit-button"
@@ -685,17 +731,37 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           })
         );
         
+        // Store which button was clicked
+        let submitAction = 'save';
+        
         // Form submit handler
         function handleFormSubmit(event) {
+          // Disable all submit buttons
           const submitButton = document.getElementById('submit-button');
-          const buttonText = document.getElementById('button-text');
-          const buttonSpinner = document.getElementById('button-spinner');
+          const continueButton = document.getElementById('submit-continue-button');
           
-          if (submitButton && buttonText && buttonSpinner) {
+          if (submitButton) {
             submitButton.disabled = true;
-            buttonText.classList.add('hidden');
-            buttonSpinner.classList.remove('hidden');
-            submitButton.classList.add('animate-pulse');
+            const buttonText = submitButton.querySelector('#button-text, .button-text');
+            const buttonSpinner = submitButton.querySelector('#button-spinner, .button-spinner');
+            
+            if (submitAction === 'save' && buttonText && buttonSpinner) {
+              buttonText.classList.add('hidden');
+              buttonSpinner.classList.remove('hidden');
+              submitButton.classList.add('animate-pulse');
+            }
+          }
+          
+          if (continueButton) {
+            continueButton.disabled = true;
+            const buttonText = continueButton.querySelector('.button-text');
+            const buttonSpinner = continueButton.querySelector('.button-spinner');
+            
+            if (submitAction === 'continue' && buttonText && buttonSpinner) {
+              buttonText.classList.add('hidden');
+              buttonSpinner.classList.remove('hidden');
+              continueButton.classList.add('animate-pulse');
+            }
           }
         }
         
@@ -999,6 +1065,32 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             );
             
             addServiceContainer.appendChild(addServiceBtn);
+          }
+          
+          // Setup save and continue button handlers
+          const saveButton = document.getElementById('submit-button');
+          const continueButton = document.getElementById('submit-continue-button');
+          
+          if (saveButton) {
+            saveButton.addEventListener('click', function() {
+              submitAction = 'save';
+            });
+          }
+          
+          if (continueButton) {
+            continueButton.addEventListener('click', function() {
+              submitAction = 'continue';
+              // Add hidden input to form
+              const form = document.querySelector('form');
+              let input = form.querySelector('input[name="continue"]');
+              if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'continue';
+                form.appendChild(input);
+              }
+              input.value = 'true';
+            });
           }
           
           // Handle image drag and drop

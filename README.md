@@ -17,7 +17,8 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - 🌐 **Multi-language Support** - Track churches serving in different languages
 - 🔐 **Admin Dashboard** - Manage churches, affiliations, and users
 - 🤖 **AI-Powered Data Extraction** - Automatically extract church information from websites
-- 🖼️ **Image Management** - Upload church images via Cloudflare Images integration
+- 🖼️ **Image Management** - Upload and reorder multiple church images via Cloudflare Images
+- ⚡ **Save and Continue** - Efficiently review churches with one-click navigation to next church
 
 ## Technology Stack
 
@@ -27,7 +28,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - **ORM**: Drizzle ORM
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: pnpm
-- **AI Integration**: OpenRouter API with DeepSeek
+- **AI Integration**: OpenRouter API with Google Gemini
 - **Image Storage**: Cloudflare Images
 
 ## Development Setup
@@ -148,6 +149,20 @@ The application uses the following main tables:
 - `GET /admin/pages` - Manage static pages
 - `POST /admin/churches/:id/extract` - Extract church data from website
 
+## Key Features for Administrators
+
+### Save and Continue Workflow
+When editing churches, administrators can use the "Save and continue" button to:
+1. Save the current church
+2. Automatically navigate to the next church needing review (oldest update date)
+3. Continue reviewing churches in sequence without returning to the list
+
+### Efficient Data Entry
+- Drag-and-drop image reordering
+- Automatic address formatting and normalization
+- Service time validation and normalization
+- AI extraction for rapid data collection from church websites
+
 ## AI-Powered Data Extraction
 
 The application includes an AI-powered feature to automatically extract church information from websites:
@@ -155,22 +170,27 @@ The application includes an AI-powered feature to automatically extract church i
 ### How it Works
 1. Enter a church website URL in the edit form
 2. Click "Extract Info from Website"
-3. The system fetches and converts the webpage to Markdown
-4. DeepSeek AI (via OpenRouter) analyzes the content
+3. The system fetches and converts the webpage to text
+4. Google Gemini 2.5 Flash Lite (via OpenRouter) analyzes the content
 5. Extracted data is automatically filled into the form
 
 ### Extracted Information
-- Phone numbers
-- Physical addresses
-- Service times (with day/time parsing)
+- Phone numbers (formatted consistently)
+- Email addresses
+- Physical addresses (with proper capitalization)
+- Service times with:
+  - Normalized time formats (e.g., "9 AM" not "9am")
+  - Day of week for multi-day schedules
+  - Brief notes (2-4 words max like "Traditional" or "Bible study")
 - Social media links (Facebook, Instagram, YouTube, Spotify)
+- Statement of Faith URL
 
 ### Setup
 1. Sign up for a free [OpenRouter](https://openrouter.ai) account
 2. Generate an API key
 3. Add to `.dev.vars` and production secrets
 
-The extraction uses the free DeepSeek model, so there's no cost per extraction.
+The extraction uses Google Gemini 2.5 Flash Lite which has a 1M+ token context window, allowing it to process even very large church websites.
 
 ## Deployment
 

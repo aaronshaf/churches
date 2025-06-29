@@ -2,41 +2,55 @@ import { convert } from 'html-to-text';
 import OpenAI from 'openai';
 import { z } from 'zod';
 
-const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
+const EXTRACTION_PROMPT = `From this church website text, extract the following information and return it in a SIMPLE TEXT FORMAT (not JSON):
 
 1) Phone number - Format as "(XXX) XXX-XXXX" with space after area code (e.g., "(801) 295-9439")
 2) Email address (if found) - Must be a valid email format
 3) Physical address (if found) - Use proper title case, not ALL CAPS. Format as "123 Main St, City, State ZIP"
-4) Service times as an array of objects with 'time' and optional 'notes':
+4) Service times - Include actual clock times with AM/PM and very brief notes:
    - Time MUST be an actual clock time with AM/PM (e.g., "10 AM", "10:30 AM", "6:30 PM")
    - Always include a space before AM/PM (e.g., "9 AM" not "9AM")
-   - Do NOT use descriptive times like "First Sunday of month" - extract the actual time
-   - Include day for non-Sunday services (e.g., "6:30 PM (Wednesday)")
-   - Notes should be in normal sentence case, NOT ALL CAPS
-   - Fix any ALL CAPS text to normal capitalization (e.g., "CONTEMPORARY SERVICE" → "Contemporary service")
-5) Social media URLs: instagram, facebook, spotify, youtube - ONLY include if they are specific to this church (not just generic social media homepages)
-6) Statement of Faith URL - Look for links/pages titled "Statement of Faith", "What We Believe", "Our Beliefs", "Doctrinal Statement", etc.
+   - If there are services on multiple days of the week, include the day for ALL services (e.g., "10 AM Sunday", "6:30 PM Wednesday")
+   - If all services are on Sunday only, you can omit the day
+   - Notes MUST BE EXTREMELY BRIEF - only 2-4 words maximum!
+   - ONLY include essential descriptors: "Traditional", "Contemporary", "Bible study", "Morning prayer", "Youth", "Children's ministry"
+   - Apostrophes are fine to use (e.g., "Children's ministry")
+   - NEVER include full sentences or explanations
+5) Social media URLs - ONLY if they are specific to this church
+   - ONLY include ACTUAL URLs found in the text EXACTLY as they appear
+   - NEVER make up or invent URLs
+   - NEVER include placeholder URLs or explanations
+   - If you only know they have YouTube/Facebook but no actual URL, skip it entirely
+6) Statement of Faith URL - Look for links titled "Statement of Faith", "What We Believe", etc.
+   - Include the EXACT URL as found in the text - DO NOT modify the domain name!
 
-Only include properties that are found. Use these exact keys: phone, email, address, service_times, instagram, facebook, spotify, youtube, statement_of_faith_url
+Return ONLY the fields you find, using this EXACT format:
 
-Example format:
-{
-  "phone": "(801) 555-1234",
-  "email": "info@churchname.org",
-  "address": "123 Main St, City, State 12345",
-  "service_times": [
-    {"time": "9 AM", "notes": "Traditional service"},
-    {"time": "11 AM", "notes": "Contemporary service with children's ministry"},
-    {"time": "6:30 PM (Wednesday)", "notes": "Prayer meeting and Bible study"}
-  ],
-  "facebook": "https://facebook.com/churchname",
-  "instagram": "https://instagram.com/churchhandle",
-  "statement_of_faith_url": "https://churchname.org/what-we-believe"
-}`;
+PHONE: (801) 555-1234
+EMAIL: contact@example.org
+ADDRESS: 123 Main St, City, State 12345
+SERVICE: 9 AM Sunday | Traditional
+SERVICE: 11 AM Sunday | Contemporary
+SERVICE: 6:30 PM Wednesday | Bible study
+FACEBOOK: https://facebook.com/example
+INSTAGRAM: https://instagram.com/example
+YOUTUBE: https://youtube.com/channel/example123
+SPOTIFY: https://open.spotify.com/show/example123
+STATEMENT_OF_FAITH: https://example.org/beliefs
+
+Important:
+- Use the exact field names above (PHONE, EMAIL, etc.)
+- For SERVICE lines, separate time and notes with a pipe (|) character
+- If there are no notes for a service, just include the time
+- Skip any fields you cannot find
+- Do NOT add any other text or explanations
+- NEVER invent URLs - only include exact URLs found in the text
+- NEVER modify URLs - copy them EXACTLY as they appear (do not change domain names!)
+- If a church mentions they have YouTube but no URL is given, DO NOT include it`;
 
 // Zod schemas for validation
 const serviceTimeSchema = z.object({
-  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s*\([^)]+\))?$/),
+  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s+\w+)?(\s*\([^)]+\))?$/),
   notes: z.string().optional(),
 });
 
@@ -80,6 +94,7 @@ function normalizeTimeFormat(timeStr: string): string {
   return `${timeBase} ${normalizedPeriod}${rest}`;
 }
 
+
 // Helper function to parse time for sorting
 function parseTimeForSort(timeStr: string): number {
   // Extract time and period (AM/PM)
@@ -115,13 +130,16 @@ function normalizeAddress(address: string): string {
   let normalized = address.trim();
 
   // Add comma before state if missing (e.g., "NORTH SALT LAKE UT" -> "NORTH SALT LAKE, UT")
-  normalized = normalized.replace(
-    /\s+(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5}(-\d{4})?)$/i,
-    ', $1 $2'
-  );
+  // But only if there's no comma already before the state
+  if (!normalized.match(/,\s*[A-Z]{2}\s+\d{5}/i)) {
+    normalized = normalized.replace(
+      /\s+(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5}(-\d{4})?)$/i,
+      ', $1 $2'
+    );
+  }
 
   // Split by comma to handle each part
-  const parts = normalized.split(',').map((part) => part.trim());
+  const parts = normalized.split(',').map((part) => part.trim()).filter(part => part.length > 0);
 
   // Process each part
   const processedParts = parts.map((part, index) => {
@@ -186,7 +204,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         { selector: 'style', format: 'skip' },
         { selector: 'noscript', format: 'skip' },
         { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { ignoreHref: true } },
+        { selector: 'a', options: { ignoreHref: false, hideLinkHrefIfSameAsText: false } },
         // Don't skip nav/header/footer with Gemini - they might contain service times
       ],
       limits: {
@@ -202,54 +220,79 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     });
 
     // Send to Gemini for extraction
-    console.log(`Sending ${textContent.length} characters to AI for extraction`);
-
-    let completion: any;
-    try {
-      // Try free model first
-      completion = await openai.chat.completions.create({
-        model: 'google/gemini-2.0-flash-exp:free',
-        messages: [
-          {
-            role: 'user',
-            content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-      });
-    } catch (error) {
-      console.log('Free model failed:', error instanceof Error ? error.message : 'Unknown error');
-      console.log('Falling back to Gemini 2.5 Flash Lite');
-
-      // Fallback to Gemini 2.5 Flash Lite
-      completion = await openai.chat.completions.create({
-        model: 'google/gemini-2.5-flash-lite-preview-06-17',
-        messages: [
-          {
-            role: 'user',
-            content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-      });
-    }
+    const completion = await openai.chat.completions.create({
+      model: 'google/gemini-2.5-flash-lite-preview-06-17',
+      messages: [
+        {
+          role: 'user',
+          content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 2000,
+    });
 
     const responseContent = completion.choices[0]?.message?.content;
     if (!responseContent) {
       throw new Error('No response from AI');
     }
 
-    // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = responseContent.match(/```json\n?([\s\S]*?)\n?```/) || responseContent.match(/({[\s\S]*})/);
 
-    if (!jsonMatch) {
-      throw new Error('No JSON found in response');
+    // Parse the text format response
+    const rawData: any = {};
+    const lines = responseContent.trim().split('\n');
+    
+    const serviceTimes: Array<{ time: string; notes?: string }> = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || !trimmedLine.includes(':')) continue;
+      
+      const [field, ...valueParts] = trimmedLine.split(':');
+      const value = valueParts.join(':').trim(); // Rejoin in case URL contains colons
+      
+      switch (field.toUpperCase()) {
+        case 'PHONE':
+          rawData.phone = value;
+          break;
+        case 'EMAIL':
+          rawData.email = value;
+          break;
+        case 'ADDRESS':
+          rawData.address = value;
+          break;
+        case 'SERVICE':
+          // Parse service time format: "9 AM | Traditional"
+          const [time, notes] = value.split('|').map(s => s.trim());
+          if (time) {
+            const serviceObj: { time: string; notes?: string } = { time };
+            if (notes) {
+              serviceObj.notes = notes;
+            }
+            serviceTimes.push(serviceObj);
+          }
+          break;
+        case 'FACEBOOK':
+          rawData.facebook = value;
+          break;
+        case 'INSTAGRAM':
+          rawData.instagram = value;
+          break;
+        case 'YOUTUBE':
+          rawData.youtube = value;
+          break;
+        case 'SPOTIFY':
+          rawData.spotify = value;
+          break;
+        case 'STATEMENT_OF_FAITH':
+          rawData.statement_of_faith_url = value;
+          break;
+      }
     }
-
-    const jsonStr = jsonMatch[1];
-    const rawData = JSON.parse(jsonStr);
+    
+    if (serviceTimes.length > 0) {
+      rawData.service_times = serviceTimes;
+    }
 
     // Pre-process data before validation
     const processedData: any = { ...rawData };
@@ -267,7 +310,21 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         phone = `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
       }
 
-      processedData.phone = phone;
+      // Filter out fake phone numbers
+      const fakeNumbers = [
+        '(555) 555-5555',
+        '(123) 456-7890',
+        '(000) 000-0000',
+        '(999) 999-9999',
+        '(111) 111-1111',
+      ];
+      
+      if (fakeNumbers.includes(phone) || phone.includes('555-01')) {
+        // Don't include obviously fake numbers
+        delete processedData.phone;
+      } else {
+        processedData.phone = phone;
+      }
     }
 
     // Normalize email to lowercase
@@ -391,7 +448,25 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     return parseResult.data;
   } catch (error) {
     console.error('Extraction error:', error);
-    throw new Error(`Failed to extract church data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    
+    // Provide more helpful error messages
+    let errorMessage = 'Failed to extract church data: ';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('internal error')) {
+        errorMessage += 'The AI service is temporarily unavailable. Please try again in a few moments.';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage += 'Rate limit exceeded. Please wait a minute before trying again.';
+      } else if (error.message.includes('fetch')) {
+        errorMessage += 'Unable to fetch the website. Please check the URL and try again.';
+      } else {
+        errorMessage += error.message;
+      }
+    } else {
+      errorMessage += 'Unknown error occurred';
+    }
+    
+    throw new Error(errorMessage);
   }
 }
 

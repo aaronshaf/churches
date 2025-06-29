@@ -3,11 +3,21 @@ import type { FC } from 'hono/jsx';
 type AffiliationFormProps = {
   action: string;
   affiliation?: any;
+  affiliatedChurches?: any[];
+  allChurches?: any[];
   error?: string;
   isNew?: boolean;
 };
 
-export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation, error, isNew = false }) => {
+export const AffiliationForm: FC<AffiliationFormProps> = ({ 
+  action, 
+  affiliation, 
+  affiliatedChurches = [], 
+  allChurches = [], 
+  error, 
+  isNew = false 
+}) => {
+  const affiliatedChurchIds = affiliatedChurches.map(c => c.id);
   return (
     <>
       <form
@@ -158,6 +168,75 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({ action, affiliation,
               </div>
             </div>
           </div>
+
+          {!isNew && (
+            <div class="pt-8">
+              <div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Affiliated Churches</h3>
+                <p class="mt-1 text-sm text-gray-500">Churches currently associated with this affiliation.</p>
+              </div>
+              
+              {/* Currently affiliated churches */}
+              {affiliatedChurches.length > 0 && (
+                <div class="mt-6 mb-6 p-4 bg-blue-50 rounded-lg">
+                  <p class="text-sm font-medium text-blue-900 mb-3">Currently affiliated churches ({affiliatedChurches.length}):</p>
+                  <div class="space-y-2">
+                    {affiliatedChurches.map(church => (
+                      <div key={church.id} class="flex items-center justify-between bg-white p-3 rounded-md">
+                        <div>
+                          <a 
+                            href={`/admin/churches/${church.id}/edit`}
+                            class="text-sm font-medium text-blue-600 hover:text-blue-800"
+                          >
+                            {church.name}
+                          </a>
+                          {church.countyName && (
+                            <span class="text-sm text-gray-500 ml-2">({church.countyName} County)</span>
+                          )}
+                        </div>
+                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                          church.status === 'Listed' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                          church.status === 'Ready to list' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
+                          church.status === 'Heretical' ? 'bg-red-50 text-red-700 ring-red-600/20' :
+                          'bg-gray-50 text-gray-700 ring-gray-600/20'
+                        }`}>
+                          {church.status || 'No status'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Add/remove churches */}
+              <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                  Add or remove churches from this affiliation:
+                </label>
+                <div class="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-4">
+                  {allChurches.map((church) => (
+                    <label key={church.id} class="flex items-start p-2 hover:bg-gray-50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="churches"
+                        value={church.id}
+                        checked={affiliatedChurchIds.includes(church.id)}
+                        class="mt-0.5 h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                      <div class="ml-3 flex-1">
+                        <div class="text-sm font-medium text-gray-700">{church.name}</div>
+                        <div class="text-xs text-gray-500">
+                          {church.countyName && `${church.countyName} County`}
+                          {church.status && ` • ${church.status}`}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Check or uncheck churches to add or remove them from this affiliation.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div class="pt-5">
