@@ -28,7 +28,7 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 
 Return ONLY the fields you find, using this EXACT format:
 
-PHONE: (801) 555-1234
+PHONE: (XXX) XXX-XXXX
 EMAIL: contact@example.org
 ADDRESS: 123 Main St, City, State 12345
 SERVICE: 9 AM Sunday | Traditional
@@ -319,13 +319,23 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       // Filter out fake phone numbers
       const fakeNumbers = [
         '(555) 555-5555',
+        '(801) 555-1234',
         '(123) 456-7890',
         '(000) 000-0000',
         '(999) 999-9999',
         '(111) 111-1111',
+        '(222) 222-2222',
+        '(333) 333-3333',
+        '(444) 444-4444',
+        '(666) 666-6666',
+        '(777) 777-7777',
+        '(888) 888-8888',
       ];
       
-      if (fakeNumbers.includes(phone) || phone.includes('555-01')) {
+      // Check for 555 numbers (commonly used as fake numbers)
+      const has555 = phone.includes('555-') || phone.includes('(555)');
+      
+      if (fakeNumbers.includes(phone) || has555) {
         // Don't include obviously fake numbers
         delete processedData.phone;
       } else {
