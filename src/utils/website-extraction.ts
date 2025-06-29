@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { htmlToText } from './html-to-text';
+import { convert } from 'html-to-text';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return ONLY valid JSON:
 
@@ -46,8 +46,20 @@ export async function extractChurchDataFromWebsite(
 
     const html = await response.text();
 
-    // Convert HTML to text
-    const textContent = htmlToText(html);
+    // Convert HTML to text using html-to-text package
+    const textContent = convert(html, {
+      wordwrap: false,
+      selectors: [
+        { selector: 'script', format: 'skip' },
+        { selector: 'style', format: 'skip' },
+        { selector: 'noscript', format: 'skip' },
+        { selector: 'img', format: 'skip' },
+        { selector: 'a', options: { ignoreHref: true } }
+      ],
+      limits: {
+        maxInputLength: 50000,
+      }
+    }).slice(0, 15000); // Limit to 15k chars for AI processing
 
     // Initialize OpenRouter client
     const openai = new OpenAI({
