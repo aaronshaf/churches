@@ -316,7 +316,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <label for="website" class="block text-sm font-medium leading-6 text-gray-900">
                     Website
                   </label>
-                  <div class="mt-2">
+                  <div class="mt-2 space-y-2">
                     <input
                       type="url"
                       name="website"
@@ -326,6 +326,27 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       data-testid="input-website"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
+                    {!isNew && (
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          id="extract-btn"
+                          onclick={`extractChurchData(${church?.id})`}
+                          class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                          data-testid="btn-extract"
+                        >
+                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                          </svg>
+                          Extract Info from Website
+                        </button>
+                        <span id="extract-status" class="text-sm text-gray-500"></span>
+                      </div>
+                    )}
+                    <div id="extracted-fields" class="hidden mt-2 p-3 bg-blue-50 rounded-md">
+                      <p class="text-sm font-medium text-blue-900 mb-1">Fields extracted from website:</p>
+                      <ul id="extracted-list" class="text-sm text-blue-700 space-y-0.5"></ul>
+                    </div>
                   </div>
                 </div>
 
@@ -643,6 +664,156 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           
           // Add a subtle pulse animation to the button
           submitButton.classList.add('animate-pulse');
+        }
+        
+        async function extractChurchData(churchId) {
+          const websiteInput = document.getElementById('website');
+          const extractBtn = document.getElementById('extract-btn');
+          const extractStatus = document.getElementById('extract-status');
+          const extractedFields = document.getElementById('extracted-fields');
+          const extractedList = document.getElementById('extracted-list');
+          
+          const websiteUrl = websiteInput.value.trim();
+          if (!websiteUrl) {
+            extractStatus.textContent = 'Please enter a website URL first';
+            extractStatus.className = 'text-sm text-red-600';
+            return;
+          }
+          
+          // Disable button and show loading state
+          extractBtn.disabled = true;
+          extractBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Extracting...';
+          extractStatus.textContent = 'Analyzing website...';
+          extractStatus.className = 'text-sm text-gray-500';
+          extractedFields.classList.add('hidden');
+          
+          try {
+            const response = await fetch(\`/admin/churches/\${churchId}/extract\`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({ websiteUrl }),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Extraction failed');
+            }
+            
+            // Apply extracted data to form fields
+            const { extracted, fields } = data;
+            extractedList.innerHTML = '';
+            let extractedCount = 0;
+            
+            if (fields.phone && extracted.phone) {
+              document.getElementById('phone').value = extracted.phone;
+              extractedList.innerHTML += '<li>✓ Phone number</li>';
+              extractedCount++;
+            }
+            
+            if (fields.address && extracted.address) {
+              document.getElementById('gatheringAddress').value = extracted.address;
+              extractedList.innerHTML += '<li>✓ Physical address</li>';
+              extractedCount++;
+            }
+            
+            if (fields.instagram && extracted.instagram) {
+              document.getElementById('instagram').value = extracted.instagram;
+              extractedList.innerHTML += '<li>✓ Instagram URL</li>';
+              extractedCount++;
+            }
+            
+            if (fields.facebook && extracted.facebook) {
+              document.getElementById('facebook').value = extracted.facebook;
+              extractedList.innerHTML += '<li>✓ Facebook URL</li>';
+              extractedCount++;
+            }
+            
+            if (fields.spotify && extracted.spotify) {
+              document.getElementById('spotify').value = extracted.spotify;
+              extractedList.innerHTML += '<li>✓ Spotify URL</li>';
+              extractedCount++;
+            }
+            
+            if (fields.youtube && extracted.youtube) {
+              document.getElementById('youtube').value = extracted.youtube;
+              extractedList.innerHTML += '<li>✓ YouTube URL</li>';
+              extractedCount++;
+            }
+            
+            // Handle service times
+            if (fields.serviceTimes && extracted.service_times) {
+              // Clear existing gatherings
+              const gatheringsContainer = document.getElementById('gatherings-container');
+              gatheringsContainer.innerHTML = '';
+              
+              // Add each service time
+              extracted.service_times.forEach((time, index) => {
+                const newGathering = document.createElement('div');
+                newGathering.className = 'flex gap-4 items-start p-4 bg-gray-50 rounded-lg';
+                newGathering.innerHTML = \`
+                  <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                      Time <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="gatherings[\${index}][time]"
+                      value="\${time}"
+                      required
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                  <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                      Notes (optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="gatherings[\${index}][notes]"
+                      value=""
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onclick="this.parentElement.remove()"
+                    class="mt-7 text-gray-400 hover:text-red-500 transition-colors"
+                    title="Remove gathering"
+                  >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                \`;
+                gatheringsContainer.appendChild(newGathering);
+              });
+              
+              extractedList.innerHTML += \`<li>✓ Service times (\${extracted.service_times.length} found)</li>\`;
+              extractedCount++;
+            }
+            
+            // Show results
+            if (extractedCount > 0) {
+              extractedFields.classList.remove('hidden');
+              extractStatus.textContent = \`Successfully extracted \${extractedCount} field\${extractedCount > 1 ? 's' : ''}\`;
+              extractStatus.className = 'text-sm text-green-600';
+            } else {
+              extractStatus.textContent = 'No data could be extracted from the website';
+              extractStatus.className = 'text-sm text-yellow-600';
+            }
+            
+          } catch (error) {
+            console.error('Extraction error:', error);
+            extractStatus.textContent = error.message || 'Failed to extract data';
+            extractStatus.className = 'text-sm text-red-600';
+          } finally {
+            // Re-enable button
+            extractBtn.disabled = false;
+            extractBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>Extract Info from Website';
+          }
         }
         
         // Drag and drop functionality for image reordering

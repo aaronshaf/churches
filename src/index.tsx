@@ -22,6 +22,7 @@ import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
 import { uploadToCloudflareImages, deleteFromCloudflareImages, getCloudflareImageUrl, IMAGE_VARIANTS } from './utils/cloudflare-images';
+import { extractChurchDataFromWebsite, formatServiceTimesForGatherings } from './utils/website-extraction';
 import {
   affiliationSchema,
   churchWithGatheringsSchema,
@@ -43,6 +44,7 @@ type Bindings = {
   CLOUDFLARE_ACCOUNT_ID: string;
   CLOUDFLARE_ACCOUNT_HASH: string;
   CLOUDFLARE_IMAGES_API_TOKEN: string;
+  OPENROUTER_API_KEY: string;
 };
 
 type Variables = {
@@ -4280,6 +4282,45 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
   } catch (error) {
     console.error('Error deleting church:', error);
     return c.redirect('/admin/churches?error=delete_failed');
+  }
+});
+
+// Extract church data from website
+app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
+  try {
+    const db = createDb(c.env);
+    const id = c.req.param('id');
+    const body = await c.req.parseBody();
+    const websiteUrl = body.websiteUrl as string;
+
+    if (!websiteUrl) {
+      return c.json({ error: 'Website URL is required' }, 400);
+    }
+
+    // Extract data using AI
+    const extractedData = await extractChurchDataFromWebsite(
+      websiteUrl,
+      c.env.OPENROUTER_API_KEY
+    );
+
+    // Format the response to include which fields were extracted
+    const response = {
+      extracted: extractedData,
+      fields: {
+        phone: !!extractedData.phone,
+        address: !!extractedData.address,
+        serviceTimes: !!extractedData.service_times?.length,
+        instagram: !!extractedData.instagram,
+        facebook: !!extractedData.facebook,
+        spotify: !!extractedData.spotify,
+        youtube: !!extractedData.youtube,
+      },
+    };
+
+    return c.json(response);
+  } catch (error) {
+    console.error('Extraction error:', error);
+    return c.json({ error: error.message || 'Failed to extract data' }, 500);
   }
 });
 
