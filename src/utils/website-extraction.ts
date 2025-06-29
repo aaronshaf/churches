@@ -6,7 +6,7 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 
 1) Phone number - Format as "(XXX) XXX-XXXX" with space after area code (e.g., "(801) 295-9439")
 2) Email address (if found) - Must be a valid email format
-3) Physical address (if found)
+3) Physical address (if found) - Use proper title case, not ALL CAPS. Format as "123 Main St, City, State ZIP"
 4) Service times as an array of objects with 'time' and optional 'notes':
    - Time MUST be an actual clock time with AM/PM (e.g., "10:00 AM", "6:30 PM")
    - Do NOT use descriptive times like "First Sunday of month" - extract the actual time
@@ -81,6 +81,52 @@ function parseTimeForSort(timeStr: string): number {
 // Sort service times by time of day
 function sortServiceTimes(times: ServiceTime[]): ServiceTime[] {
   return times.sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time));
+}
+
+// Normalize address casing and formatting
+function normalizeAddress(address: string): string {
+  // First, trim and handle basic formatting
+  let normalized = address.trim();
+  
+  // Add comma before state if missing (e.g., "NORTH SALT LAKE UT" -> "NORTH SALT LAKE, UT")
+  normalized = normalized.replace(/\s+(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\s+(\d{5}(-\d{4})?)$/i, ', $1 $2');
+  
+  // Split by comma to handle each part
+  const parts = normalized.split(',').map(part => part.trim());
+  
+  // Process each part
+  const processedParts = parts.map((part, index) => {
+    // Last part is usually state and zip, keep uppercase for state
+    if (index === parts.length - 1 && /^[A-Z]{2}\s+\d{5}(-\d{4})?$/.test(part)) {
+      return part;
+    }
+    
+    // Convert to title case but preserve certain patterns
+    return part.split(/\s+/).map(word => {
+      // Keep numbers as-is
+      if (/^\d/.test(word)) return word;
+      
+      // Handle abbreviations (N., S., E., W., ST., AVE., etc.)
+      if (/^(N|S|E|W|NE|NW|SE|SW|ST|AVE|BLVD|DR|RD|LN|CT|PL|PKWY|HWY)\.?$/i.test(word)) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase().replace(/\.$/, '');
+      }
+      
+      // Handle PO Box
+      if (/^(PO|P\.O\.)$/i.test(word)) return 'PO';
+      if (/^BOX$/i.test(word)) return 'Box';
+      
+      // Handle ordinals (1ST, 2ND, 3RD, 4TH, etc.)
+      if (/^\d+(ST|ND|RD|TH)$/i.test(word)) {
+        return word.toLowerCase();
+      }
+      
+      // Title case for regular words
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+  });
+  
+  // Rejoin with commas
+  return processedParts.join(', ');
 }
 
 export async function extractChurchDataFromWebsite(
@@ -200,6 +246,11 @@ export async function extractChurchDataFromWebsite(
       processedData.email = processedData.email.trim().toLowerCase();
     }
 
+    // Normalize address formatting
+    if (processedData.address && typeof processedData.address === 'string') {
+      processedData.address = normalizeAddress(processedData.address);
+    }
+
     // Process service times
     if (Array.isArray(processedData.service_times)) {
       processedData.service_times = processedData.service_times
@@ -276,17 +327,36 @@ export async function extractChurchDataFromWebsite(
         }
       }
       
-      // Sort service times if present
+      // Sort and deduplicate service times if present
       if (partialData.service_times) {
-        partialData.service_times = sortServiceTimes(partialData.service_times);
+        // Deduplicate based on time
+        const uniqueTimes = new Map<string, ServiceTime>();
+        partialData.service_times.forEach(service => {
+          const existing = uniqueTimes.get(service.time);
+          if (!existing || (service.notes && !existing.notes)) {
+            uniqueTimes.set(service.time, service);
+          }
+        });
+        
+        partialData.service_times = sortServiceTimes(Array.from(uniqueTimes.values()));
       }
       
       return partialData;
     }
 
-    // Sort service times
+    // Sort and deduplicate service times
     if (parseResult.data.service_times) {
-      parseResult.data.service_times = sortServiceTimes(parseResult.data.service_times);
+      // Deduplicate based on time
+      const uniqueTimes = new Map<string, ServiceTime>();
+      parseResult.data.service_times.forEach(service => {
+        const existing = uniqueTimes.get(service.time);
+        if (!existing || (service.notes && !existing.notes)) {
+          // Keep the one with notes if duplicate times exist
+          uniqueTimes.set(service.time, service);
+        }
+      });
+      
+      parseResult.data.service_times = sortServiceTimes(Array.from(uniqueTimes.values()));
     }
 
     return parseResult.data;
