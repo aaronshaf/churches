@@ -492,7 +492,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
 
     // Fix statement of faith URL if it's a relative path
     if (processedData.statement_of_faith_url && typeof processedData.statement_of_faith_url === 'string') {
-      const url = processedData.statement_of_faith_url.trim();
+      let url = processedData.statement_of_faith_url.trim();
       
       // Check if it's a relative URL
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -506,11 +506,9 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         processedData.statement_of_faith_url = cleanOrigin + '/' + cleanPath;
       }
       
-      // Validate the final URL doesn't have triple slashes
-      if (processedData.statement_of_faith_url.includes(':///')){
-        // Fix triple slash issue
-        processedData.statement_of_faith_url = processedData.statement_of_faith_url.replace(':///', '://');
-      }
+      // Clean up any double slashes (except after protocol)
+      // This regex replaces multiple slashes with a single slash, except after ://
+      processedData.statement_of_faith_url = processedData.statement_of_faith_url.replace(/([^:]\/)\/+/g, '$1');
       
       // Also filter out invalid statement of faith URLs
       const invalidPatterns = [
