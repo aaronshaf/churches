@@ -1365,6 +1365,13 @@ app.get('/map', async (c) => {
       gatheringAddress: churches.gatheringAddress,
       countyName: counties.name,
       website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      email: churches.email,
+      phone: churches.phone,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
       status: churches.status,
       language: churches.language,
       publicNotes: churches.publicNotes,
@@ -1378,10 +1385,33 @@ app.get('/map', async (c) => {
     )
     .all();
 
+  // Get gatherings for all churches
+  const churchIds = allChurchesWithCoords.map(c => c.id);
+  const allGatherings = churchIds.length > 0 ? await db
+    .select()
+    .from(churchGatherings)
+    .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+    .all() : [];
+
+  // Group gatherings by church ID
+  const gatheringsByChurchId = allGatherings.reduce((acc, gathering) => {
+    if (!acc[gathering.churchId]) {
+      acc[gathering.churchId] = [];
+    }
+    acc[gathering.churchId].push(gathering);
+    return acc;
+  }, {} as Record<number, typeof allGatherings>);
+
+  // Add gatherings to each church
+  const churchesWithGatherings = allChurchesWithCoords.map(church => ({
+    ...church,
+    gatherings: gatheringsByChurchId[church.id] || []
+  }));
+
   // Separate listed, unlisted, and heretical churches
-  const listedChurches = allChurchesWithCoords.filter((c) => c.status === 'Listed');
-  const unlistedChurches = allChurchesWithCoords.filter((c) => c.status === 'Unlisted');
-  const hereticalChurches = showHereticalOption ? allChurchesWithCoords.filter((c) => c.status === 'Heretical') : [];
+  const listedChurches = churchesWithGatherings.filter((c) => c.status === 'Listed');
+  const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
+  const hereticalChurches = showHereticalOption ? churchesWithGatherings.filter((c) => c.status === 'Heretical') : [];
 
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
@@ -1641,13 +1671,45 @@ app.get('/map', async (c) => {
           content.style.maxWidth = '350px';
           content.style.lineHeight = '1.5';
           
+          // Format service times
+          let serviceTimes = '';
+          if (church.gatherings && church.gatherings.length > 0) {
+            serviceTimes = church.gatherings.map(g => g.time).join(', ');
+          }
+          
+          // Build website links
+          let websiteLinks = [];
+          if (church.website) {
+            websiteLinks.push(\`<a href="\${church.website}" target="_blank" style="color: #4299e1;">Website</a>\`);
+          }
+          if (church.statementOfFaith) {
+            websiteLinks.push(\`<a href="\${church.statementOfFaith}" target="_blank" style="color: #4299e1;">Statement of Faith</a>\`);
+          }
+          
+          // Build social media links
+          let socialLinks = [];
+          if (church.facebook) {
+            socialLinks.push(\`<a href="\${church.facebook}" target="_blank" style="color: #4299e1;">Facebook</a>\`);
+          }
+          if (church.instagram) {
+            socialLinks.push(\`<a href="\${church.instagram}" target="_blank" style="color: #4299e1;">Instagram</a>\`);
+          }
+          if (church.youtube) {
+            socialLinks.push(\`<a href="\${church.youtube}" target="_blank" style="color: #4299e1;">YouTube</a>\`);
+          }
+          if (church.spotify) {
+            socialLinks.push(\`<a href="\${church.spotify}" target="_blank" style="color: #4299e1;">Spotify</a>\`);
+          }
+          
           content.innerHTML = \`
             <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem; font-weight: 600;">\${church.name}</h3>
-            \${church.gatheringAddress ? \`<div style="margin-bottom: 0.5rem;">📍 \${church.gatheringAddress}</div>\` : ''}
-            \${church.countyName ? \`<div style="margin-bottom: 0.5rem; color: #718096;">📌 \${church.countyName} County</div>\` : ''}
-            \${church.website ? \`<div style="margin-bottom: 0.5rem;"><a href="\${church.website}" target="_blank" style="color: #4299e1;">Website</a></div>\` : ''}
-            \${church.publicNotes ? \`<div style="margin-top: 0.5rem; font-style: italic; color: #718096;">\${church.publicNotes}</div>\` : ''}
-            \${church.path ? \`<div style="margin-top: 0.5rem;"><a href="/churches/\${church.path}" style="color: #4299e1;">View Details →</a></div>\` : ''}
+            \${church.gatheringAddress ? \`<div style="margin-bottom: 0.25rem;">\${church.gatheringAddress}</div>\` : ''}
+            \${serviceTimes ? \`<div style="margin-bottom: 0.25rem;">Service times: \${serviceTimes}</div>\` : ''}
+            \${websiteLinks.length > 0 ? \`<div style="margin-bottom: 0.25rem;">\${websiteLinks.join(' | ')}</div>\` : ''}
+            \${church.email ? \`<div style="margin-bottom: 0.25rem;"><a href="mailto:\${church.email}" style="color: #4299e1;">\${church.email}</a></div>\` : ''}
+            \${church.phone ? \`<div style="margin-bottom: 0.25rem;"><a href="tel:\${church.phone}" style="color: #4299e1;">\${church.phone}</a></div>\` : ''}
+            \${socialLinks.length > 0 ? \`<div style="margin-bottom: 0.5rem;">\${socialLinks.join(' | ')}</div>\` : ''}
+            \${church.path ? \`<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb;"><a href="/churches/\${church.path}" style="color: #4299e1; font-weight: 500;">View Details →</a></div>\` : ''}
           \`;
           
           return content;
