@@ -3116,11 +3116,9 @@ app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
     <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-      <div class="bg-gray-50 py-8">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="bg-white shadow sm:rounded-lg p-6">
-            <UserForm action="/admin/users" isNew={true} />
-          </div>
+      <div class="bg-gray-50">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <UserForm action="/admin/users" isNew={true} />
         </div>
       </div>
     </Layout>
@@ -3210,11 +3208,9 @@ app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Edit User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-      <div class="bg-gray-50 py-8">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="bg-white shadow sm:rounded-lg p-6">
-            <UserForm action={`/admin/users/${id}`} user={user} isOnlyAdmin={isOnlyAdmin} />
-          </div>
+      <div class="bg-gray-50">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <UserForm action={`/admin/users/${id}`} user={user} isOnlyAdmin={isOnlyAdmin} />
         </div>
       </div>
     </Layout>
