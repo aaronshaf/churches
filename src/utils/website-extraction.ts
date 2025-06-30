@@ -6,25 +6,47 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 
 1) Phone number - Format as "(XXX) XXX-XXXX" with space after area code (e.g., "(801) 295-9439")
 2) Email address (if found) - Must be a valid email format
-3) Physical address (if found) - Use proper title case, not ALL CAPS. Format as "123 Main St, City, State ZIP"
+3) Physical address (if found) - Extract the PRIMARY/MAIN church location address:
+   - Look for the church's actual meeting location, NOT mailing addresses or other churches mentioned
+   - Usually found in "Location", "Address", "Where we meet", "Directions" sections
+   - Must be in UTAH (common Utah cities: Salt Lake City, Provo, Ogden, Sandy, West Jordan, Orem, etc.)
+   - DO NOT extract addresses from other states (ignore any addresses from Oregon, Idaho, Nevada, etc.)
+   - Use proper title case, not ALL CAPS
+   - Format as "123 Main St, City, State ZIP"
+   - If multiple addresses are found, choose the one that appears to be the main worship location
 4) Service times - Include actual clock times with AM/PM and very brief notes:
    - Time MUST be an actual clock time with AM/PM (e.g., "10 AM", "10:30 AM", "6:30 PM")
    - Always include a space before AM/PM (e.g., "9 AM" not "9AM")
-   - If there are services on multiple days of the week, include the day for ALL services (e.g., "10 AM Sunday", "6:30 PM Wednesday")
-   - If all services are on Sunday only, you can omit the day
+   - ALWAYS include the day of the week for ALL services (e.g., "10 AM Sunday", "6:30 PM Wednesday")
+   - Never omit the day - always specify it (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, or Saturday)
+   - CRITICAL: The day in the time MUST match any day mentioned in the notes!
+   - DO NOT mix days (e.g., never have "8 AM Saturday" with notes about "Sunday worship")
    - Notes MUST BE EXTREMELY BRIEF - only 2-4 words maximum!
-   - ONLY include essential descriptors: "Traditional", "Contemporary", "Bible study", "Morning prayer", "Youth", "Children's ministry"
+   - ONLY include descriptors that are EXPLICITLY STATED on the website
+   - DO NOT infer, assume, or guess service styles based on context
+   - DO NOT add labels like "Traditional", "Contemporary", "Modern", "Blended" unless those EXACT words appear on the website
+   - DO NOT categorize services based on music style, worship format, or other characteristics
+   - Valid note examples ONLY if the website uses these exact terms: "Bible study", "Morning prayer", "Youth service", "Children's ministry", "Spanish service", "Midweek service"
    - Apostrophes are fine to use (e.g., "Children's ministry")
    - NEVER include full sentences or explanations
+   - If confused about which day a service occurs, read the context carefully
 5) Social media URLs - ONLY if they are specific to this church
    - ONLY include ACTUAL URLs found in the text EXACTLY as they appear
    - NEVER make up or invent URLs
    - NEVER include placeholder URLs or explanations
    - If you only know they have YouTube/Facebook but no actual URL, skip it entirely
-6) Statement of Faith URL - Look for links titled "Statement of Faith", "What We Believe", etc.
+6) Statement of Faith URL - Look for links with titles like:
+   - "Statement of Faith", "What We Believe", "Our Beliefs", "Beliefs"
+   - "Doctrine", "Doctrinal Statement", "Our Doctrine"
+   - "Confession", "Confession of Faith", "Our Confession"
+   - "Core Beliefs", "Essential Beliefs", "Fundamental Beliefs"
+   - "Articles of Faith", "We Believe", "About Our Faith"
    - Must be a FULL URL starting with https:// or http://
-   - If you find a relative path like "/beliefs" or "what-we-believe.html", construct the full URL
-   - Include the EXACT URL - DO NOT modify the domain name!
+   - If you find a relative path like "/beliefs" or "/about-what-we-believe", construct the full URL using the ORIGINAL WEBSITE DOMAIN
+   - CRITICAL: Use the domain from the website being analyzed, NOT any external domains found in the content
+   - For example: If analyzing https://www.gospelhoperiverton.com and you find href="/about-what-we-believe", 
+     the result should be https://www.gospelhoperiverton.com/about-what-we-believe
+   - DO NOT use churchcenter.com or other third-party domains for the statement of faith URL
 
 Return ONLY the fields you find, using this EXACT format:
 
@@ -32,8 +54,10 @@ PHONE: (XXX) XXX-XXXX
 EMAIL: contact@example.org
 ADDRESS: 123 Main St, City, State 12345
 SERVICE: 9 AM Sunday | Traditional
-SERVICE: 11 AM Sunday | Contemporary
+SERVICE: 11 AM Sunday | Contemporary  
 SERVICE: 6:30 PM Wednesday | Bible study
+SERVICE: 10 AM Sunday
+SERVICE: 7 PM Thursday | Prayer meeting
 FACEBOOK: https://facebook.com/actualpagename
 INSTAGRAM: https://instagram.com/actualusername
 YOUTUBE: https://youtube.com/channel/UCactualchannelid
@@ -52,7 +76,7 @@ Important:
 
 // Zod schemas for validation
 const serviceTimeSchema = z.object({
-  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s+\w+)?(\s*\([^)]+\))?$/),
+  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday))?(\s*\([^)]+\))?$/i),
   notes: z.string().optional(),
 });
 
@@ -231,7 +255,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nWebsite content:\n${textContent}`,
+          content: `${EXTRACTION_PROMPT}\n\nIMPORTANT: You are analyzing the website: ${websiteUrl}\nWhen constructing URLs from relative paths, ALWAYS use the domain from this URL.\n\nWebsite content:\n${textContent}`,
         },
       ],
       temperature: 0.1,
@@ -350,7 +374,43 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
 
     // Normalize address formatting
     if (processedData.address && typeof processedData.address === 'string') {
-      processedData.address = normalizeAddress(processedData.address);
+      const address = processedData.address.trim();
+      
+      // Filter out fake addresses
+      const fakeAddresses = [
+        '123 Main St, City, State 12345',
+        '123 Main Street, City, State 12345',
+        '1234 Main St, City, State 12345',
+        '123 Main St, Anytown, State 12345',
+        '123 Example St',
+        '1234 Example Street',
+        '123 Test St',
+        '123 Sample St',
+      ];
+      
+      // Check for generic fake address patterns
+      const isFakeAddress = fakeAddresses.some(fake => 
+        address.toLowerCase().includes(fake.toLowerCase())
+      ) || address.match(/^\d+\s+(Main|Example|Test|Sample)\s+(St|Street|Ave|Avenue)/i);
+      
+      // Check if it's a PO Box address (not a physical location)
+      const isPOBox = /^(P\.?O\.?\s*Box|Post\s*Office\s*Box)\s+\d+/i.test(address);
+      
+      // Check if it's a complete address (must have street number and name)
+      const hasStreetAddress = /^\d+\s+[\w\s]+\s+(St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Pkwy|Parkway|Cir|Circle|Ter|Terrace|Trail|Trl)\.?/i.test(address);
+      
+      // Check if it's a Utah address
+      const isUtahAddress = /,\s*(UT|Utah)\s+\d{5}/i.test(address);
+      
+      // Check for non-Utah states
+      const hasOtherState = /,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|VT|VA|WA|WV|WI|WY|Oregon|Idaho|Nevada|California|Wyoming|Colorado|Arizona|New Mexico)\s+\d{5}/i.test(address);
+      
+      if (isFakeAddress || isPOBox || !hasStreetAddress || !isUtahAddress || hasOtherState) {
+        // Don't include fake addresses, PO Boxes, incomplete addresses, or non-Utah addresses
+        delete processedData.address;
+      } else {
+        processedData.address = normalizeAddress(address);
+      }
     }
 
     // Process service times
@@ -415,6 +475,11 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
           /placeholder/i,
           /sample/i,
           /test/i,
+          /godaddy\.com\/websites\/website-builder/i,
+          /wix\.com\/website\/template/i,
+          /squarespace\.com\/templates/i,
+          /weebly\.com\/themes/i,
+          /wordpress\.com\/themes/i,
         ];
 
         // Check if URL is generic or contains invalid patterns
@@ -431,13 +496,20 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       
       // Check if it's a relative URL
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // It's a relative path, construct full URL
-        if (url.startsWith('/')) {
-          processedData.statement_of_faith_url = origin + url;
-        } else {
-          // Relative to current path
-          processedData.statement_of_faith_url = origin + '/' + url;
-        }
+        // Remove any leading slashes from the URL
+        const cleanPath = url.replace(/^\/+/, '');
+        
+        // Ensure origin doesn't end with a slash
+        const cleanOrigin = origin.replace(/\/$/, '');
+        
+        // Construct the full URL
+        processedData.statement_of_faith_url = cleanOrigin + '/' + cleanPath;
+      }
+      
+      // Validate the final URL doesn't have triple slashes
+      if (processedData.statement_of_faith_url.includes(':///')){
+        // Fix triple slash issue
+        processedData.statement_of_faith_url = processedData.statement_of_faith_url.replace(':///', '://');
       }
       
       // Also filter out invalid statement of faith URLs

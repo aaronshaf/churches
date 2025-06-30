@@ -423,7 +423,17 @@ app.get('/counties/:path', async (c) => {
                   <h1 class="text-4xl font-bold text-white md:text-5xl">{county.name}</h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {listedChurches.length + unlistedChurches.length}{' '}
-                    {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'}
+                    {listedChurches.length + unlistedChurches.length === 1 ? 'evangelical church' : 'evangelical churches'}
+                    {county.population && (
+                      <>
+                        {' '}• <span 
+                          class="cursor-help"
+                          title={`1 evangelical church per ${Math.round(county.population / (listedChurches.length + unlistedChurches.length)).toLocaleString()} people`}
+                        >
+                          Population: {county.population.toLocaleString()}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -3992,7 +4002,27 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
 app.post('/admin/churches', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
-    const body = await c.req.parseBody();
+    // Get form data directly to handle multiple checkbox values
+    const formData = await c.req.formData();
+    
+    // Convert FormData to a regular object, handling multiple values
+    const body: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key === 'affiliations') {
+        // Handle affiliations specially - get all values
+        if (!body.affiliations) body.affiliations = [];
+        body.affiliations.push(value.toString());
+      } else if (body[key]) {
+        // If key already exists, convert to array
+        if (!Array.isArray(body[key])) {
+          body[key] = [body[key]];
+        }
+        body[key].push(value.toString());
+      } else {
+        body[key] = value.toString();
+      }
+    }
+    
     const parsedBody = parseFormBody(body);
 
     // Parse complex form data
@@ -4194,47 +4224,39 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
   try {
     const db = createDb(c.env);
     const id = c.req.param('id');
-    const body = await c.req.parseBody();
-
-    // Parse gatherings from form data
-    const gatherings = [];
-    let index = 0;
-    while (body[`gatherings[${index}][time]`]) {
-      gatherings.push({
-        time: body[`gatherings[${index}][time]`] as string,
-        notes: (body[`gatherings[${index}][notes]`] as string) || undefined,
-      });
-      index++;
+    // Get form data directly to handle multiple checkbox values
+    const formData = await c.req.formData();
+    
+    // Convert FormData to a regular object, handling multiple values
+    const body: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key === 'affiliations') {
+        // Handle affiliations specially - get all values
+        if (!body.affiliations) body.affiliations = [];
+        body.affiliations.push(value.toString());
+      } else if (body[key]) {
+        // If key already exists, convert to array
+        if (!Array.isArray(body[key])) {
+          body[key] = [body[key]];
+        }
+        body[key].push(value.toString());
+      } else {
+        body[key] = value.toString();
+      }
     }
+    
+    const parsedBody = parseFormBody(body);
+
+    // Parse complex form data
+    const gatherings = parseGatheringsFromForm(parsedBody);
+    const affiliations = parseAffiliationsFromForm(parsedBody);
+    const churchData = prepareChurchDataFromForm(parsedBody);
 
     // Validate input
     const validationResult = churchWithGatheringsSchema.safeParse({
-      church: {
-        name: body.name as string,
-        path: (body.path as string) || undefined,
-        status: (body.status as string) || undefined,
-        gatheringAddress: (body.gatheringAddress as string) || undefined,
-        latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
-        longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
-        countyId: body.countyId ? Number(body.countyId) : undefined,
-        website: (body.website as string) || undefined,
-        statementOfFaith: (body.statementOfFaith as string) || undefined,
-        phone: (body.phone as string) || undefined,
-        email: (body.email as string) || undefined,
-        facebook: (body.facebook as string) || undefined,
-        instagram: (body.instagram as string) || undefined,
-        youtube: (body.youtube as string) || undefined,
-        spotify: (body.spotify as string) || undefined,
-        language: (body.language as string) || 'English',
-        privateNotes: (body.privateNotes as string) || undefined,
-        publicNotes: (body.publicNotes as string) || undefined,
-      },
+      church: churchData,
       gatherings,
-      affiliations: body.affiliations
-        ? Array.isArray(body.affiliations)
-          ? body.affiliations.map(Number)
-          : [Number(body.affiliations)]
-        : [],
+      affiliations,
     });
 
     if (!validationResult.success) {
@@ -4243,7 +4265,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
     }
 
     const {
-      church: churchData,
+      church: validatedChurchData,
       gatherings: validatedGatherings,
       affiliations: selectedAffiliations,
     } = validationResult.data;
@@ -4252,7 +4274,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
     await db
       .update(churches)
       .set({
-        ...churchData,
+        ...validatedChurchData,
         lastUpdated: new Date(),
       })
       .where(eq(churches.id, Number(id)));
@@ -4388,7 +4410,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
       }
     }
 
-    return c.redirect('/admin/churches');
+    return c.redirect(validatedChurchData.path ? `/churches/${validatedChurchData.path}` : '/admin/churches');
   } catch (error) {
     console.error('Error updating church:', error);
     return c.text(`Error updating church: ${error.message}`, 500);

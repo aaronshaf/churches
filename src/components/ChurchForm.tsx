@@ -405,9 +405,18 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                         {selectedAffiliationIds.map(id => {
                           const affiliation = affiliations.find(a => a.id === id);
                           return affiliation ? (
-                            <span key={id} class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">
+                            <a 
+                              key={id} 
+                              href={`/admin/affiliations/${id}/edit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 hover:bg-blue-200 transition-colors"
+                            >
                               {affiliation.name}
-                            </span>
+                              <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
                           ) : null;
                         })}
                       </div>
@@ -422,6 +431,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                           <input
                             type="checkbox"
                             name="affiliations"
+                            id={`affiliation-${affiliation.id}`}
                             value={affiliation.id}
                             checked={selectedAffiliationIds.includes(affiliation.id)}
                             data-testid={`checkbox-affiliation-${affiliation.id}`}
@@ -429,7 +439,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                           />
                         </div>
                         <div class="ml-3 text-sm">
-                          <label class="font-medium text-gray-700">{affiliation.name}</label>
+                          <label for={`affiliation-${affiliation.id}`} class="font-medium text-gray-700 cursor-pointer">
+                            {affiliation.name}
+                          </label>
                         </div>
                       </div>
                     ))}
@@ -549,19 +561,50 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <label for="churchImages" class="block text-sm font-medium text-gray-700 mb-2">
                       Upload new images
                     </label>
-                    <input
-                      type="file"
-                      name="churchImages"
-                      id="churchImages"
-                      accept="image/*"
-                      multiple
-                      data-testid="input-churchImages"
-                      class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                    />
-                    <p class="mt-2 text-sm text-gray-500">
-                      Upload multiple images of the church building, congregation, or events. You can select multiple
-                      files at once.
-                    </p>
+                    <div 
+                      id="drop-zone"
+                      class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
+                    >
+                      <div class="space-y-1 text-center">
+                        <svg
+                          class="mx-auto h-12 w-12 text-gray-400"
+                          stroke="currentColor"
+                          fill="none"
+                          viewBox="0 0 48 48"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                          <label
+                            for="churchImages"
+                            class="relative cursor-pointer rounded-md bg-white font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2"
+                          >
+                            <span>Upload files</span>
+                            <input
+                              type="file"
+                              name="churchImages"
+                              id="churchImages"
+                              accept="image/*"
+                              multiple
+                              data-testid="input-churchImages"
+                              class="sr-only"
+                            />
+                          </label>
+                          <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                      </div>
+                    </div>
+                    <div id="file-list" class="mt-4 hidden">
+                      <p class="text-sm font-medium text-gray-700 mb-2">Selected files:</p>
+                      <ul class="text-sm text-gray-600 space-y-1"></ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1002,12 +1045,90 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           }
         }
         
-        // Drag and drop functionality for image reordering
+        // Function to reset button states
+        function resetButtonStates() {
+          const submitButton = document.getElementById('submit-button');
+          const continueButton = document.getElementById('submit-continue-button');
+          
+          if (submitButton) {
+            submitButton.disabled = false;
+            const buttonText = submitButton.querySelector('#button-text');
+            const buttonSpinner = submitButton.querySelector('#button-spinner');
+            if (buttonText) buttonText.classList.remove('hidden');
+            if (buttonSpinner) buttonSpinner.classList.add('hidden');
+          }
+          
+          if (continueButton) {
+            continueButton.disabled = false;
+            const buttonText = continueButton.querySelector('.button-text');
+            const buttonSpinner = continueButton.querySelector('.button-spinner');
+            if (buttonText) buttonText.classList.remove('hidden');
+            if (buttonSpinner) buttonSpinner.classList.add('hidden');
+          }
+        }
+        
+        // Reset on page load
         document.addEventListener('DOMContentLoaded', function() {
+          resetButtonStates();
+          
           // Initialize extraction UI and add service button first
           const churchId = ${church?.id || 'null'};
           if (churchId) {
             initExtractionUI(churchId);
+          }
+          
+          // Handle affiliation checkbox changes
+          const affiliationCheckboxes = document.querySelectorAll('input[name="affiliations"]');
+          const currentlySelectedDiv = document.querySelector('.bg-blue-50.rounded-lg');
+          
+          if (affiliationCheckboxes.length > 0) {
+            const affiliations = ${JSON.stringify(affiliations || [])};
+            
+            function updateCurrentlySelected() {
+              const selectedIds = Array.from(affiliationCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => parseInt(cb.value));
+              
+              if (selectedIds.length === 0 && currentlySelectedDiv) {
+                currentlySelectedDiv.style.display = 'none';
+              } else if (selectedIds.length > 0) {
+                if (!currentlySelectedDiv) {
+                  // Create the currently selected div if it doesn't exist
+                  const affiliationsSection = document.querySelector('.sm\\:col-span-6 h3.text-lg');
+                  if (affiliationsSection) {
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'mb-4 p-3 bg-blue-50 rounded-lg';
+                    newDiv.innerHTML = '<p class="text-sm font-medium text-blue-900 mb-2">Currently selected:</p><div class="flex flex-wrap gap-2"></div>';
+                    affiliationsSection.parentNode.insertBefore(newDiv, affiliationsSection.nextSibling);
+                  }
+                }
+                
+                const selectedDiv = document.querySelector('.bg-blue-50.rounded-lg');
+                if (selectedDiv) {
+                  selectedDiv.style.display = 'block';
+                  const badgesContainer = selectedDiv.querySelector('.flex.flex-wrap.gap-2');
+                  badgesContainer.innerHTML = '';
+                  
+                  selectedIds.forEach(id => {
+                    const affiliation = affiliations.find(a => a.id === id);
+                    if (affiliation) {
+                      const link = document.createElement('a');
+                      link.href = '/admin/affiliations/' + id + '/edit';
+                      link.target = '_blank';
+                      link.rel = 'noopener noreferrer';
+                      link.className = 'inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 hover:bg-blue-200 transition-colors';
+                      link.innerHTML = affiliation.name + '<svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>';
+                      badgesContainer.appendChild(link);
+                    }
+                  });
+                }
+              }
+            }
+            
+            // Add event listeners to all affiliation checkboxes
+            affiliationCheckboxes.forEach(checkbox => {
+              checkbox.addEventListener('change', updateCurrentlySelected);
+            });
           }
           
           // Initialize add service button
@@ -1093,7 +1214,119 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             });
           }
           
-          // Handle image drag and drop
+          // File upload drag and drop functionality
+          const dropZone = document.getElementById('drop-zone');
+          const fileInput = document.getElementById('churchImages');
+          const fileList = document.getElementById('file-list');
+          const fileListUl = fileList?.querySelector('ul');
+          
+          if (dropZone && fileInput) {
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+              dropZone.addEventListener(eventName, preventDefaults, false);
+              document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+              dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+              dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            // Handle dropped files
+            dropZone.addEventListener('drop', handleDrop, false);
+            
+            // Handle file input change
+            fileInput.addEventListener('change', function() {
+              handleFiles(this.files);
+            });
+            
+            function preventDefaults(e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            
+            function highlight(e) {
+              dropZone.classList.add('border-primary-500', 'bg-primary-50');
+            }
+            
+            function unhighlight(e) {
+              dropZone.classList.remove('border-primary-500', 'bg-primary-50');
+            }
+            
+            function handleDrop(e) {
+              const dt = e.dataTransfer;
+              const files = dt.files;
+              handleFiles(files);
+            }
+            
+            function handleFiles(files) {
+              const imageFiles = [...files].filter(file => file.type.startsWith('image/'));
+              
+              if (imageFiles.length > 0) {
+                // Create a new DataTransfer object to combine files
+                const dataTransfer = new DataTransfer();
+                
+                // Add existing files
+                const existingFiles = fileInput.files;
+                for (let i = 0; i < existingFiles.length; i++) {
+                  dataTransfer.items.add(existingFiles[i]);
+                }
+                
+                // Add new files
+                imageFiles.forEach(file => {
+                  dataTransfer.items.add(file);
+                });
+                
+                // Update the file input
+                fileInput.files = dataTransfer.files;
+                
+                // Update the file list display
+                updateFileList();
+              }
+            }
+            
+            function updateFileList() {
+              if (!fileListUl) return;
+              
+              fileListUl.innerHTML = '';
+              const files = [...fileInput.files];
+              
+              if (files.length > 0) {
+                fileList.classList.remove('hidden');
+                files.forEach((file, index) => {
+                  const li = document.createElement('li');
+                  li.className = 'flex items-center justify-between';
+                  li.innerHTML = \`
+                    <span>\${file.name} (\${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <button type="button" onclick="removeFile(\${index})" class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+                  \`;
+                  fileListUl.appendChild(li);
+                });
+              } else {
+                fileList.classList.add('hidden');
+              }
+            }
+            
+            window.removeFile = function(index) {
+              const dt = new DataTransfer();
+              const files = fileInput.files;
+              
+              for (let i = 0; i < files.length; i++) {
+                if (i !== index) {
+                  dt.items.add(files[i]);
+                }
+              }
+              
+              fileInput.files = dt.files;
+              updateFileList();
+            };
+          }
+          
+          // Handle image drag and drop reordering for existing images
           const container = document.getElementById('existing-images');
           if (!container) return;
           
@@ -1150,6 +1383,14 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                 orderInput.value = index;
               }
             });
+          }
+        });
+        
+        // Also handle browser back/forward cache
+        window.addEventListener('pageshow', function(event) {
+          // Reset button states when navigating back
+          if (event.persisted) {
+            resetButtonStates();
           }
         });
       `,

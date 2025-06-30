@@ -1,7 +1,24 @@
 import { z } from 'zod';
 
 // Helper schemas for common validations
-const optionalUrl = z.string().url('Invalid URL').optional().or(z.literal(''));
+const websiteBuilderPatterns = [
+  /godaddy\.com\/websites\/website-builder/i,
+  /wix\.com\/website\/template/i,
+  /squarespace\.com\/templates/i,
+  /weebly\.com\/themes/i,
+  /wordpress\.com\/themes/i,
+  /site123\.com/i,
+  /websitebuilder\.com/i,
+];
+
+const optionalUrl = z.string()
+  .url('Invalid URL')
+  .refine((url) => {
+    // Check if it's a website builder URL
+    return !websiteBuilderPatterns.some(pattern => pattern.test(url));
+  }, 'Website builder URLs are not valid church websites')
+  .optional()
+  .or(z.literal(''));
 const optionalEmail = z.string().email('Invalid email').optional().or(z.literal(''));
 const _optionalString = z.string().optional().or(z.literal(''));
 const phoneRegex = /^(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
