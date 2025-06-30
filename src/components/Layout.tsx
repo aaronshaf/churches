@@ -13,6 +13,8 @@ type LayoutProps = {
   affiliationId?: string;
   faviconUrl?: string;
   logoUrl?: string;
+  description?: string;
+  ogImage?: string;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -26,6 +28,8 @@ export const Layout: FC<LayoutProps> = ({
   affiliationId,
   faviconUrl,
   logoUrl,
+  description = 'Discover Christian churches in Utah. Find church locations, service times, and contact information across all Utah counties.',
+  ogImage,
 }) => {
   return (
     <html lang="en">
@@ -33,6 +37,21 @@ export const Layout: FC<LayoutProps> = ({
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
+        <meta name="description" content={description} />
+        
+        {/* Open Graph meta tags for Facebook */}
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://utahchurches.org" />
+        {(ogImage || logoUrl) && <meta property="og:image" content={ogImage || logoUrl} />}
+        
+        {/* Twitter Card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        {(ogImage || logoUrl) && <meta name="twitter:image" content={ogImage || logoUrl} />}
+        
         {faviconUrl && (
           <>
             <link rel="icon" type="image/png" href={faviconUrl} />
