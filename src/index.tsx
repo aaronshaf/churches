@@ -1215,9 +1215,12 @@ app.get('/networks/:id', async (c) => {
   // Separate listed and unlisted churches
   const listedChurches = affiliationChurches.filter((c) => c.status === 'Listed');
   const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
+  
+  // Get logo URL
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
-    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()}>
+    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()} logoUrl={logoUrl}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -3113,7 +3116,6 @@ app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
     <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-      <AdminTopNav />
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3137,7 +3139,6 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
     const logoUrl = await getLogoUrl(c.env);
     return c.html(
       <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-        <AdminTopNav />
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3157,7 +3158,6 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
     const logoUrl = await getLogoUrl(c.env);
     return c.html(
       <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-        <AdminTopNav />
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3210,7 +3210,6 @@ app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
 
   return c.html(
     <Layout title="Edit User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
-      <AdminTopNav />
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
