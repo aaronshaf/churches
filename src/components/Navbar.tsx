@@ -38,7 +38,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   currentPath === '/'
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-4 text-base font-medium transition-colors`}
                 data-testid="nav-churches"
                 onmouseover="prefetchAfterDelay('/', 200)"
                 onmouseout="cancelPrefetch()"
@@ -51,7 +51,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   currentPath === '/map'
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-4 text-base font-medium transition-colors`}
                 data-testid="nav-map"
                 onmouseover="prefetchAfterDelay('/map', 200)"
                 onmouseout="cancelPrefetch()"
@@ -64,7 +64,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   currentPath === '/networks' || currentPath?.startsWith('/admin/affiliations')
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                } inline-flex items-center px-1 pt-1 border-b-4 text-base font-medium transition-colors`}
                 data-testid="nav-networks"
                 onmouseover="prefetchAfterDelay('/networks', 200)"
                 onmouseout="cancelPrefetch()"
@@ -81,7 +81,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                       currentPath === `/${page.path}`
                         ? 'border-primary-500 text-gray-900'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                    } inline-flex items-center px-1 pt-1 border-b-4 text-base font-medium transition-colors`}
                     data-testid={`nav-page-${page.path}`}
                     onmouseover={`prefetchAfterDelay('/${page.path}', 200)`}
                     onmouseout="cancelPrefetch()"
@@ -97,7 +97,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                       currentPath?.startsWith('/admin')
                         ? 'border-primary-500 text-gray-900'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                    } inline-flex items-center px-1 pt-1 border-b-4 text-base font-medium transition-colors`}
                   >
                     Admin
                   </a>
