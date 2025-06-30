@@ -2080,7 +2080,7 @@ app.get('/map', async (c) => {
 app.get('/churches.json', async (c) => {
   const db = createDb(c.env);
 
-  // Get all churches with their public fields and county names (excluding heretical)
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
       id: churches.id,
@@ -2105,7 +2105,7 @@ app.get('/churches.json', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
@@ -2167,7 +2167,7 @@ app.get('/churches.json', async (c) => {
 app.get('/churches.yaml', async (c) => {
   const db = createDb(c.env);
 
-  // Get all churches with their public fields and county names (excluding heretical)
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
       id: churches.id,
@@ -2192,7 +2192,7 @@ app.get('/churches.yaml', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
@@ -2271,7 +2271,7 @@ app.get('/churches.yaml', async (c) => {
 app.get('/churches.csv', async (c) => {
   const db = createDb(c.env);
 
-  // Get all churches with their public fields and county names (excluding heretical)
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
       id: churches.id,
@@ -2296,7 +2296,7 @@ app.get('/churches.csv', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
@@ -2388,7 +2388,7 @@ app.get('/churches.csv', async (c) => {
 app.get('/churches.xlsx', async (c) => {
   const db = createDb(c.env);
 
-  // Get all churches (excluding heretical)
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
       id: churches.id,
@@ -2413,7 +2413,7 @@ app.get('/churches.xlsx', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
@@ -2580,13 +2580,13 @@ app.get('/data', async (c) => {
       user = await validateSession(sessionId, c.env);
     }
 
-    // Get count of churches (excluding heretical)
+    // Get count of churches with 'Listed' or 'Unlisted' status
     const churchCount = await db
       .select({
         count: sql<number>`COUNT(*)`.as('count'),
       })
       .from(churches)
-      .where(sql`${churches.status} != 'Heretical' OR ${churches.status} IS NULL`)
+      .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
       .get();
 
     // Get favicon URL
