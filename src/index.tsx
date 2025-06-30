@@ -560,20 +560,21 @@ app.get('/networks', async (c) => {
     user = await validateSession(sessionId, c.env);
   }
 
-  // Get all listed affiliations with church count
+  // Get all listed affiliations with church count (only count churches with 'Listed' status)
   const listedAffiliations = await db
     .select({
       id: affiliations.id,
       name: affiliations.name,
       website: affiliations.website,
       publicNotes: affiliations.publicNotes,
-      churchCount: sql<number>`COUNT(DISTINCT ${churchAffiliations.churchId})`.as('churchCount'),
+      churchCount: sql<number>`COUNT(DISTINCT ${churches.id})`.as('churchCount'),
     })
     .from(affiliations)
     .leftJoin(churchAffiliations, eq(affiliations.id, churchAffiliations.affiliationId))
+    .leftJoin(churches, sql`${churchAffiliations.churchId} = ${churches.id} AND ${churches.status} = 'Listed'`)
     .where(eq(affiliations.status, 'Listed'))
     .groupBy(affiliations.id)
-    .having(sql`COUNT(DISTINCT ${churchAffiliations.churchId}) > 0`)
+    .having(sql`COUNT(DISTINCT ${churches.id}) > 0`)
     .orderBy(affiliations.name)
     .all();
 
