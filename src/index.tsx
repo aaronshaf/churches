@@ -745,10 +745,24 @@ app.get('/sitemap.xml', async (c) => {
     <priority>0.8</priority>
   </url>`).join('')}${allChurches.map(church => {
     const lastMod = church.updatedAt || church.createdAt;
+    if (lastMod) {
+      // Check if timestamp is already in milliseconds (very large number) or seconds
+      const timestamp = lastMod > 10000000000 ? lastMod : lastMod * 1000;
+      const date = new Date(timestamp);
+      // Only include lastmod if it's a valid date between 2020 and 2030
+      if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+        return `
+  <url>
+    <loc>https://utahchurches.org/churches/${church.path}</loc>
+    <lastmod>${date.toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      }
+    }
     return `
   <url>
-    <loc>https://utahchurches.org/churches/${church.path}</loc>${lastMod ? `
-    <lastmod>${new Date(lastMod * 1000).toISOString()}</lastmod>` : ''}
+    <loc>https://utahchurches.org/churches/${church.path}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
