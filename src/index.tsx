@@ -3631,7 +3631,29 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
 app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  const body = await c.req.parseBody();
+  
+  // Get form data directly to handle multiple checkbox values
+  const formData = await c.req.formData();
+  
+  // Convert FormData to object, handling multiple values
+  const body: Record<string, any> = {};
+  const selectedChurches: number[] = [];
+  
+  for (const [key, value] of formData.entries()) {
+    if (key === 'churches') {
+      // Collect all church selections
+      selectedChurches.push(Number(value.toString()));
+    } else if (body[key]) {
+      // If key already exists, convert to array
+      if (!Array.isArray(body[key])) {
+        body[key] = [body[key]];
+      }
+      body[key].push(value.toString());
+    } else {
+      body[key] = value.toString();
+    }
+  }
+  
   const parsedBody = parseFormBody(body);
   
   // Validate input
@@ -3673,13 +3695,6 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
       updatedAt: new Date(),
     })
     .where(eq(affiliations.id, Number(id)));
-
-  // Handle church associations
-  const selectedChurches = body.churches 
-    ? Array.isArray(body.churches) 
-      ? body.churches.map(Number) 
-      : [Number(body.churches)]
-    : [];
 
   // Get current church associations
   const currentAssociations = await db
