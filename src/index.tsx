@@ -3502,7 +3502,14 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
     );
   }
 
-  const { name, status, website, publicNotes, privateNotes } = validation.data;
+  const { name, path, status, website, publicNotes, privateNotes } = validation.data;
+  
+  // Generate path from name if not provided
+  const finalPath = path || name.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 
   // Check if name already exists
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
@@ -3516,7 +3523,28 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
                 action="/admin/affiliations"
                 isNew={true}
                 error="An affiliation with this name already exists"
-                affiliation={{ name, status, website, publicNotes, privateNotes }}
+                affiliation={{ name, path, status, website, publicNotes, privateNotes }}
+              />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Check if path already exists
+  const existingPath = await db.select().from(affiliations).where(eq(affiliations.path, finalPath)).get();
+  if (existingPath) {
+    return c.html(
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
+        <div class="bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <AffiliationForm
+                action="/admin/affiliations"
+                isNew={true}
+                error="An affiliation with this URL path already exists"
+                affiliation={{ name, path, status, website, publicNotes, privateNotes }}
               />
             </div>
           </div>
@@ -3527,6 +3555,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
 
   await db.insert(affiliations).values({
     name,
+    path: finalPath,
     status: status as 'Listed' | 'Unlisted' | 'Heretical',
     website: website || null,
     publicNotes: publicNotes || null,
@@ -3603,18 +3632,40 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
+  const parsedBody = parseFormBody(body);
+  
+  // Validate input
+  const validation = validateFormData(affiliationSchema, parsedBody);
+  if (!validation.success) {
+    return c.redirect(`/admin/affiliations/${id}/edit`);
+  }
 
-  const name = body.name as string;
-  const status = body.status as string;
-  const website = body.website as string;
-  const publicNotes = body.publicNotes as string;
-  const privateNotes = body.privateNotes as string;
+  const { name, path, status, website, publicNotes, privateNotes } = validation.data;
+  
+  // Generate path from name if not provided
+  const finalPath = path || name.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  
+  // Check if path already exists (excluding current affiliation)
+  const existingPath = await db
+    .select()
+    .from(affiliations)
+    .where(sql`${affiliations.path} = ${finalPath} AND ${affiliations.id} != ${Number(id)}`)
+    .get();
+    
+  if (existingPath) {
+    return c.redirect(`/admin/affiliations/${id}/edit`);
+  }
 
   // Update affiliation details
   await db
     .update(affiliations)
     .set({
       name,
+      path: finalPath,
       status: status as 'Listed' | 'Unlisted' | 'Heretical',
       website: website || null,
       publicNotes: publicNotes || null,

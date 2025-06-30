@@ -85,6 +85,14 @@ export const churchWithGatheringsSchema = z.object({
 // Affiliation validation schema
 export const affiliationSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(255, 'Name too long'),
+  path: z
+    .string()
+    .trim()
+    .max(100, 'Path too long')
+    .regex(/^[a-z0-9-]*$/, 'Path must be lowercase with hyphens only')
+    .refine((val) => !val || (!val.startsWith('-') && !val.endsWith('-')), 'Path cannot start or end with hyphen')
+    .optional()
+    .or(z.literal('')),
   status: z.enum(['Listed', 'Unlisted', 'Heretical']).default('Listed'),
   website: optionalUrl,
   privateNotes: z.string().max(2000, 'Private notes too long').optional(),

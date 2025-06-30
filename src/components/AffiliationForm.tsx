@@ -75,6 +75,26 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                 </div>
               </div>
 
+              <div class="sm:col-span-4">
+                <label for="path" class="block text-sm font-medium text-gray-700">
+                  URL Path
+                </label>
+                <div class="mt-1">
+                  <input
+                    type="text"
+                    name="path"
+                    id="path"
+                    value={affiliation?.path || ''}
+                    placeholder="e.g., southern-baptist-convention"
+                    pattern="[a-z0-9\-]+"
+                    title="Only lowercase letters, numbers, and hyphens allowed"
+                    data-testid="input-path"
+                    class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  />
+                </div>
+                <p class="mt-2 text-sm text-gray-500">URL-friendly path for the network page. Leave blank to auto-generate from name.</p>
+              </div>
+
               <div class="sm:col-span-3">
                 <label for="status" class="block text-sm font-medium text-gray-700">
                   Status <span class="text-red-500">*</span>
