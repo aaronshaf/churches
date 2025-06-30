@@ -10,6 +10,7 @@ type LayoutProps = {
   jsonLd?: any;
   churchId?: string;
   countyId?: string;
+  affiliationId?: string;
   faviconUrl?: string;
   logoUrl?: string;
 };
@@ -22,6 +23,7 @@ export const Layout: FC<LayoutProps> = ({
   jsonLd,
   churchId,
   countyId,
+  affiliationId,
   faviconUrl,
   logoUrl,
 }) => {
@@ -264,7 +266,7 @@ export const Layout: FC<LayoutProps> = ({
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} countyId={countyId} />
+        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} />
       </body>
     </html>
   );

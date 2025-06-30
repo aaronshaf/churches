@@ -1217,7 +1217,7 @@ app.get('/networks/:id', async (c) => {
   const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
 
   return c.html(
-    <Layout title={`${affiliation.name} - Utah Churches`} user={user}>
+    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">

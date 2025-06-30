@@ -4,9 +4,10 @@ type FooterProps = {
   user?: any;
   churchId?: string;
   countyId?: string;
+  affiliationId?: string;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId, countyId }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -51,7 +52,24 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId }) => {
                 Edit
               </a>
             )}
-            {user && !churchId && !countyId && (
+            {user && affiliationId && (
+              <a
+                href={`/admin/affiliations/${affiliationId}/edit`}
+                class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
+                data-testid="edit-affiliation-link"
+              >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit
+              </a>
+            )}
+            {user && !churchId && !countyId && !affiliationId && (
               <a
                 href="/admin"
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
