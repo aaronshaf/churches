@@ -3311,7 +3311,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
   }));
 
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches" user={user} logoUrl={logoUrl}>
+    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
