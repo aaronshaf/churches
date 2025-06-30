@@ -53,7 +53,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       disabled={!isNew}
                       value={user?.username || ''}
                       data-testid="input-username"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -70,7 +70,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       required
                       value={user?.email || ''}
                       data-testid="input-email"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -89,7 +89,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       minlength="6"
                       placeholder={isNew ? '' : 'Leave blank to keep current password'}
                       data-testid="input-password"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -106,7 +106,7 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
                       required
                       disabled={isOnlyAdmin}
                       data-testid="select-userType"
-                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200 sm:text-sm sm:leading-6"
                     >
                       <option value="contributor" selected={user?.userType === 'contributor' || (!user && !isNew)}>
                         Contributor
@@ -122,57 +122,63 @@ export const UserForm: FC<UserFormProps> = ({ action, user, error, isNew = false
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-            <a
-              href="/admin/users"
-              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
-              data-testid="btn-cancel"
-            >
-              Cancel
-            </a>
-            <button
-              type="submit"
-              id="submit-button"
-              data-testid="btn-submit"
-              class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
-            >
-              <span class="button-text">{isNew ? 'Create User' : 'Save Changes'}</span>
-              <span class="button-spinner hidden ml-2">
-                <svg
-                  class="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </span>
-            </button>
+          <div class="pt-5">
+            <div class="flex justify-end space-x-3">
+              <a
+                href="/admin/users"
+                class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                data-testid="btn-cancel"
+              >
+                Cancel
+              </a>
+              <button
+                type="submit"
+                id="submit-button"
+                data-testid="btn-submit"
+                class="inline-flex justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <span id="button-text">{isNew ? 'Create User' : 'Save Changes'}</span>
+                <span id="button-spinner" class="hidden">
+                  <svg
+                    class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Saving...
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </form>
 
-      <script>
-        {`
-        function handleFormSubmit(event) {
-          const submitButton = document.getElementById('submit-button');
-          const buttonText = submitButton.querySelector('.button-text');
-          const buttonSpinner = submitButton.querySelector('.button-spinner');
-          
-          // Show spinner and hide text
-          buttonText.classList.add('hidden');
-          buttonSpinner.classList.remove('hidden');
-          
-          // Disable the button to prevent double submission
-          submitButton.disabled = true;
-        }
-      `}
-      </script>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            function handleFormSubmit(event) {
+              const submitButton = document.getElementById('submit-button');
+              const buttonText = document.getElementById('button-text');
+              const buttonSpinner = document.getElementById('button-spinner');
+              
+              // Disable the button and show spinner
+              submitButton.disabled = true;
+              buttonText.classList.add('hidden');
+              buttonSpinner.classList.remove('hidden');
+              
+              // Add a subtle pulse animation to the button
+              submitButton.classList.add('animate-pulse');
+            }
+          `,
+        }}
+      />
     </>
   );
 };

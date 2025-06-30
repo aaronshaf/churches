@@ -3112,9 +3112,14 @@ app.get('/admin/users', requireAdminMiddleware, async (c) => {
 app.get('/admin/users/new', requireAdminMiddleware, async (c) => {
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create User - Utah Churches" logoUrl={logoUrl}>
-      <div style="max-width: 600px; margin: 0 auto;">
-        <UserForm action="/admin/users" isNew={true} />
+    <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
+      <AdminTopNav />
+      <div class="bg-gray-50 py-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white shadow sm:rounded-lg p-6">
+            <UserForm action="/admin/users" isNew={true} />
+          </div>
+        </div>
       </div>
     </Layout>
   );
@@ -3129,10 +3134,16 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
   const validation = validateFormData(userSchema, parsedBody);
 
   if (!validation.success) {
+    const logoUrl = await getLogoUrl(c.env);
     return c.html(
-      <Layout title="Create User - Utah Churches">
-        <div style="max-width: 600px; margin: 0 auto;">
-          <UserForm action="/admin/users" isNew={true} error={validation.message} user={parsedBody} />
+      <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
+        <AdminTopNav />
+        <div class="bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <UserForm action="/admin/users" isNew={true} error={validation.message} user={parsedBody} />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -3143,15 +3154,21 @@ app.post('/admin/users', requireAdminMiddleware, async (c) => {
   // Check if username already exists
   const existing = await db.select().from(users).where(eq(users.username, username)).get();
   if (existing) {
+    const logoUrl = await getLogoUrl(c.env);
     return c.html(
-      <Layout title="Create User - Utah Churches">
-        <div style="max-width: 600px; margin: 0 auto;">
-          <UserForm
-            action="/admin/users"
-            isNew={true}
-            error="Username already exists"
-            user={{ username, email, userType }}
-          />
+      <Layout title="Create User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
+        <AdminTopNav />
+        <div class="bg-gray-50 py-8">
+          <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow sm:rounded-lg p-6">
+              <UserForm
+                action="/admin/users"
+                isNew={true}
+                error="Username already exists"
+                user={{ username, email, userType }}
+              />
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -3192,9 +3209,14 @@ app.get('/admin/users/:id/edit', requireAdminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title="Edit User - Utah Churches" logoUrl={logoUrl}>
-      <div style="max-width: 600px; margin: 0 auto;">
-        <UserForm action={`/admin/users/${id}`} user={user} isOnlyAdmin={isOnlyAdmin} />
+    <Layout title="Edit User - Utah Churches" user={c.get('user')} logoUrl={logoUrl}>
+      <AdminTopNav />
+      <div class="bg-gray-50 py-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white shadow sm:rounded-lg p-6">
+            <UserForm action={`/admin/users/${id}`} user={user} isOnlyAdmin={isOnlyAdmin} />
+          </div>
+        </div>
       </div>
     </Layout>
   );
