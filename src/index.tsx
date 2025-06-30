@@ -2570,6 +2570,12 @@ app.get('/data', async (c) => {
     // Get favicon URL
     const faviconUrl = await getFaviconUrl(c.env);
 
+    // Get logo URL
+    const logoUrl = await getLogoUrl(c.env);
+
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(db);
+
     return c.html(
       <Layout
         title="Download Data - Utah Churches"
@@ -2577,6 +2583,7 @@ app.get('/data', async (c) => {
         user={user}
         faviconUrl={faviconUrl}
         logoUrl={logoUrl}
+        pages={navbarPages}
       >
         <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
