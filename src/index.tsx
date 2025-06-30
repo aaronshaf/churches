@@ -445,20 +445,17 @@ app.get('/counties/:path', async (c) => {
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
                   <h1 class="text-4xl font-bold text-white md:text-5xl">{county.name}</h1>
-                  <p class="mt-4 text-xl text-primary-100">
-                    {listedChurches.length + unlistedChurches.length}{' '}
-                    {listedChurches.length + unlistedChurches.length === 1 ? 'evangelical church' : 'evangelical churches'}
+                  <div class="mt-4 text-xl text-primary-100">
+                    <p>
+                      {listedChurches.length + unlistedChurches.length}{' '}
+                      {listedChurches.length + unlistedChurches.length === 1 ? 'evangelical church' : 'evangelical churches'}
+                    </p>
                     {county.population && (
-                      <>
-                        {' '}• <span 
-                          class="cursor-help"
-                          title={`1 evangelical church per ${Math.round(county.population / (listedChurches.length + unlistedChurches.length)).toLocaleString()} people`}
-                        >
-                          Population: {county.population.toLocaleString()}
-                        </span>
-                      </>
+                      <p class="cursor-help" title={`1 evangelical church per ${Math.round(county.population / (listedChurches.length + unlistedChurches.length)).toLocaleString()} people`}>
+                        Population: {county.population.toLocaleString()}
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
