@@ -425,6 +425,9 @@ app.get('/counties/:path', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout
       title={`${county.name} Churches - Utah Churches`}
@@ -432,6 +435,7 @@ app.get('/counties/:path', async (c) => {
       countyId={county.id.toString()}
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
+      pages={navbarPages}
     >
       <div>
         {/* Header */}
@@ -882,6 +886,9 @@ app.get('/churches/:path', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   // Helper function to get next occurrence of a day
   const getNextDayDate = (dayName: string): string => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1011,6 +1018,7 @@ app.get('/churches/:path', async (c) => {
       churchId={church.id}
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
+      pages={navbarPages}
     >
       <div>
         {/* Header */}
@@ -1424,8 +1432,11 @@ app.get('/networks/:id', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
-    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()} logoUrl={logoUrl}>
+    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()} logoUrl={logoUrl} pages={navbarPages}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
