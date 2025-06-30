@@ -648,6 +648,104 @@ app.get('/networks', async (c) => {
   );
 });
 
+app.get('/robots.txt', async (c) => {
+  const robotsTxt = `User-agent: *
+Allow: /
+
+# Block admin and authentication pages
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+
+# API endpoints
+Disallow: /api/
+
+Sitemap: https://utahchurches.org/sitemap.xml`;
+
+  return c.text(robotsTxt, 200, {
+    'Content-Type': 'text/plain',
+    'Cache-Control': 'public, max-age=86400' // Cache for 24 hours
+  });
+});
+
+app.get('/sitemap.xml', async (c) => {
+  const db = createDb(c.env);
+  
+  // Get all churches, counties, and pages
+  const [allChurches, allCounties, allPages, listedAffiliations] = await Promise.all([
+    db.select({ 
+      path: churches.path, 
+      updatedAt: churches.updatedAt,
+      createdAt: churches.createdAt 
+    })
+      .from(churches)
+      .where(eq(churches.status, 'Listed'))
+      .all(),
+    db.select({ path: counties.path }).from(counties).all(),
+    db.select({ path: pages.path }).from(pages).all(),
+    db.select({ 
+      id: affiliations.id,
+      path: affiliations.path 
+    })
+      .from(affiliations)
+      .where(eq(affiliations.status, 'Listed'))
+      .all()
+  ]);
+
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://utahchurches.org/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://utahchurches.org/map</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://utahchurches.org/networks</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://utahchurches.org/data</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>${allCounties.map(county => `
+  <url>
+    <loc>https://utahchurches.org/counties/${county.path}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`).join('')}${allChurches.map(church => {
+    const lastMod = church.updatedAt || church.createdAt;
+    return `
+  <url>
+    <loc>https://utahchurches.org/churches/${church.path}</loc>${lastMod ? `
+    <lastmod>${new Date(lastMod * 1000).toISOString()}</lastmod>` : ''}
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+  }).join('')}${listedAffiliations.map(affiliation => `
+  <url>
+    <loc>https://utahchurches.org/networks/${affiliation.path || affiliation.id}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join('')}${allPages.map(page => `
+  <url>
+    <loc>https://utahchurches.org/${page.path}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>`).join('')}
+</urlset>`;
+
+  return c.text(sitemap, 200, {
+    'Content-Type': 'application/xml',
+    'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+  });
+});
+
 app.get('/churches/:path', async (c) => {
   const db = createDb(c.env);
   const churchPath = c.req.param('path');
@@ -760,7 +858,88 @@ app.get('/churches/:path', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
-  // Build JSON-LD structured data
+  // Helper function to get next occurrence of a day
+  const getNextDayDate = (dayName: string): string => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date();
+    const todayDay = today.getDay();
+    const targetDay = days.indexOf(dayName);
+    
+    if (targetDay === -1) return new Date().toISOString().split('T')[0]; // fallback to today
+    
+    let daysUntilTarget = targetDay - todayDay;
+    if (daysUntilTarget <= 0) daysUntilTarget += 7;
+    
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysUntilTarget);
+    return nextDate.toISOString().split('T')[0];
+  };
+
+  // Parse service time to extract day and time
+  const parseServiceTime = (timeStr: string) => {
+    // Match patterns like "10 AM Sunday" or "6:30 PM Wednesday"
+    const match = timeStr.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/i);
+    if (match) {
+      return { time: match[1], day: match[2] };
+    }
+    // Try to match day in parentheses like "10 AM (Sunday)"
+    const parenMatch = timeStr.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM)).*\((Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\)/i);
+    if (parenMatch) {
+      return { time: parenMatch[1], day: parenMatch[2] };
+    }
+    return null;
+  };
+
+  // Build JSON-LD structured data with Events
+  const events = churchGatheringsList
+    .map((gathering) => {
+      const parsed = parseServiceTime(gathering.time);
+      if (!parsed) return null;
+      
+      const nextDate = getNextDayDate(parsed.day);
+      const timeMatch = parsed.time.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+      if (!timeMatch) return null;
+      
+      let hour = parseInt(timeMatch[1]);
+      const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const isPM = timeMatch[3].toUpperCase() === 'PM';
+      
+      if (isPM && hour !== 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      
+      const eventTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+      
+      return {
+        '@type': 'Event',
+        name: gathering.notes || 'Church Service',
+        description: `${gathering.notes || 'Church Service'} at ${church.name}`,
+        startDate: `${nextDate}T${eventTime}`,
+        eventSchedule: {
+          '@type': 'Schedule',
+          repeatFrequency: 'P1W',
+          byDay: `https://schema.org/${parsed.day}`,
+          startTime: eventTime,
+          duration: 'PT1H30M' // Assume 1.5 hour duration
+        },
+        location: {
+          '@type': 'Church',
+          name: church.name,
+          ...(church.gatheringAddress && {
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: church.gatheringAddress,
+              addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
+              addressRegion: 'UT',
+              addressCountry: 'US',
+            }
+          })
+        },
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        eventStatus: 'https://schema.org/EventScheduled'
+      };
+    })
+    .filter(Boolean);
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Church',
@@ -797,6 +976,7 @@ app.get('/churches/:path', async (c) => {
       })),
     }),
     sameAs: [church.facebook, church.instagram, church.youtube, church.spotify].filter(Boolean),
+    ...(events.length > 0 && { event: events })
   };
 
   return c.html(
