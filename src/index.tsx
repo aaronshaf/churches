@@ -2574,7 +2574,7 @@ app.get('/data', async (c) => {
     const logoUrl = await getLogoUrl(c.env);
 
     // Get navbar pages
-    const navbarPages = await getNavbarPages(db);
+    const navbarPages = await getNavbarPages(c.env);
 
     return c.html(
       <Layout
