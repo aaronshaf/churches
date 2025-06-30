@@ -726,7 +726,9 @@ app.get('/churches/:path', async (c) => {
   // Get church affiliations
   const churchAffiliationsList = await db
     .select({
+      id: affiliations.id,
       name: affiliations.name,
+      path: affiliations.path,
       website: affiliations.website,
     })
     .from(churchAffiliations)
@@ -1030,17 +1032,12 @@ app.get('/churches/:path', async (c) => {
                         <ul class="mt-1 space-y-1">
                           {churchAffiliationsList.map((affiliation) => (
                             <li class="text-base">
-                              {affiliation.website ? (
-                                <a
-                                  href={affiliation.website}
-                                  rel="noopener noreferrer"
-                                  class="text-primary-600 hover:text-primary-500"
-                                >
-                                  {affiliation.name}
-                                </a>
-                              ) : (
-                                <span class="text-gray-900">{affiliation.name}</span>
-                              )}
+                              <a
+                                href={`/networks/${affiliation.path || affiliation.id}`}
+                                class="text-primary-600 hover:text-primary-500"
+                              >
+                                {affiliation.name}
+                              </a>
                             </li>
                           ))}
                         </ul>
@@ -1155,7 +1152,7 @@ app.get('/churches/:path', async (c) => {
 
 app.get('/networks/:id', async (c) => {
   const db = createDb(c.env);
-  const affiliationId = c.req.param('id');
+  const affiliationIdOrPath = c.req.param('id');
 
   // Check for user session
   let user = null;
@@ -1179,11 +1176,16 @@ app.get('/networks/:id', async (c) => {
     return displayUrl;
   };
 
-  // Get affiliation details
+  // Get affiliation details - check if it's a numeric ID or a path
+  const isNumericId = /^\d+$/.test(affiliationIdOrPath);
   const affiliation = await db
     .select()
     .from(affiliations)
-    .where(eq(affiliations.id, Number(affiliationId)))
+    .where(
+      isNumericId 
+        ? eq(affiliations.id, Number(affiliationIdOrPath))
+        : eq(affiliations.path, affiliationIdOrPath)
+    )
     .get();
 
   if (!affiliation) {
@@ -1205,7 +1207,7 @@ app.get('/networks/:id', async (c) => {
     .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
-      sql`${churchAffiliations.affiliationId} = ${affiliationId} AND (${churches.status} = 'Listed' OR ${churches.status} = 'Unlisted')`
+      sql`${churchAffiliations.affiliationId} = ${affiliation.id} AND (${churches.status} = 'Listed' OR ${churches.status} = 'Unlisted')`
     )
     .orderBy(churches.name)
     .all();
