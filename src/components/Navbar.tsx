@@ -4,9 +4,10 @@ type NavbarProps = {
   user?: any;
   currentPath?: string;
   logoUrl?: string;
+  pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [] }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,6 +71,24 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl }) =>
               >
                 Networks
               </a>
+              {pages
+                .filter(page => page.navbarOrder !== null)
+                .sort((a, b) => (a.navbarOrder || 0) - (b.navbarOrder || 0))
+                .map(page => (
+                  <a
+                    href={`/${page.path}`}
+                    class={`${
+                      currentPath === `/${page.path}`
+                        ? 'border-primary-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-base font-medium transition-colors`}
+                    data-testid={`nav-page-${page.path}`}
+                    onmouseover={`prefetchAfterDelay('/${page.path}', 200)`}
+                    onmouseout="cancelPrefetch()"
+                  >
+                    {page.title}
+                  </a>
+                ))}
               {user && (
                 <>
                   <a
@@ -153,6 +172,21 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl }) =>
           >
             Networks
           </a>
+          {pages
+            .filter(page => page.navbarOrder !== null)
+            .sort((a, b) => (a.navbarOrder || 0) - (b.navbarOrder || 0))
+            .map(page => (
+              <a
+                href={`/${page.path}`}
+                class={`${
+                  currentPath === `/${page.path}`
+                    ? 'bg-primary-50 border-primary-500 text-primary-700'
+                    : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+                } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              >
+                {page.title}
+              </a>
+            ))}
         </div>
         <div class="pt-4 pb-3 border-t border-gray-200">
           {user ? (

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, sql, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
@@ -84,6 +84,23 @@ async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   return logoUrlSetting?.value || undefined;
 }
 
+// Helper function to fetch navbar pages
+async function getNavbarPages(env: Bindings): Promise<Array<{ id: number; title: string; path: string; navbarOrder: number | null }>> {
+  const db = createDb(env);
+  const navbarPages = await db
+    .select({
+      id: pages.id,
+      title: pages.title,
+      path: pages.path,
+      navbarOrder: pages.navbarOrder,
+    })
+    .from(pages)
+    .where(isNotNull(pages.navbarOrder))
+    .orderBy(pages.navbarOrder)
+    .all();
+  return navbarPages;
+}
+
 // Global error handler
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
@@ -123,6 +140,9 @@ app.get('/', async (c) => {
     // Get logo URL from settings
     const logoUrl = await getLogoUrl(c.env);
 
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
       .select({
@@ -142,7 +162,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout title={frontPageTitle} currentPath="/" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+      <Layout title={frontPageTitle} currentPath="/" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
@@ -584,6 +604,9 @@ app.get('/networks', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout
       title="Church Networks - Utah Churches"
@@ -591,6 +614,7 @@ app.get('/networks', async (c) => {
       user={user}
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
+      pages={navbarPages}
     >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1603,8 +1627,11 @@ app.get('/map', async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
-    <Layout title="Church Map - Utah Churches" currentPath="/map" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+    <Layout title="Church Map - Utah Churches" currentPath="/map" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
       <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -5127,6 +5154,9 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Path</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Navbar Order
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
                   </th>
                   <th class="relative px-6 py-3">
@@ -5142,6 +5172,9 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm text-gray-900">/{page.path}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900">{page.navbarOrder || '-'}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(page.createdAt).toLocaleDateString()}
@@ -5261,6 +5294,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
   const title = (body.title as string)?.trim();
   const path = (body.path as string)?.trim();
   const content = body.content as string;
+  const navbarOrder = body.navbarOrder ? parseInt(body.navbarOrder as string) : null;
 
   const result = pageSchema.safeParse({ title, path, content });
   if (!result.success) {
@@ -5302,6 +5336,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
     content: content || null,
     featuredImageId,
     featuredImageUrl,
+    navbarOrder,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -5370,6 +5405,7 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
   const title = (body.title as string)?.trim();
   const path = (body.path as string)?.trim();
   const content = body.content as string;
+  const navbarOrder = body.navbarOrder ? parseInt(body.navbarOrder as string) : null;
 
   const result = pageSchema.safeParse({ title, path, content });
   if (!result.success) {
@@ -5424,6 +5460,7 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
     content: content || null,
     featuredImageId,
     featuredImageUrl,
+    navbarOrder,
     updatedAt: new Date(),
   };
 
@@ -5713,13 +5750,16 @@ app.get('*', async (c) => {
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
 
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
     // First check if it's a page
     const page = await db.select().from(pages).where(eq(pages.path, slug)).get();
 
     if (page) {
       // Render the page content
       return c.html(
-        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} currentPath={`/${slug}`}>
           <div class="bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div class="max-w-3xl mx-auto">
@@ -5756,8 +5796,11 @@ app.get('*', async (c) => {
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
-    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl}>
+    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
       <NotFound />
     </Layout>,
     404
