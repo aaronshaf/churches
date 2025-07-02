@@ -64,9 +64,10 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
             await clerk.mountUserButton(container, {
               appearance: {
                 elements: {
-                  userButtonAvatarBox: 'w-8 h-8',
+                  userButtonAvatarBox: 'w-6 h-6',
                   userButtonPopoverCard: 'shadow-lg border border-gray-200',
                   userButtonPopoverActionButton: 'hover:bg-gray-50',
+                  userButtonTrigger: 'opacity-70 hover:opacity-100 transition-opacity',
                 }
               },
               userProfileMode: 'modal',
@@ -82,24 +83,14 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
   `;
 
   return (
-    <div class="flex items-center space-x-4">
-      {/* Admin link for admin users */}
-      {user.role === 'admin' && (
-        <a
-          href="/admin"
-          class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium transition-colors"
-        >
-          Admin
-        </a>
-      )}
-      
-      {/* Clerk User Menu Container - Start with neutral placeholder */}
-      <div id="clerk-user-menu" class="flex items-center">
-        {/* Neutral placeholder that matches Clerk's UserButton size exactly */}
-        <div class="h-8 w-8"></div>
+    <>
+      {/* Clerk User Menu Container - minimalist for footer */}
+      <div id="clerk-user-menu" class="inline-flex items-center">
+        {/* Neutral placeholder that matches Clerk's UserButton size */}
+        <div class="h-6 w-6"></div>
       </div>
       
       <script dangerouslySetInnerHTML={{ __html: scriptContent }} />
-    </div>
+    </>
   );
 };

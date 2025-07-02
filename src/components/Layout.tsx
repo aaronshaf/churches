@@ -289,7 +289,7 @@ export const Layout: FC<LayoutProps> = ({
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} />
+        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} clerkPublishableKey={clerkPublishableKey} />
       </body>
     </html>
   );

@@ -1,15 +1,13 @@
 import type { FC } from 'hono/jsx';
-import { ClerkUserMenu } from './ClerkUserMenu';
 
 type NavbarProps = {
   user?: any;
   currentPath?: string;
   logoUrl?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
-  clerkPublishableKey?: string;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [], clerkPublishableKey = '' }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [] }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -91,9 +89,6 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     {page.title}
                   </a>
                 ))}
-              
-              {/* Clerk User Menu */}
-              <ClerkUserMenu publishableKey={clerkPublishableKey} user={user} />
             </div>
           </div>
 
@@ -169,42 +164,6 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 {page.title}
               </a>
             ))}
-        </div>
-        <div class="pt-4 pb-3 border-t border-gray-200">
-          {user ? (
-            <div class="space-y-1">
-              <div class="px-4 pb-2">
-                <div class="text-base font-medium text-gray-800">{user.firstName || user.username || user.email}</div>
-                <div class="text-sm font-medium text-gray-500">{user.email}</div>
-                {user.role && (
-                  <div class="text-xs font-medium text-primary-600 capitalize">{user.role}</div>
-                )}
-              </div>
-              {user.role === 'admin' && (
-                <a
-                  href="/admin"
-                  class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                >
-                  Admin Dashboard
-                </a>
-              )}
-              <a
-                href="/logout"
-                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-              >
-                Sign Out
-              </a>
-            </div>
-          ) : (
-            <div class="px-4 py-2">
-              <a
-                href="/login"
-                class="block px-4 py-2 text-base font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-md"
-              >
-                Sign In
-              </a>
-            </div>
-          )}
         </div>
       </div>
     </nav>

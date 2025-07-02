@@ -1,13 +1,15 @@
 import type { FC } from 'hono/jsx';
+import { ClerkUserMenu } from './ClerkUserMenu';
 
 type FooterProps = {
   user?: any;
   churchId?: string;
   countyId?: string;
   affiliationId?: string;
+  clerkPublishableKey?: string;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, clerkPublishableKey = '' }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -107,6 +109,8 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               </svg>
               Data
             </a>
+            {/* User menu - minimalist approach */}
+            <ClerkUserMenu publishableKey={clerkPublishableKey} user={user} />
           </div>
         </div>
       </div>
