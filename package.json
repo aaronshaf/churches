@@ -9,8 +9,6 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx scripts/seed-admin.ts",
-    "db:reset-admin": "tsx scripts/reset-admin-password.ts",
     "db:seed-affiliations": "tsx scripts/seed-affiliations.ts",
     "db:import-churches": "tsx scripts/import-churches.ts",
     "db:export-users-for-clerk": "tsx scripts/export-users-for-clerk.ts",
@@ -27,7 +25,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.4",
     "@cloudflare/workers-types": "^4.20250619.0",
-    "@types/bcryptjs": "^3.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.3",
     "dotenv": "^16.6.1",
@@ -39,7 +36,6 @@
   "dependencies": {
     "@hono/clerk-auth": "^3.0.1",
     "@libsql/client": "^0.15.9",
-    "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.44.2",
     "hono": "^4.8.1",
     "html-to-text": "^9.0.5",
