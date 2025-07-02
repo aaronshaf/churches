@@ -2940,12 +2940,29 @@ app.get('/logout', async (c) => {
                 localStorage.clear();
                 sessionStorage.clear();
                 
-                // Clear cookies by setting them to expire
+                // Clear cookies more thoroughly
                 console.log('Clearing cookies...');
-                document.cookie.split(";").forEach(function(cookie) {
+                const cookies = document.cookie.split(";");
+                console.log('Found cookies:', cookies);
+                
+                cookies.forEach(function(cookie) {
                   const eqPos = cookie.indexOf("=");
                   const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                  document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                  if (name) {
+                    console.log('Clearing cookie:', name);
+                    // Clear cookie for current domain and path
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                    // Clear cookie for root domain
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+                    // Clear cookie for parent domain (in case of subdomain)
+                    const parts = window.location.hostname.split('.');
+                    if (parts.length > 1) {
+                      const parentDomain = '.' + parts.slice(-2).join('.');
+                      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + parentDomain;
+                    }
+                    // Clear cookie for Clerk domain
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.utahchurches.com";
+                  }
                 });
                 
                 console.log('✅ All cleanup complete, redirecting to homepage...');
