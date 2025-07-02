@@ -1,18 +1,53 @@
 #!/usr/bin/env node
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { existsSync } from 'fs';
 
-// Load environment variables
-config({ path: resolve(__dirname, '../.dev.vars') });
+// Function to get Clerk secret key based on environment
+function getClerkSecretKey(env?: string): string {
+  // Check if CLERK_SECRET_KEY is already in environment (e.g., from wrangler)
+  if (process.env.CLERK_SECRET_KEY) {
+    const key = process.env.CLERK_SECRET_KEY;
+    const envType = key.startsWith('sk_live_') ? 'production' : 'development';
+    console.log(`📝 Using ${envType} environment (from environment variable)`);
+    console.log(`🔑 Clerk API Key: ${key.substring(0, 12)}...`);
+    return key;
+  }
 
-const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
+  // If no env var, try to load from file
+  const envFile = env === 'prod' || env === 'production' ? '.prod.vars' : '.dev.vars';
+  const envPath = resolve(__dirname, '..', envFile);
+  
+  if (!existsSync(envPath)) {
+    console.error(`❌ No CLERK_SECRET_KEY found in environment variables and ${envFile} doesn't exist.`);
+    console.error('');
+    console.error('🔧 To use with Wrangler secrets (recommended for production):');
+    console.error('   CLERK_SECRET_KEY=$(wrangler secret get CLERK_SECRET_KEY) pnpm tsx scripts/set-clerk-admin.ts <email> <role>');
+    console.error('');
+    console.error('🔧 Or create a local environment file:');
+    console.error(`   Create ${envFile} with:`);
+    console.error(`   CLERK_SECRET_KEY=${env === 'prod' ? 'sk_live_your_production_secret_key' : 'sk_test_your_development_secret_key'}`);
+    process.exit(1);
+  }
 
-if (!CLERK_SECRET_KEY) {
-  console.error('Missing CLERK_SECRET_KEY in .dev.vars');
-  process.exit(1);
+  // Load from file
+  config({ path: envPath });
+  
+  const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
+  
+  if (!CLERK_SECRET_KEY) {
+    console.error(`Missing CLERK_SECRET_KEY in ${envFile}`);
+    process.exit(1);
+  }
+
+  const envType = CLERK_SECRET_KEY.startsWith('sk_live_') ? 'production' : 'development';
+  console.log(`📝 Using ${envType} environment (${envFile})`);
+  console.log(`🔑 Clerk API Key: ${CLERK_SECRET_KEY.substring(0, 12)}...`);
+  
+  return CLERK_SECRET_KEY;
 }
 
-async function setUserRole(userIdOrEmail: string, role: 'admin' | 'contributor' | 'user') {
+async function setUserRole(userIdOrEmail: string, role: 'admin' | 'contributor' | 'user', clerkSecretKey: string) {
   try {
     // First, try to find the user
     let userId = userIdOrEmail;
@@ -23,7 +58,7 @@ async function setUserRole(userIdOrEmail: string, role: 'admin' | 'contributor' 
         `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(userIdOrEmail)}`,
         {
           headers: {
-            Authorization: `Bearer ${CLERK_SECRET_KEY}`,
+            Authorization: `Bearer ${clerkSecretKey}`,
             'Content-Type': 'application/json',
           },
         }
@@ -48,7 +83,7 @@ async function setUserRole(userIdOrEmail: string, role: 'admin' | 'contributor' 
       {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${CLERK_SECRET_KEY}`,
+          Authorization: `Bearer ${clerkSecretKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -75,21 +110,47 @@ async function setUserRole(userIdOrEmail: string, role: 'admin' | 'contributor' 
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-if (args.length !== 2) {
-  console.log('Usage: pnpm tsx scripts/set-clerk-admin.ts <email_or_user_id> <role>');
+
+// Check for --env flag
+let env: string | undefined;
+let userIdOrEmail: string;
+let role: string;
+
+if (args.length === 4 && args[0] === '--env') {
+  env = args[1];
+  userIdOrEmail = args[2];
+  role = args[3];
+} else if (args.length === 2) {
+  userIdOrEmail = args[0];
+  role = args[1];
+} else {
+  console.log('Usage:');
+  console.log('  pnpm tsx scripts/set-clerk-admin.ts <email_or_user_id> <role>');
+  console.log('  pnpm tsx scripts/set-clerk-admin.ts --env <environment> <email_or_user_id> <role>');
+  console.log('');
   console.log('Roles: admin, contributor, user');
+  console.log('Environments: dev, development, prod, production');
   console.log('');
   console.log('Examples:');
-  console.log('  pnpm tsx scripts/set-clerk-admin.ts user@example.com admin');
-  console.log('  pnpm tsx scripts/set-clerk-admin.ts user_2abc123def admin');
+  console.log('  # Using Wrangler secrets (recommended for production):');
+  console.log('  CLERK_SECRET_KEY=$(wrangler secret get CLERK_SECRET_KEY) pnpm tsx scripts/set-clerk-admin.ts aaronshaf@gmail.com admin');
+  console.log('');
+  console.log('  # Using development environment:');
+  console.log('  pnpm tsx scripts/set-clerk-admin.ts aaronshaf@gmail.com admin');
+  console.log('');
+  console.log('  # Explicit environment specification:');
+  console.log('  pnpm tsx scripts/set-clerk-admin.ts --env prod aaronshaf@gmail.com admin');
+  console.log('  pnpm tsx scripts/set-clerk-admin.ts --env dev aaronshaf@gmail.com admin');
   process.exit(1);
 }
-
-const [userIdOrEmail, role] = args;
 
 if (!['admin', 'contributor', 'user'].includes(role)) {
   console.error('Role must be one of: admin, contributor, user');
   process.exit(1);
 }
 
-setUserRole(userIdOrEmail, role as 'admin' | 'contributor' | 'user');
+// Get the Clerk secret key
+const clerkSecretKey = getClerkSecretKey(env);
+
+// Execute the role update
+setUserRole(userIdOrEmail, role as 'admin' | 'contributor' | 'user', clerkSecretKey);
