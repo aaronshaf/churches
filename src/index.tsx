@@ -58,6 +58,26 @@ app.get('/api/auth/test', async (c) => {
   return c.json({ message: 'Test route works!' });
 });
 
+// Serve static CSS file
+app.get('/css/styles.css', async (c) => {
+  try {
+    // @ts-ignore - __STATIC_CONTENT is available in Cloudflare Workers with sites
+    const asset = await c.env.__STATIC_CONTENT.get('css/styles.css');
+    if (!asset) {
+      return c.notFound();
+    }
+    return new Response(asset.body, {
+      headers: {
+        'Content-Type': 'text/css',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  } catch (error) {
+    console.error('Error serving CSS:', error);
+    return c.notFound();
+  }
+});
+
 // Debug route to see what better-auth provides
 app.get('/api/auth/debug', async (c) => {
   const auth = createAuth(c.env);

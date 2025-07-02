@@ -60,37 +60,7 @@ export const Layout: FC<LayoutProps> = ({
             <link rel="apple-touch-icon" href={faviconUrl} />
           </>
         )}
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-            tailwind.config = {
-              theme: {
-                extend: {
-                  colors: {
-                    primary: {
-                      50: '#eff6ff',
-                      100: '#dbeafe',
-                      200: '#bfdbfe',
-                      300: '#93bbfd',
-                      400: '#60a5fa',
-                      500: '#3b82f6',
-                      600: '#2563eb',
-                      700: '#1d4ed8',
-                      800: '#1e40af',
-                      900: '#1e3a8a',
-                      950: '#172554',
-                    }
-                  },
-                  fontFamily: {
-                    sans: ['Inter var', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                  },
-                }
-              }
-            }
-          `,
-          }}
-        />
+        <link rel="stylesheet" href="/css/styles.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />

@@ -9,6 +9,7 @@ node_modules/
 # Build output
 dist/
 build/
+public/css/styles.css
 
 # Environment files
 .env*
