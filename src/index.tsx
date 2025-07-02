@@ -2908,7 +2908,7 @@ app.get('/logout', async (c) => {
           </div>
         </div>
         <script 
-          src="https://square-polecat-66.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+          src={`https://${c.env.CLERK_PUBLISHABLE_KEY.startsWith('pk_live_') ? 'clerk.utahchurches.com' : 'square-polecat-66.accounts.dev'}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`}
           data-clerk-publishable-key={c.env.CLERK_PUBLISHABLE_KEY}
         />
         <script dangerouslySetInnerHTML={{
