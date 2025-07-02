@@ -2806,10 +2806,8 @@ app.get('/login', async (c) => {
   // If Clerk is enabled, redirect to Clerk sign-in
   if (isClerkEnabled(c.env)) {
     const redirectUrl = c.req.query('redirect_url') || '/admin';
-    // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
-    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
-    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.com';
-    return c.redirect(`https://accounts.${clerkDomain}/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
+    // Clerk uses accounts.utahchurches.com for sign-in
+    return c.redirect(`https://accounts.utahchurches.com/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
   }
 
   // Otherwise use legacy auth
@@ -2879,10 +2877,8 @@ app.post('/login', async (c) => {
 app.get('/logout', async (c) => {
   // If Clerk is enabled, redirect to Clerk sign-out
   if (isClerkEnabled(c.env)) {
-    // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
-    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
-    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.com';
-    return c.redirect(`https://accounts.${clerkDomain}/sign-out?redirect_url=${encodeURIComponent('/')}`);
+    // Clerk uses accounts.utahchurches.com for sign-out
+    return c.redirect(`https://accounts.utahchurches.com/sign-out?redirect_url=${encodeURIComponent('/')}`);
   }
 
   // Otherwise use legacy logout

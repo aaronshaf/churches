@@ -38,11 +38,11 @@ export const requireAdmin = async (c: Context<{ Bindings: Bindings }>, next: Nex
     
     if (userType !== 'admin') {
       return c.html(
-        <div>
+        `<div>
           <h1>403 - Forbidden</h1>
           <p>You don't have permission to access this resource.</p>
           <a href="/admin">Go back to admin dashboard</a>
-        </div>,
+        </div>`,
         403
       );
     }
