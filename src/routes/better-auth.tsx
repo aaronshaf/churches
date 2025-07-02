@@ -94,6 +94,8 @@ betterAuthApp.get('/callback/google', async (c) => {
   }
 
   try {
+    console.log('Processing OAuth callback with code:', code?.substring(0, 10) + '...');
+    
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -108,8 +110,11 @@ betterAuthApp.get('/callback/google', async (c) => {
     });
 
     const tokens = await tokenResponse.json();
+    console.log('Token response status:', tokenResponse.status);
+    console.log('Token response:', tokens);
+    
     if (!tokens.access_token) {
-      throw new Error('No access token received');
+      throw new Error(`No access token received. Response: ${JSON.stringify(tokens)}`);
     }
 
     // Get user info from Google
@@ -181,7 +186,9 @@ betterAuthApp.get('/callback/google', async (c) => {
     return c.redirect(redirectUrl);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    return c.redirect('/auth/signin?error=Google sign-in failed');
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    return c.redirect(`/auth/signin?error=${encodeURIComponent(error.message || 'Google sign-in failed')}`);
   }
 });
 

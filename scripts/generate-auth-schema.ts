@@ -34,9 +34,10 @@ async function generateAuthSchema() {
     `);
     console.log('✓ Created users table');
 
-    // Create sessions table
+    // Drop and recreate sessions table to fix schema
+    await db.run(sql`DROP TABLE IF EXISTS sessions`);
     await db.run(sql`
-      CREATE TABLE IF NOT EXISTS sessions (
+      CREATE TABLE sessions (
         id TEXT PRIMARY KEY,
         expires_at INTEGER NOT NULL,
         created_at INTEGER NOT NULL,
