@@ -147,7 +147,10 @@ app.get('/', async (c) => {
 
     // Get logo URL from settings
     const logoUrl = await getLogoUrl(c.env);
+
     // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
       .select({
@@ -436,7 +439,10 @@ app.get('/counties/:path', async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout
       title={`${county.name} Churches - Utah Churches`}
@@ -610,7 +616,10 @@ app.get('/networks', async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout
       title="Church Networks - Utah Churches"
@@ -896,7 +905,10 @@ app.get('/churches/:path', async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   // Helper function to get next occurrence of a day
   const getNextDayDate = (dayName: string): string => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1435,7 +1447,10 @@ app.get('/networks/:id', async (c) => {
   
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div>
@@ -1634,7 +1649,10 @@ app.get('/map', async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
     <Layout title="Church Map - Utah Churches" currentPath="/map" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div>
@@ -2573,7 +2591,10 @@ app.get('/data', async (c) => {
 
     // Get logo URL
     const logoUrl = await getLogoUrl(c.env);
+
     // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
     return c.html(
       <Layout
         title="Download Data - Utah Churches"
@@ -2756,7 +2777,7 @@ app.get('/data', async (c) => {
   } catch (error) {
     console.error('Error loading data page:', error);
     return c.html(
-      <Layout title="Error - Utah Churches" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Error - Utah Churches">
         <ErrorPage error={error.message || 'Failed to load data'} statusCode={500} />
       </Layout>,
       500
@@ -2769,6 +2790,7 @@ app.get('/debug/login', async (c) => {
   try {
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
+    
     return c.json({
       clerkEnabled: true,
       CLERK_PUBLISHABLE_KEY: c.env.CLERK_PUBLISHABLE_KEY ? 'Set' : 'Not set',
@@ -2791,8 +2813,9 @@ app.get('/login', async (c) => {
   
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
+  
   return c.html(
-    <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <ClerkSignIn 
         publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
         redirectUrl={fullRedirectUrl}
@@ -2824,8 +2847,9 @@ app.get('/auth/callback', async (c) => {
 app.get('/logout', async (c) => {
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
+  
   return c.html(
-    <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
       <ClerkSignOut publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} />
     </Layout>
   );
@@ -2843,7 +2867,10 @@ app.get('/admin', adminMiddleware, async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+  
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   // Get statistics using COUNT for efficiency
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
@@ -3221,7 +3248,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
   }));
 
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3389,10 +3416,8 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
 app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
-  const navbarPages = await getNavbarPages(c.env);
-
   return c.html(
-    <Layout title="Create Affiliation - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Create Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3500,6 +3525,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  
   const affiliation = await db
     .select()
     .from(affiliations)
@@ -3539,7 +3565,7 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Edit Affiliation - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Edit Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3706,7 +3732,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     };
 
     return c.html(
-      <Layout title="Manage Churches - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Manage Churches - Utah Churches" user={user} logoUrl={logoUrl}>
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -4019,11 +4045,12 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
 
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
   return c.html(
-    <Layout title="Create Church - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Create Church - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4097,7 +4124,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
     if (!validation.success) {
       // Return a more user-friendly error response
       return c.html(
-        <Layout title="Error - Utah Churches" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+        <Layout title="Error - Utah Churches">
           <div class="max-w-2xl mx-auto px-4 py-8">
             <div class="bg-red-50 border border-red-200 rounded-md p-4">
               <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
@@ -4200,6 +4227,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const id = c.req.param('id');
 
   const church = await db
     .select()
@@ -4235,7 +4263,7 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Edit Church - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Edit Church - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4554,7 +4582,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
   return c.html(
-    <Layout title="Manage Counties - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Counties - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4679,7 +4707,8 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
 app.get('/admin/counties/new', adminMiddleware, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
-    <Layout title="Create County - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+  return c.html(
+    <Layout title="Create County - Utah Churches" user={user} logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action="/admin/counties" isNew={true} />
       </div>
@@ -4747,6 +4776,7 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
+
   const county = await db
     .select()
     .from(counties)
@@ -4758,7 +4788,7 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title="Edit County - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Edit County - Utah Churches" user={user} logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
         <CountyForm action={`/admin/counties/${id}`} county={county} />
       </div>
@@ -4808,7 +4838,7 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
   const allPages = await db.select().from(pages).orderBy(pages.title).all();
 
   return c.html(
-    <Layout title="Manage Pages - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Pages - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4950,8 +4980,9 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
 app.get('/admin/pages/new', adminMiddleware, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+
   return c.html(
-    <Layout title="New Page - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="New Page - Utah Churches" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -5048,6 +5079,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const id = c.req.param('id');
 
   const page = await db
     .select()
@@ -5060,7 +5092,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
   }
 
   return c.html(
-    <Layout title={`Edit ${page.title} - Utah Churches`} user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title={`Edit ${page.title} - Utah Churches`} user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -5202,7 +5234,7 @@ app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
 app.get('/admin/settings', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
-  const logoUrl = await getLogoUrl(c.env);
+
   // Get current settings
   const siteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
 
@@ -5215,7 +5247,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
   return c.html(
-    <Layout title="Settings - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Settings - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -5442,14 +5474,17 @@ app.get('*', async (c) => {
     // Get favicon URL and logo URL
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
+
     // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
     // First check if it's a page
     const page = await db.select().from(pages).where(eq(pages.path, slug)).get();
 
     if (page) {
       // Render the page content
       return c.html(
-        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} currentPath={`/${slug}`} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} currentPath={`/${slug}`}>
           <div class="bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div class="max-w-3xl mx-auto">
@@ -5481,9 +5516,12 @@ app.get('*', async (c) => {
   // Get favicon and logo URLs for 404 page
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
+
   // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
-    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
       <NotFound />
     </Layout>,
     404
