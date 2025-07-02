@@ -99,7 +99,6 @@ betterAuthApp.get('/callback/google', async (c) => {
   }
 
   try {
-    console.log('Processing OAuth callback...');
     
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -129,7 +128,6 @@ betterAuthApp.get('/callback/google', async (c) => {
       throw new Error('No email received from Google');
     }
 
-    console.log('Google user:', googleUser.email);
 
     // Simple manual user/session creation
     const client = createClient({
@@ -157,7 +155,6 @@ betterAuthApp.get('/callback/google', async (c) => {
       
       await db.insert(users).values(newUser);
       user = newUser;
-      console.log('User created:', user.email, 'role:', user.role);
     }
 
     // Create session
@@ -192,14 +189,6 @@ betterAuthApp.get('/callback/google', async (c) => {
       maxAge: 0,
     });
     
-    console.log('Session created:', sessionId);
-    console.log('Session cookie set with Hono cookie method');
-    
-    // Debug: Check all response headers
-    console.log('Response headers before redirect:');
-    for (const [key, value] of Object.entries(c.res.headers)) {
-      console.log(`  ${key}: ${value}`);
-    }
 
     // Try redirect approach instead of HTML response
     return c.redirect(redirectUrl);
