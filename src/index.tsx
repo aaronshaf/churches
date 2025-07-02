@@ -32,6 +32,7 @@ import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
 import { clerkMiddleware, requireAuth, requireAdmin, getCurrentUser } from './middleware/clerk';
+import { isClerkEnabled } from './config/features';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -63,6 +64,7 @@ type Bindings = {
   OPENROUTER_API_KEY: string;
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
+  USE_CLERK_AUTH?: string;
 };
 
 type Variables = {
@@ -2793,7 +2795,16 @@ app.get('/data', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  // If already logged in, redirect to admin
+  // If Clerk is enabled, redirect to Clerk sign-in
+  if (isClerkEnabled(c.env)) {
+    const redirectUrl = c.req.query('redirect_url') || '/admin';
+    // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
+    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
+    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.raymati.com';
+    return c.redirect(`https://accounts.${clerkDomain}/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
+  }
+
+  // Otherwise use legacy auth
   const sessionId = getCookie(c, 'session');
   if (sessionId) {
     const user = await validateSession(sessionId, c.env);
@@ -2810,6 +2821,11 @@ app.get('/login', async (c) => {
 });
 
 app.post('/login', async (c) => {
+  // If Clerk is enabled, this route shouldn't be used
+  if (isClerkEnabled(c.env)) {
+    return c.redirect('/login');
+  }
+
   const db = createDb(c.env);
   const body = await c.req.parseBody();
 
@@ -2853,8 +2869,16 @@ app.post('/login', async (c) => {
 });
 
 app.get('/logout', async (c) => {
-  const sessionId = getCookie(c, 'session');
+  // If Clerk is enabled, redirect to Clerk sign-out
+  if (isClerkEnabled(c.env)) {
+    // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
+    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
+    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.raymati.com';
+    return c.redirect(`https://accounts.${clerkDomain}/sign-out?redirect_url=${encodeURIComponent('/')}`);
+  }
 
+  // Otherwise use legacy logout
+  const sessionId = getCookie(c, 'session');
   if (sessionId) {
     await deleteSession(sessionId, c.env);
     deleteCookie(c, 'session');
