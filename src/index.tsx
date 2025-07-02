@@ -31,6 +31,7 @@ import {
 import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
+import { clerkMiddleware, requireAuth, requireAdmin, getCurrentUser } from './middleware/clerk';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -60,6 +61,8 @@ type Bindings = {
   CLOUDFLARE_ACCOUNT_HASH: string;
   CLOUDFLARE_IMAGES_API_TOKEN: string;
   OPENROUTER_API_KEY: string;
+  CLERK_SECRET_KEY: string;
+  CLERK_PUBLISHABLE_KEY: string;
 };
 
 type Variables = {

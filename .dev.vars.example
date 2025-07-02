@@ -1,0 +1,18 @@
+# Turso Database Configuration
+TURSO_DATABASE_URL=your_database_url
+TURSO_AUTH_TOKEN=your_auth_token
+
+# Google Maps API
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Cloudflare Account Configuration (for images)
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_ACCOUNT_HASH=your_account_hash
+CLOUDFLARE_IMAGES_API_TOKEN=your_images_api_token
+
+# OpenRouter API (for church data extraction)
+OPENROUTER_API_KEY=your_openrouter_api_key
+
+# Clerk Authentication
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key

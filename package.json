@@ -13,6 +13,7 @@
     "db:reset-admin": "tsx scripts/reset-admin-password.ts",
     "db:seed-affiliations": "tsx scripts/seed-affiliations.ts",
     "db:import-churches": "tsx scripts/import-churches.ts",
+    "db:export-users-for-clerk": "tsx scripts/export-users-for-clerk.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
@@ -29,13 +30,14 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.3",
-    "dotenv": "^16.5.0",
+    "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.1",
     "esbuild": "^0.25.5",
     "tsx": "^4.20.3",
     "wrangler": "^4.20.3"
   },
   "dependencies": {
+    "@hono/clerk-auth": "^3.0.1",
     "@libsql/client": "^0.15.9",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.44.2",
