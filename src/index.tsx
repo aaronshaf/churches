@@ -2783,27 +2783,63 @@ app.get('/data', async (c) => {
   }
 });
 
-// Login routes
-app.get('/login', async (c) => {
-  // If Clerk is enabled, show the Clerk sign-in component
-  if (isClerkEnabled(c.env)) {
-    const redirectPath = c.req.query('redirect_url') || '/admin';
-    
-    // Get the current host URL
-    const url = new URL(c.req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
-    const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
-    
+// Debug route
+app.get('/debug/login', async (c) => {
+  try {
+    const clerkEnabled = isClerkEnabled(c.env);
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
     
+    return c.json({
+      clerkEnabled,
+      USE_CLERK_AUTH: c.env.USE_CLERK_AUTH,
+      CLERK_PUBLISHABLE_KEY: c.env.CLERK_PUBLISHABLE_KEY ? 'Set' : 'Not set',
+      faviconUrl,
+      logoUrl,
+    });
+  } catch (error) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Login routes
+app.get('/login', async (c) => {
+  try {
+    // If Clerk is enabled, show the Clerk sign-in component
+    if (isClerkEnabled(c.env)) {
+      const redirectPath = c.req.query('redirect_url') || '/admin';
+      
+      // Get the current host URL
+      const url = new URL(c.req.url);
+      const baseUrl = `${url.protocol}//${url.host}`;
+      const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
+      
+      const faviconUrl = await getFaviconUrl(c.env);
+      const logoUrl = await getLogoUrl(c.env);
+      
+      return c.html(
+        <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
+          <ClerkSignIn 
+            publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
+            redirectUrl={fullRedirectUrl}
+          />
+        </Layout>
+      );
+    }
+  } catch (error) {
+    console.error('Login route error:', error);
     return c.html(
-      <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <ClerkSignIn 
-          publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
-          redirectUrl={fullRedirectUrl}
-        />
-      </Layout>
+      <Layout title="Error - Utah Churches">
+        <div class="max-w-2xl mx-auto px-4 py-8">
+          <h1 class="text-2xl font-bold text-red-600 mb-4">Error</h1>
+          <p class="text-gray-700 mb-4">An error occurred while loading the login page:</p>
+          <pre class="bg-gray-100 p-4 rounded overflow-x-auto">{error.message}</pre>
+          <p class="mt-4">
+            <a href="/" class="text-blue-600 hover:underline">Return to home</a>
+          </p>
+        </div>
+      </Layout>,
+      500
     );
   }
 

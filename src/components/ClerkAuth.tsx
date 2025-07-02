@@ -10,11 +10,30 @@ export const ClerkSignIn = ({ publishableKey, redirectUrl }: { publishableKey: s
     script.onload = async () => {
       try {
         // Wait for Clerk to be available
+        let retries = 0;
+        while (!window.Clerk && retries < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
         if (!window.Clerk) {
-          throw new Error('Clerk not available');
+          throw new Error('Clerk not available after waiting');
         }
         
         const clerk = window.Clerk;
+        
+        // Wait for Clerk to be ready
+        if (!clerk.isReady) {
+          console.log('Waiting for Clerk to be ready...');
+          await clerk.load();
+          
+          // Additional wait for components to be ready
+          let componentRetries = 0;
+          while (!clerk.isReady && componentRetries < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            componentRetries++;
+          }
+        }
         
         // Check if already signed in
         if (clerk.user) {
@@ -25,11 +44,15 @@ export const ClerkSignIn = ({ publishableKey, redirectUrl }: { publishableKey: s
         // Clear the loading message
         document.body.innerHTML = '';
         
-        // Create container for sign-in
+        // Create a flex container to center the sign-in component
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display: flex; justify-content: center; align-items: center; min-height: 100vh; width: 100%;';
+        document.body.appendChild(wrapper);
+        
+        // Create container for sign-in component
         const container = document.createElement('div');
         container.id = 'clerk-sign-in';
-        container.style.cssText = 'display: flex; justify-content: center; align-items: center; min-height: 100vh;';
-        document.body.appendChild(container);
+        wrapper.appendChild(container);
         
         // Mount the sign-in component
         await clerk.mountSignIn(container, {
@@ -71,11 +94,23 @@ export const ClerkSignOut = ({ publishableKey }: { publishableKey: string }) => 
     
     script.onload = async () => {
       try {
+        // Wait for Clerk to be available
+        let retries = 0;
+        while (!window.Clerk && retries < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
         if (!window.Clerk) {
           throw new Error('Clerk not available');
         }
         
         const clerk = window.Clerk;
+        
+        // Wait for Clerk to be ready
+        if (!clerk.isReady) {
+          await clerk.load();
+        }
         
         // Sign out and clear session
         await clerk.signOut();
