@@ -58,22 +58,29 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
           // Only mount if user is authenticated
           if (container && clerk.user) {
             // Fade out loading indicator
-            const loader = container.querySelector('.animate-pulse');
+            const loader = container.querySelector('.bg-gray-300');
             if (loader) {
-              loader.style.transition = 'opacity 150ms ease-out';
+              loader.style.transition = 'opacity 200ms ease-out';
               loader.style.opacity = '0';
               setTimeout(() => {
                 container.innerHTML = '';
-              }, 150);
+              }, 200);
             } else {
               container.innerHTML = '';
             }
             
             // Small delay to ensure smooth transition
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Create a wrapper for fade-in effect
+            const wrapper = document.createElement('div');
+            wrapper.style.opacity = '0';
+            wrapper.style.transition = 'opacity 300ms ease-in';
+            wrapper.className = 'w-6 h-6';
+            container.appendChild(wrapper);
             
             // Mount Clerk's UserButton component directly
-            await clerk.mountUserButton(container, {
+            await clerk.mountUserButton(wrapper, {
               appearance: {
                 elements: {
                   userButtonAvatarBox: 'w-6 h-6',
@@ -85,6 +92,13 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
               },
               userProfileMode: 'modal',
               afterSignOutUrl: '/',
+            });
+            
+            // Fade in the button
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                wrapper.style.opacity = '1';
+              });
             });
           }
         }
@@ -99,8 +113,8 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
     <>
       {/* Clerk User Menu Container - reserve space to prevent layout shift */}
       <div id="clerk-user-menu" class="inline-flex items-center w-6 h-6 relative">
-        {/* Subtle loading indicator */}
-        <div class="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
+        {/* Very subtle loading indicator */}
+        <div class="absolute inset-0 rounded-full bg-gray-300 opacity-30"></div>
       </div>
       
       <script dangerouslySetInnerHTML={{ __html: scriptContent }} />
