@@ -61,32 +61,15 @@ betterAuthApp.get('/signin', async (c) => {
   );
 });
 
-// Google OAuth initiation
+// Google OAuth initiation - redirect to better-auth's built-in OAuth endpoint
 betterAuthApp.get('/google', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
-  const auth = createAuth(c.env);
-
-  try {
-    // Store redirect URL in session/cookie for after OAuth
-    c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
-
-    // Initiate Google OAuth flow
-    const result = await auth.api.signInSocial({
-      body: {
-        provider: 'google',
-        callbackURL: '/auth/callback/google',
-      },
-    });
-
-    if (result.data?.url) {
-      return c.redirect(result.data.url);
-    } else {
-      return c.redirect('/auth/signin?error=Failed to initiate Google sign-in');
-    }
-  } catch (error) {
-    console.error('Google OAuth initiation error:', error);
-    return c.redirect('/auth/signin?error=Failed to initiate Google sign-in');
-  }
+  
+  // Store redirect URL in session/cookie for after OAuth
+  c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
+  
+  // Redirect to better-auth's built-in Google OAuth endpoint
+  return c.redirect(`/api/auth/sign-in/google`);
 });
 
 // Google OAuth callback

@@ -108,6 +108,12 @@ app.onError((err, c) => {
   );
 });
 
+// Mount better-auth API routes
+app.all('/api/auth/*', async (c) => {
+  const auth = c.get('betterAuth');
+  return auth.handler(c.req.raw);
+});
+
 // Mount better-auth routes
 app.route('/auth', betterAuthApp);
 
