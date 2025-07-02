@@ -69,8 +69,7 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
                   userButtonPopoverActionButton: 'hover:bg-gray-50',
                 }
               },
-              userProfileMode: 'navigation',
-              userProfileUrl: '/user-profile',
+              userProfileMode: 'modal',
               afterSignOutUrl: '/',
             });
           }
