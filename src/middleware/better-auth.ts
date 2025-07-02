@@ -24,11 +24,19 @@ export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
 
 export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const auth = c.get('betterAuth');
+  
+  // Debug logging
+  const cookies = c.req.header('Cookie');
+  console.log('Request cookies:', cookies);
+  
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   });
 
+  console.log('Better-auth session result:', session);
+
   if (!session?.user) {
+    console.log('No session or user found, returning 401');
     return c.json({ error: 'Unauthorized' }, 401);
   }
 

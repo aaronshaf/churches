@@ -54,15 +54,9 @@ type Variables = {
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Mount better-auth API routes BEFORE middleware
-app.all('/api/auth/*', async (c) => {
+app.on(['POST', 'GET'], '/api/auth/*', async (c) => {
   const auth = createAuth(c.env);
-  try {
-    const response = await auth.handler(c.req.raw);
-    return response;
-  } catch (error) {
-    console.error('Better-auth handler error:', error);
-    return c.json({ error: 'Authentication error' }, 500);
-  }
+  return auth.handler(c.req.raw);
 });
 
 // Apply better-auth middleware globally

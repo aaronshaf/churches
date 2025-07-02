@@ -61,134 +61,60 @@ betterAuthApp.get('/signin', async (c) => {
   );
 });
 
-// Google OAuth initiation - manual Google OAuth URL
+// Google OAuth initiation - redirect to better-auth's sign-in
 betterAuthApp.get('/google', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
   
   // Store redirect URL in session/cookie for after OAuth
   c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
   
-  // Create Google OAuth URL manually
-  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  googleAuthUrl.searchParams.set('client_id', c.env.GOOGLE_CLIENT_ID);
-  googleAuthUrl.searchParams.set('redirect_uri', `${c.env.BETTER_AUTH_URL}/auth/callback/google`);
-  googleAuthUrl.searchParams.set('response_type', 'code');
-  googleAuthUrl.searchParams.set('scope', 'openid email profile');
-  googleAuthUrl.searchParams.set('access_type', 'offline');
-  
-  return c.redirect(googleAuthUrl.toString());
+  // Redirect to better-auth's Google sign-in endpoint
+  return c.redirect('/api/auth/sign-in/social/google');
 });
 
-// Google OAuth callback
+// Google OAuth callback - let better-auth handle this, but check for first admin
 betterAuthApp.get('/callback/google', async (c) => {
-  const code = c.req.query('code');
-  const error = c.req.query('error');
-
-  if (error) {
-    console.error('Google OAuth error:', error);
-    return c.redirect('/auth/signin?error=Google OAuth failed');
-  }
-
-  if (!code) {
-    return c.redirect('/auth/signin?error=No authorization code received');
-  }
-
+  // First, let better-auth handle the OAuth callback
+  const auth = createAuth(c.env);
+  
   try {
-    console.log('Processing OAuth callback with code:', code?.substring(0, 10) + '...');
-    
-    // Exchange code for tokens
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: c.env.GOOGLE_CLIENT_ID,
-        client_secret: c.env.GOOGLE_CLIENT_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: `${c.env.BETTER_AUTH_URL}/auth/callback/google`,
-      }),
+    // Get current session after OAuth
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers,
     });
 
-    const tokens = await tokenResponse.json();
-    console.log('Token response status:', tokenResponse.status);
-    console.log('Token response:', tokens);
-    
-    if (!tokens.access_token) {
-      throw new Error(`No access token received. Response: ${JSON.stringify(tokens)}`);
-    }
-
-    // Get user info from Google
-    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-    });
-
-    const googleUser = await userResponse.json();
-    if (!googleUser.email) {
-      throw new Error('No email received from Google');
-    }
-
-    // Create or update user in our database
-    const client = createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    });
-    const db = drizzle(client, { schema: { users } });
-
-    // Check if user exists
-    let user = await db.select().from(users).where(eq(users.email, googleUser.email)).get();
-    
-    if (!user) {
-      // Check if this is the first user
-      const userCount = await db.select().from(users).limit(1);
-      const isFirstUser = userCount.length === 0;
+    if (session?.user) {
+      // Check if this is the first user and make them admin
+      const client = createClient({
+        url: c.env.TURSO_DATABASE_URL,
+        authToken: c.env.TURSO_AUTH_TOKEN,
+      });
+      const db = drizzle(client, { schema: { users } });
       
-      // Create new user
-      const newUser = {
-        id: crypto.randomUUID(),
-        email: googleUser.email,
-        name: googleUser.name || null,
-        emailVerified: true,
-        role: isFirstUser ? 'admin' : 'user',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      // Count total users
+      const userCount = await db.select().from(users).limit(2);
       
-      await db.insert(users).values(newUser);
-      user = newUser;
+      if (userCount.length === 1) {
+        // This is the first user, make them admin
+        await db.update(users).set({ role: 'admin' }).where(eq(users.email, session.user.email));
+        console.log('First user made admin:', session.user.email);
+      }
+      
+      // Get redirect URL from cookie
+      const cookies_header = c.req.header('Cookie') || '';
+      const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
+      const redirectUrl = redirectMatch ? decodeURIComponent(redirectMatch[1]) : '/admin';
+
+      // Clear redirect cookie
+      c.header('Set-Cookie', 'auth_redirect=; Path=/; HttpOnly; Max-Age=0');
+
+      return c.redirect(redirectUrl);
+    } else {
+      throw new Error('No session created after OAuth');
     }
-
-    // Create session manually in the database
-    const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000); // 30 days
-    
-    const { sessions } = await import('../db/auth-schema');
-    await db.insert(sessions).values({
-      id: sessionId,
-      userId: user.id,
-      expiresAt,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ipAddress: c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || null,
-      userAgent: c.req.header('User-Agent') || null,
-    });
-    
-    // Set session cookie
-    c.header('Set-Cookie', `utah-churches-session=${sessionId}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 30}`);
-
-    // Get redirect URL from cookie
-    const cookies_header = c.req.header('Cookie') || '';
-    const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
-    const redirectUrl = redirectMatch ? decodeURIComponent(redirectMatch[1]) : (user.role === 'admin' ? '/admin' : '/');
-
-    // Clear redirect cookie
-    c.header('Set-Cookie', 'auth_redirect=; Path=/; HttpOnly; Max-Age=0');
-
-    return c.redirect(redirectUrl);
   } catch (error) {
-    console.error('Google OAuth callback error:', error);
-    console.error('Error details:', error.message);
-    console.error('Error stack:', error.stack);
-    return c.redirect(`/auth/signin?error=${encodeURIComponent(error.message || 'Google sign-in failed')}`);
+    console.error('OAuth callback processing error:', error);
+    return c.redirect('/auth/signin?error=OAuth callback failed');
   }
 });
 
@@ -239,6 +165,15 @@ betterAuthApp.post('/signout', async (c) => {
 // Signup redirects to signin (Google OAuth only)
 betterAuthApp.get('/signup', async (c) => {
   return c.redirect('/auth/signin');
+});
+
+// Test route to check cookies
+betterAuthApp.get('/test-session', async (c) => {
+  const cookies = c.req.header('Cookie') || '';
+  return c.json({
+    cookies: cookies,
+    headers: Object.fromEntries(c.req.raw.headers.entries()),
+  });
 });
 
 export { betterAuthApp };
