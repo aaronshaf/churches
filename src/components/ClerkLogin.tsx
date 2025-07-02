@@ -34,9 +34,9 @@ export const ClerkLogin = ({ publishableKey, redirectUrl }: { publishableKey: st
     
     console.log('Final Clerk domain:', clerkDomain);
     
-    // Load Clerk
+    // Load Clerk from unpkg (universal CDN)
     const script = document.createElement('script');
-    script.src = \`https://\${clerkDomain}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js\`;
+    script.src = 'https://unpkg.com/@clerk/clerk-js@latest/dist/clerk.browser.js';
     script.setAttribute('data-clerk-publishable-key', window.__CLERK_PUBLISHABLE_KEY__);
     script.onload = async () => {
       try {
