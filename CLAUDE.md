@@ -250,32 +250,8 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - 404 pages implement smart redirects for church URLs
 - Networks page shows unlisted churches if only unlisted exist
 
-## Authentication Migration History
+## Authentication System History
 
-**Migration from Clerk to Better-Auth: COMPLETED** ✅
+**Current Authentication**: Better-auth (self-hosted) with Google OAuth ✅
 
-The application has successfully migrated from Clerk (SaaS) to better-auth (self-hosted):
-
-### Migration Phases Completed:
-- **Phase 1**: Better-auth setup and database schema ✅
-- **Phase 2**: Unified auth system with feature flags ✅ 
-- **Phase 3**: Feature parity with Google OAuth ✅
-- **Phase 4**: Monitoring and rollback capabilities ✅
-- **Phase 5**: Complete migration and cleanup ✅
-
-### Final Migration State:
-- **Authentication**: 100% better-auth (self-hosted)
-- **OAuth Provider**: Google OAuth only (no password storage)
-- **User Management**: Database-backed with role-based access
-- **Session Management**: Database sessions via better-auth
-- **Cleanup**: All Clerk dependencies removed
-- **Environment**: Simplified to better-auth variables only
-
-### Benefits Achieved:
-- **Self-hosted**: Full control over authentication system
-- **Cost Reduction**: No more SaaS authentication fees
-- **Privacy**: User data stays in our database
-- **Customization**: Full control over auth flows and UI
-- **Edge Performance**: Authentication runs on Cloudflare Workers
-
-Migration documentation preserved in `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` and `/PHASE_4_GRADUAL_ROLLOUT.md` for reference.
+The application uses better-auth for self-hosted authentication, providing full control over user management and sessions. Previously migrated from Clerk SaaS to reduce costs and increase privacy.

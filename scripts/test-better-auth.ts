@@ -42,10 +42,10 @@ console.log('   Logout:');
 console.log('   - Visit: http://localhost:8787/logout');
 console.log('   - Should redirect to /auth/signout and then home\n');
 
-console.log('5. Switch back to Clerk (for comparison):');
-console.log('   - Set USE_BETTER_AUTH=false or remove the variable');
-console.log('   - Restart the server');
-console.log('   - All Clerk functionality should still work\n');
+console.log('5. Verify better-auth is working correctly:');
+console.log('   - Check /admin/users for user management interface');
+console.log('   - Verify role-based access control is working');
+console.log('   - Test session persistence across browser restarts\n');
 
 console.log('Current environment check:');
 console.log(`USE_BETTER_AUTH: ${process.env.USE_BETTER_AUTH || 'not set'}`);
