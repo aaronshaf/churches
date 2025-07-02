@@ -67,7 +67,7 @@ export const churchAffiliations = sqliteTable(
   })
 );
 
-// Legacy tables - no longer used, authentication is handled by Clerk
+// Legacy tables - no longer used, authentication is handled by better-auth
 // Keeping definitions for migration purposes only
 /*
 export const users = sqliteTable('users', {

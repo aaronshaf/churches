@@ -16,8 +16,6 @@ type LayoutProps = {
   description?: string;
   ogImage?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
-  clerkPublishableKey?: string;
-  useBetterAuth?: boolean;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -34,8 +32,6 @@ export const Layout: FC<LayoutProps> = ({
   description = 'Discover Christian churches in Utah. Find church locations, service times, and contact information across all Utah counties.',
   ogImage,
   pages = [],
-  clerkPublishableKey = '',
-  useBetterAuth = false,
 }) => {
   return (
     <html lang="en">
@@ -44,20 +40,20 @@ export const Layout: FC<LayoutProps> = ({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
         <meta name="description" content={description} />
-        
+
         {/* Open Graph meta tags for Facebook */}
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://utahchurches.org" />
         {(ogImage || logoUrl) && <meta property="og:image" content={ogImage || logoUrl} />}
-        
+
         {/* Twitter Card meta tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         {(ogImage || logoUrl) && <meta name="twitter:image" content={ogImage || logoUrl} />}
-        
+
         {faviconUrl && (
           <>
             <link rel="icon" type="image/png" href={faviconUrl} />
@@ -287,11 +283,11 @@ export const Layout: FC<LayoutProps> = ({
         >
           Skip to main content
         </a>
-        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} clerkPublishableKey={clerkPublishableKey} />
+        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} />
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} clerkPublishableKey={clerkPublishableKey} useBetterAuth={useBetterAuth} />
+        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} />
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -8,7 +8,9 @@ export const users = sqliteTable('users', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
   // Custom fields
-  role: text('role', { enum: ['admin', 'contributor', 'user'] }).default('user').notNull(),
+  role: text('role', { enum: ['admin', 'contributor', 'user'] })
+    .default('user')
+    .notNull(),
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -19,14 +21,18 @@ export const sessions = sqliteTable('sessions', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  userId: text('user_id').notNull().references(() => users.id),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
 });
 
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
   accountId: text('account_id').notNull(),
   providerId: text('provider_id').notNull(),
-  userId: text('user_id').notNull().references(() => users.id),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

@@ -11,11 +11,12 @@ const websiteBuilderPatterns = [
   /websitebuilder\.com/i,
 ];
 
-const optionalUrl = z.string()
+const optionalUrl = z
+  .string()
   .url('Invalid URL')
   .refine((url) => {
     // Check if it's a website builder URL
-    return !websiteBuilderPatterns.some(pattern => pattern.test(url));
+    return !websiteBuilderPatterns.some((pattern) => pattern.test(url));
   }, 'Website builder URLs are not valid church websites')
   .optional()
   .or(z.literal(''));

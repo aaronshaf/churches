@@ -76,7 +76,11 @@ Important:
 
 // Zod schemas for validation
 const serviceTimeSchema = z.object({
-  time: z.string().regex(/^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday))?(\s*\([^)]+\))?$/i),
+  time: z
+    .string()
+    .regex(
+      /^\d{1,2}(:\d{2})?\s*(AM|PM|am|pm)(\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday))?(\s*\([^)]+\))?$/i
+    ),
   notes: z.string().optional(),
 });
 
@@ -119,7 +123,6 @@ function normalizeTimeFormat(timeStr: string): string {
 
   return `${timeBase} ${normalizedPeriod}${rest}`;
 }
-
 
 // Helper function to parse time for sorting
 function parseTimeForSort(timeStr: string): number {
@@ -165,7 +168,10 @@ function normalizeAddress(address: string): string {
   }
 
   // Split by comma to handle each part
-  const parts = normalized.split(',').map((part) => part.trim()).filter(part => part.length > 0);
+  const parts = normalized
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
 
   // Process each part
   const processedParts = parts.map((part, index) => {
@@ -210,7 +216,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     // Parse the base URL for potential use in constructing full URLs
     const baseUrl = new URL(websiteUrl);
     const origin = baseUrl.origin;
-    
+
     // Fetch the website content
     const response = await fetch(websiteUrl, {
       headers: {
@@ -267,20 +273,19 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       throw new Error('No response from AI');
     }
 
-
     // Parse the text format response
     const rawData: any = {};
     const lines = responseContent.trim().split('\n');
-    
+
     const serviceTimes: Array<{ time: string; notes?: string }> = [];
-    
+
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine || !trimmedLine.includes(':')) continue;
-      
+
       const [field, ...valueParts] = trimmedLine.split(':');
       const value = valueParts.join(':').trim(); // Rejoin in case URL contains colons
-      
+
       switch (field.toUpperCase()) {
         case 'PHONE':
           rawData.phone = value;
@@ -291,9 +296,9 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         case 'ADDRESS':
           rawData.address = value;
           break;
-        case 'SERVICE':
+        case 'SERVICE': {
           // Parse service time format: "9 AM | Traditional"
-          const [time, notes] = value.split('|').map(s => s.trim());
+          const [time, notes] = value.split('|').map((s) => s.trim());
           if (time) {
             const serviceObj: { time: string; notes?: string } = { time };
             if (notes) {
@@ -302,6 +307,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
             serviceTimes.push(serviceObj);
           }
           break;
+        }
         case 'FACEBOOK':
           rawData.facebook = value;
           break;
@@ -319,7 +325,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
           break;
       }
     }
-    
+
     if (serviceTimes.length > 0) {
       rawData.service_times = serviceTimes;
     }
@@ -355,10 +361,10 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         '(777) 777-7777',
         '(888) 888-8888',
       ];
-      
+
       // Check for 555 numbers (commonly used as fake numbers)
       const has555 = phone.includes('555-') || phone.includes('(555)');
-      
+
       if (fakeNumbers.includes(phone) || has555) {
         // Don't include obviously fake numbers
         delete processedData.phone;
@@ -375,7 +381,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     // Normalize address formatting
     if (processedData.address && typeof processedData.address === 'string') {
       const address = processedData.address.trim();
-      
+
       // Filter out fake addresses
       const fakeAddresses = [
         '123 Main St, City, State 12345',
@@ -387,24 +393,30 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         '123 Test St',
         '123 Sample St',
       ];
-      
+
       // Check for generic fake address patterns
-      const isFakeAddress = fakeAddresses.some(fake => 
-        address.toLowerCase().includes(fake.toLowerCase())
-      ) || address.match(/^\d+\s+(Main|Example|Test|Sample)\s+(St|Street|Ave|Avenue)/i);
-      
+      const isFakeAddress =
+        fakeAddresses.some((fake) => address.toLowerCase().includes(fake.toLowerCase())) ||
+        address.match(/^\d+\s+(Main|Example|Test|Sample)\s+(St|Street|Ave|Avenue)/i);
+
       // Check if it's a PO Box address (not a physical location)
       const isPOBox = /^(P\.?O\.?\s*Box|Post\s*Office\s*Box)\s+\d+/i.test(address);
-      
+
       // Check if it's a complete address (must have street number and name)
-      const hasStreetAddress = /^\d+\s+[\w\s]+\s+(St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Pkwy|Parkway|Cir|Circle|Ter|Terrace|Trail|Trl)\.?/i.test(address);
-      
+      const hasStreetAddress =
+        /^\d+\s+[\w\s]+\s+(St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Pkwy|Parkway|Cir|Circle|Ter|Terrace|Trail|Trl)\.?/i.test(
+          address
+        );
+
       // Check if it's a Utah address
       const isUtahAddress = /,\s*(UT|Utah)\s+\d{5}/i.test(address);
-      
+
       // Check for non-Utah states
-      const hasOtherState = /,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|VT|VA|WA|WV|WI|WY|Oregon|Idaho|Nevada|California|Wyoming|Colorado|Arizona|New Mexico)\s+\d{5}/i.test(address);
-      
+      const hasOtherState =
+        /,\s*(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|VT|VA|WA|WV|WI|WY|Oregon|Idaho|Nevada|California|Wyoming|Colorado|Arizona|New Mexico)\s+\d{5}/i.test(
+          address
+        );
+
       if (isFakeAddress || isPOBox || !hasStreetAddress || !isUtahAddress || hasOtherState) {
         // Don't include fake addresses, PO Boxes, incomplete addresses, or non-Utah addresses
         delete processedData.address;
@@ -483,8 +495,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         ];
 
         // Check if URL is generic or contains invalid patterns
-        if (genericPatterns[key]?.test(cleanUrl) || 
-            invalidPatterns.some(pattern => pattern.test(cleanUrl))) {
+        if (genericPatterns[key]?.test(cleanUrl) || invalidPatterns.some((pattern) => pattern.test(cleanUrl))) {
           delete processedData[key];
         }
       }
@@ -492,35 +503,28 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
 
     // Fix statement of faith URL if it's a relative path
     if (processedData.statement_of_faith_url && typeof processedData.statement_of_faith_url === 'string') {
-      let url = processedData.statement_of_faith_url.trim();
-      
+      const url = processedData.statement_of_faith_url.trim();
+
       // Check if it's a relative URL
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         // Remove any leading slashes from the URL
         const cleanPath = url.replace(/^\/+/, '');
-        
+
         // Ensure origin doesn't end with a slash
         const cleanOrigin = origin.replace(/\/$/, '');
-        
+
         // Construct the full URL
         processedData.statement_of_faith_url = cleanOrigin + '/' + cleanPath;
       }
-      
+
       // Clean up any double slashes (except after protocol)
       // This regex replaces multiple slashes with a single slash, except after ://
       processedData.statement_of_faith_url = processedData.statement_of_faith_url.replace(/([^:]\/)\/+/g, '$1');
-      
+
       // Also filter out invalid statement of faith URLs
-      const invalidPatterns = [
-        /example/i,
-        /actualchurch/i,
-        /yourchurch/i,
-        /placeholder/i,
-        /sample/i,
-        /test/i,
-      ];
-      
-      if (invalidPatterns.some(pattern => pattern.test(processedData.statement_of_faith_url))) {
+      const invalidPatterns = [/example/i, /actualchurch/i, /yourchurch/i, /placeholder/i, /sample/i, /test/i];
+
+      if (invalidPatterns.some((pattern) => pattern.test(processedData.statement_of_faith_url))) {
         delete processedData.statement_of_faith_url;
       }
     }
@@ -579,10 +583,10 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     return parseResult.data;
   } catch (error) {
     console.error('Extraction error:', error);
-    
+
     // Provide more helpful error messages
     let errorMessage = 'Failed to extract church data: ';
-    
+
     if (error instanceof Error) {
       if (error.message.includes('internal error')) {
         errorMessage += 'The AI service is temporarily unavailable. Please try again in a few moments.';
@@ -596,7 +600,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     } else {
       errorMessage += 'Unknown error occurred';
     }
-    
+
     throw new Error(errorMessage);
   }
 }

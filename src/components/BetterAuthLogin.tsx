@@ -10,17 +10,15 @@ export const BetterAuthLogin: FC<BetterAuthLoginProps> = ({ error, redirectUrl =
     <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-md w-full space-y-8">
         <div>
-          <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
+          <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
         </div>
-        
+
         {error && (
           <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative" role="alert">
             <span class="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         <form class="mt-8 space-y-6" method="POST" action="/auth/signin">
           <input type="hidden" name="redirectUrl" value={redirectUrl} />
           <div class="rounded-md shadow-sm -space-y-px">

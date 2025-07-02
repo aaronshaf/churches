@@ -1,4 +1,4 @@
-import { desc, eq, sql, isNotNull } from 'drizzle-orm';
+import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import yaml from 'js-yaml';
@@ -12,7 +12,6 @@ import { Layout } from './components/Layout';
 import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
-import { ClerkSignIn, ClerkSignOut } from './components/ClerkAuth';
 import { createDb } from './db';
 import {
   affiliations,
@@ -24,12 +23,10 @@ import {
   pages,
   settings,
 } from './db/schema';
-import { adminMiddleware, getCurrentUser } from './middleware/auth';
-import { getUser } from './middleware/unified-auth';
-import { requireAdminMiddleware } from './middleware/requireAdmin';
-import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
-import { betterAuthMiddleware, requireAdminBetter, requireContributorBetter } from './middleware/better-auth';
-import { authMonitoringMiddleware } from './middleware/auth-monitoring';
+import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
+import { adminUsersApp } from './routes/admin-users';
+import { betterAuthApp } from './routes/better-auth';
+import type { Bindings } from './types';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -48,11 +45,6 @@ import {
   validateFormData,
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
-import { adminUsersApp } from './routes/admin-users';
-import { adminUsersUnifiedApp } from './routes/admin-users-unified';
-import { adminMonitoringApp } from './routes/admin-monitoring';
-import { betterAuthApp } from './routes/better-auth';
-import type { Bindings } from './types';
 
 type Variables = {
   user: any;
@@ -60,28 +52,8 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Apply auth middleware conditionally based on feature flag
-app.use('*', async (c, next) => {
-  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
-  
-  if (useBetterAuth) {
-    return betterAuthMiddleware(c, next);
-  } else {
-    return clerkMiddleware()(c, next);
-  }
-});
-
-// Apply monitoring middleware globally
-app.use('*', authMonitoringMiddleware);
-
-// Helper to create Layout props with common values
-const createLayoutProps = (c: any, overrides: any = {}) => ({
-  faviconUrl: undefined, // Will be set by individual routes as needed
-  logoUrl: undefined, // Will be set by individual routes as needed
-  clerkPublishableKey: c.env.CLERK_PUBLISHABLE_KEY || '',
-  useBetterAuth: c.env.USE_BETTER_AUTH === 'true',
-  ...overrides,
-});
+// Apply better-auth middleware globally
+app.use('*', betterAuthMiddleware);
 
 app.use('/api/*', cors());
 
@@ -100,7 +72,9 @@ async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 }
 
 // Helper function to fetch navbar pages
-async function getNavbarPages(env: Bindings): Promise<Array<{ id: number; title: string; path: string; navbarOrder: number | null }>> {
+async function getNavbarPages(
+  env: Bindings
+): Promise<Array<{ id: number; title: string; path: string; navbarOrder: number | null }>> {
   const db = createDb(env);
   const navbarPages = await db
     .select({
@@ -127,28 +101,25 @@ app.onError((err, c) => {
     err.cause?.message?.includes('Network connection lost');
 
   return c.html(
-    <Layout title="Error - Utah Churches" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Error - Utah Churches">
       <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={err.status || 500} />
     </Layout>,
     err.status || 500
   );
 });
 
-// Mount admin users route (unified for both auth systems)
-app.route('/admin/users', adminUsersUnifiedApp);
-
-// Mount admin monitoring route
-app.route('/admin/monitoring', adminMonitoringApp);
-
-// Mount better-auth routes when feature flag is enabled
+// Mount better-auth routes
 app.route('/auth', betterAuthApp);
+
+// Mount admin users route
+app.route('/admin/users', adminUsersApp);
 
 app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
 
     // Check for user session
-    const user = await getCurrentUser(c);
+    const user = await getUser(c);
 
     // Get front page title from settings
     const frontPageTitleSetting = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
@@ -182,14 +153,13 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout 
-        title={frontPageTitle} 
-        currentPath="/" 
-        user={user} 
-        faviconUrl={faviconUrl} 
-        logoUrl={logoUrl} 
+      <Layout
+        title={frontPageTitle}
+        currentPath="/"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
         pages={navbarPages}
-        clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}
       >
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -369,7 +339,7 @@ app.get('/', async (c) => {
   } catch (error) {
     console.error('Error loading home page:', error);
     return c.html(
-      <Layout title="Error - Utah Churches" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Error - Utah Churches">
         <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
       </Layout>,
       500
@@ -382,14 +352,14 @@ app.get('/counties/:path', async (c) => {
   const countyPath = c.req.param('path');
 
   // Check if user is logged in
-  const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Get county by path
   const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
 
   if (!county) {
     return c.html(
-      <Layout title="Page Not Found - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Page Not Found - Utah Churches" user={user}>
         <NotFound />
       </Layout>,
       404
@@ -463,7 +433,6 @@ app.get('/counties/:path', async (c) => {
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
       pages={navbarPages}
-      clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}
     >
       <div>
         {/* Header */}
@@ -476,10 +445,15 @@ app.get('/counties/:path', async (c) => {
                   <div class="mt-4 text-xl text-primary-100">
                     <p>
                       {listedChurches.length + unlistedChurches.length}{' '}
-                      {listedChurches.length + unlistedChurches.length === 1 ? 'evangelical church' : 'evangelical churches'}
+                      {listedChurches.length + unlistedChurches.length === 1
+                        ? 'evangelical church'
+                        : 'evangelical churches'}
                     </p>
                     {county.population && (
-                      <p class="cursor-help" title={`1 evangelical church per ${Math.round(county.population / (listedChurches.length + unlistedChurches.length)).toLocaleString()} people`}>
+                      <p
+                        class="cursor-help"
+                        title={`1 evangelical church per ${Math.round(county.population / (listedChurches.length + unlistedChurches.length)).toLocaleString()} people`}
+                      >
                         Population: {county.population.toLocaleString()}
                       </p>
                     )}
@@ -603,7 +577,7 @@ app.get('/networks', async (c) => {
   const db = createDb(c.env);
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Get all listed affiliations with church count (only count churches with 'Listed' status)
   const listedAffiliations = await db
@@ -640,7 +614,6 @@ app.get('/networks', async (c) => {
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
       pages={navbarPages}
-      clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}
     >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -714,32 +687,34 @@ Sitemap: https://utahchurches.org/sitemap.xml`;
 
   return c.text(robotsTxt, 200, {
     'Content-Type': 'text/plain',
-    'Cache-Control': 'public, max-age=86400' // Cache for 24 hours
+    'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
   });
 });
 
 app.get('/sitemap.xml', async (c) => {
   const db = createDb(c.env);
-  
+
   // Get all churches, counties, and pages
   const [allChurches, allCounties, allPages, listedAffiliations] = await Promise.all([
-    db.select({ 
-      path: churches.path, 
-      updatedAt: churches.updatedAt,
-      createdAt: churches.createdAt 
-    })
+    db
+      .select({
+        path: churches.path,
+        updatedAt: churches.updatedAt,
+        createdAt: churches.createdAt,
+      })
       .from(churches)
       .where(eq(churches.status, 'Listed'))
       .all(),
     db.select({ path: counties.path }).from(counties).all(),
     db.select({ path: pages.path }).from(pages).all(),
-    db.select({ 
-      id: affiliations.id,
-      path: affiliations.path 
-    })
+    db
+      .select({
+        id: affiliations.id,
+        path: affiliations.path,
+      })
       .from(affiliations)
       .where(eq(affiliations.status, 'Listed'))
-      .all()
+      .all(),
   ]);
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -763,50 +738,64 @@ app.get('/sitemap.xml', async (c) => {
     <loc>https://utahchurches.org/data</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
-  </url>${allCounties.map(county => `
+  </url>${allCounties
+    .map(
+      (county) => `
   <url>
     <loc>https://utahchurches.org/counties/${county.path}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`).join('')}${allChurches.map(church => {
-    const lastMod = church.updatedAt || church.createdAt;
-    if (lastMod) {
-      // Check if timestamp is already in milliseconds (very large number) or seconds
-      const timestamp = lastMod > 10000000000 ? lastMod : lastMod * 1000;
-      const date = new Date(timestamp);
-      // Only include lastmod if it's a valid date between 2020 and 2030
-      if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
-        return `
+  </url>`
+    )
+    .join('')}${allChurches
+    .map((church) => {
+      const lastMod = church.updatedAt || church.createdAt;
+      if (lastMod) {
+        // Check if timestamp is already in milliseconds (very large number) or seconds
+        const timestamp = lastMod > 10000000000 ? lastMod : lastMod * 1000;
+        const date = new Date(timestamp);
+        // Only include lastmod if it's a valid date between 2020 and 2030
+        if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+          return `
   <url>
     <loc>https://utahchurches.org/churches/${church.path}</loc>
     <lastmod>${date.toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
+        }
       }
-    }
-    return `
+      return `
   <url>
     <loc>https://utahchurches.org/churches/${church.path}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
-  }).join('')}${listedAffiliations.map(affiliation => `
+    })
+    .join('')}${listedAffiliations
+    .map(
+      (affiliation) => `
   <url>
     <loc>https://utahchurches.org/networks/${affiliation.path || affiliation.id}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>`).join('')}${allPages.map(page => `
+  </url>`
+    )
+    .join('')}${allPages
+    .map(
+      (page) => `
   <url>
     <loc>https://utahchurches.org/${page.path}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>`).join('')}
+  </url>`
+    )
+    .join('')}
 </urlset>`;
 
   return c.text(sitemap, 200, {
     'Content-Type': 'application/xml',
-    'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
   });
 });
 
@@ -815,7 +804,7 @@ app.get('/churches/:path', async (c) => {
   const churchPath = c.req.param('path');
 
   // Check for admin user (optional)
-  const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -927,12 +916,12 @@ app.get('/churches/:path', async (c) => {
     const today = new Date();
     const todayDay = today.getDay();
     const targetDay = days.indexOf(dayName);
-    
+
     if (targetDay === -1) return new Date().toISOString().split('T')[0]; // fallback to today
-    
+
     let daysUntilTarget = targetDay - todayDay;
     if (daysUntilTarget <= 0) daysUntilTarget += 7;
-    
+
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + daysUntilTarget);
     return nextDate.toISOString().split('T')[0];
@@ -941,12 +930,16 @@ app.get('/churches/:path', async (c) => {
   // Parse gathering time to extract day and time
   const parseGatheringTime = (timeStr: string) => {
     // Match patterns like "10 AM Sunday" or "6:30 PM Wednesday"
-    const match = timeStr.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/i);
+    const match = timeStr.match(
+      /(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/i
+    );
     if (match) {
       return { time: match[1], day: match[2] };
     }
     // Try to match day in parentheses like "10 AM (Sunday)"
-    const parenMatch = timeStr.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM)).*\((Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\)/i);
+    const parenMatch = timeStr.match(
+      /(\d{1,2}(?::\d{2})?\s*(?:AM|PM)).*\((Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\)/i
+    );
     if (parenMatch) {
       return { time: parenMatch[1], day: parenMatch[2] };
     }
@@ -958,20 +951,20 @@ app.get('/churches/:path', async (c) => {
     .map((gathering) => {
       const parsed = parseGatheringTime(gathering.time);
       if (!parsed) return null;
-      
+
       const nextDate = getNextDayDate(parsed.day);
       const timeMatch = parsed.time.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
       if (!timeMatch) return null;
-      
+
       let hour = parseInt(timeMatch[1]);
       const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
       const isPM = timeMatch[3].toUpperCase() === 'PM';
-      
+
       if (isPM && hour !== 12) hour += 12;
       if (!isPM && hour === 12) hour = 0;
-      
+
       const eventTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-      
+
       return {
         '@type': 'Event',
         name: gathering.notes || 'Church Gathering',
@@ -982,7 +975,7 @@ app.get('/churches/:path', async (c) => {
           repeatFrequency: 'P1W',
           byDay: `https://schema.org/${parsed.day}`,
           startTime: eventTime,
-          duration: 'PT1H30M' // Assume 1.5 hour duration
+          duration: 'PT1H30M', // Assume 1.5 hour duration
         },
         location: {
           '@type': 'Church',
@@ -994,11 +987,11 @@ app.get('/churches/:path', async (c) => {
               addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
               addressRegion: 'UT',
               addressCountry: 'US',
-            }
-          })
+            },
+          }),
         },
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-        eventStatus: 'https://schema.org/EventScheduled'
+        eventStatus: 'https://schema.org/EventScheduled',
       };
     })
     .filter(Boolean);
@@ -1039,7 +1032,7 @@ app.get('/churches/:path', async (c) => {
       })),
     }),
     sameAs: [church.facebook, church.instagram, church.youtube, church.spotify].filter(Boolean),
-    ...(events.length > 0 && { event: events })
+    ...(events.length > 0 && { event: events }),
   };
 
   return c.html(
@@ -1400,7 +1393,7 @@ app.get('/networks/:id', async (c) => {
   const affiliationIdOrPath = c.req.param('id');
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -1422,11 +1415,7 @@ app.get('/networks/:id', async (c) => {
   const affiliation = await db
     .select()
     .from(affiliations)
-    .where(
-      isNumericId 
-        ? eq(affiliations.id, Number(affiliationIdOrPath))
-        : eq(affiliations.path, affiliationIdOrPath)
-    )
+    .where(isNumericId ? eq(affiliations.id, Number(affiliationIdOrPath)) : eq(affiliations.path, affiliationIdOrPath))
     .get();
 
   if (!affiliation) {
@@ -1456,7 +1445,7 @@ app.get('/networks/:id', async (c) => {
   // Separate listed and unlisted churches
   const listedChurches = affiliationChurches.filter((c) => c.status === 'Listed');
   const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
-  
+
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
@@ -1464,7 +1453,13 @@ app.get('/networks/:id', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
 
   return c.html(
-    <Layout title={`${affiliation.name} - Utah Churches`} user={user} affiliationId={affiliation.id.toString()} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout
+      title={`${affiliation.name} - Utah Churches`}
+      user={user}
+      affiliationId={affiliation.id.toString()}
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -1595,7 +1590,7 @@ app.get('/map', async (c) => {
   const showHereticalOption = c.req.query('heretical') !== undefined;
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Get all churches with coordinates (excluding heretical unless param is present)
   const allChurchesWithCoords = await db
@@ -1629,26 +1624,37 @@ app.get('/map', async (c) => {
     .all();
 
   // Get gatherings for all churches
-  const churchIds = allChurchesWithCoords.map(c => c.id);
-  const allGatherings = churchIds.length > 0 ? await db
-    .select()
-    .from(churchGatherings)
-    .where(sql`${churchGatherings.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
-    .all() : [];
+  const churchIds = allChurchesWithCoords.map((c) => c.id);
+  const allGatherings =
+    churchIds.length > 0
+      ? await db
+          .select()
+          .from(churchGatherings)
+          .where(
+            sql`${churchGatherings.churchId} IN (${sql.join(
+              churchIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          )
+          .all()
+      : [];
 
   // Group gatherings by church ID
-  const gatheringsByChurchId = allGatherings.reduce((acc, gathering) => {
-    if (!acc[gathering.churchId]) {
-      acc[gathering.churchId] = [];
-    }
-    acc[gathering.churchId].push(gathering);
-    return acc;
-  }, {} as Record<number, typeof allGatherings>);
+  const gatheringsByChurchId = allGatherings.reduce(
+    (acc, gathering) => {
+      if (!acc[gathering.churchId]) {
+        acc[gathering.churchId] = [];
+      }
+      acc[gathering.churchId].push(gathering);
+      return acc;
+    },
+    {} as Record<number, typeof allGatherings>
+  );
 
   // Add gatherings to each church
-  const churchesWithGatherings = allChurchesWithCoords.map(church => ({
+  const churchesWithGatherings = allChurchesWithCoords.map((church) => ({
     ...church,
-    gatherings: gatheringsByChurchId[church.id] || []
+    gatherings: gatheringsByChurchId[church.id] || [],
   }));
 
   // Separate listed, unlisted, and heretical churches
@@ -1666,7 +1672,14 @@ app.get('/map', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
 
   return c.html(
-    <Layout title="Church Map - Utah Churches" currentPath="/map" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout
+      title="Church Map - Utah Churches"
+      currentPath="/map"
+      user={user}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
       <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -2587,7 +2600,7 @@ app.get('/data', async (c) => {
     const db = createDb(c.env);
 
     // Check for admin user
-    const user = await getCurrentUser(c);
+    const user = await getUser(c);
 
     // Get count of churches with 'Listed' or 'Unlisted' status
     const churchCount = await db
@@ -2802,10 +2815,11 @@ app.get('/debug/login', async (c) => {
   try {
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
-    
+
     return c.json({
-      clerkEnabled: true,
-      CLERK_PUBLISHABLE_KEY: c.env.CLERK_PUBLISHABLE_KEY ? 'Set' : 'Not set',
+      authSystem: 'better-auth',
+      BETTER_AUTH_SECRET: c.env.BETTER_AUTH_SECRET ? 'Set' : 'Not set',
+      GOOGLE_CLIENT_ID: c.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set',
       faviconUrl,
       logoUrl,
     });
@@ -2816,72 +2830,34 @@ app.get('/debug/login', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
-  
-  // If using better-auth, redirect to the new auth signin page
-  if (useBetterAuth) {
-    const redirectUrl = c.req.query('redirect_url') || '/admin';
-    return c.redirect(`/auth/signin?redirect=${encodeURIComponent(redirectUrl)}`);
-  }
-  
-  // Otherwise use Clerk
-  const redirectPath = c.req.query('redirect_url') || '/auth/callback';
-  
-  // Get the current host URL
-  const url = new URL(c.req.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
-  const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
-  
-  const faviconUrl = await getFaviconUrl(c.env);
-  const logoUrl = await getLogoUrl(c.env);
-  
-  return c.html(
-    <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
-      <ClerkSignIn 
-        publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
-        redirectUrl={fullRedirectUrl}
-      />
-    </Layout>
-  );
+  // Redirect to better-auth signin page
+  const redirectUrl = c.req.query('redirect_url') || '/admin';
+  return c.redirect(`/auth/signin?redirect=${encodeURIComponent(redirectUrl)}`);
 });
 
 // Auth callback route - checks user role and redirects appropriately
 app.get('/auth/callback', async (c) => {
-  const user = await getCurrentUser(c);
-  
+  const user = await getUser(c);
+
   if (!user) {
     // Not authenticated, redirect to login
     return c.redirect('/login');
   }
-  
+
   // Check if user has admin role
   if (user.role === 'admin') {
     return c.redirect('/admin');
   }
-  
+
   // Non-admin users go to home page
   return c.redirect('/');
 });
 
-// POST /login route removed - Clerk handles authentication
+// POST /login route removed - better-auth handles authentication via OAuth
 
 app.get('/logout', async (c) => {
-  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
-  
-  // If using better-auth, redirect to signout endpoint
-  if (useBetterAuth) {
-    return c.redirect('/auth/signout');
-  }
-  
-  // Otherwise use Clerk
-  const faviconUrl = await getFaviconUrl(c.env);
-  const logoUrl = await getLogoUrl(c.env);
-  
-  return c.html(
-    <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-      <ClerkSignOut publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} />
-    </Layout>
-  );
+  // Redirect to better-auth signout endpoint
+  return c.redirect('/auth/signout');
 });
 
 // Force refresh route - logs out and redirects to login
@@ -2890,13 +2866,13 @@ app.get('/force-refresh', async (c) => {
 });
 
 // Admin routes
-app.get('/admin', adminMiddleware, async (c) => {
+app.get('/admin', requireAdminBetter, async (c) => {
   const user = getUser(c);
   const db = createDb(c.env);
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
-  
+
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
@@ -2904,8 +2880,7 @@ app.get('/admin', adminMiddleware, async (c) => {
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
-  
-  
+
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
 
   // Get 1 oldest non-closed church for review
@@ -2924,7 +2899,13 @@ app.get('/admin', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin" logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout
+      title="Admin Dashboard - Utah Churches"
+      user={user}
+      currentPath="/admin"
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3281,9 +3262,8 @@ app.get('/admin', adminMiddleware, async (c) => {
   );
 });
 
-
 // Affiliation management routes
-app.get('/admin/affiliations', adminMiddleware, async (c) => {
+app.get('/admin/affiliations', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -3476,7 +3456,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
 });
 
 // Create new affiliation
-app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
+app.get('/admin/affiliations/new', requireAdminBetter, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
@@ -3492,7 +3472,7 @@ app.get('/admin/affiliations/new', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/affiliations', adminMiddleware, async (c) => {
+app.post('/admin/affiliations', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
@@ -3503,7 +3483,7 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
 
   if (!validation.success) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3520,19 +3500,22 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
   }
 
   const { name, path, status, website, publicNotes, privateNotes } = validation.data;
-  
+
   // Generate path from name if not provided
-  const finalPath = path || name.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  const finalPath =
+    path ||
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 
   // Check if name already exists
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
   if (existing) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3548,12 +3531,12 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
       </Layout>
     );
   }
-  
+
   // Check if path already exists
   const existingPath = await db.select().from(affiliations).where(eq(affiliations.path, finalPath)).get();
   if (existingPath) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Create Affiliation - Utah Churches" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -3583,12 +3566,12 @@ app.post('/admin/affiliations', adminMiddleware, async (c) => {
 });
 
 // Edit affiliation
-app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
+app.get('/admin/affiliations/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
-  
+
   const affiliation = await db
     .select()
     .from(affiliations)
@@ -3632,8 +3615,8 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
-            <AffiliationForm 
-              action={`/admin/affiliations/${id}`} 
+            <AffiliationForm
+              action={`/admin/affiliations/${id}`}
               affiliation={affiliation}
               affiliatedChurches={affiliatedChurches}
               allChurches={allChurches}
@@ -3645,17 +3628,17 @@ app.get('/admin/affiliations/:id/edit', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
+app.post('/admin/affiliations/:id', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  
+
   // Get form data directly to handle multiple checkbox values
   const formData = await c.req.formData();
-  
+
   // Convert FormData to object, handling multiple values
   const body: Record<string, any> = {};
   const selectedChurches: number[] = [];
-  
+
   for (const [key, value] of formData.entries()) {
     if (key === 'churches') {
       // Collect all church selections
@@ -3670,9 +3653,9 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
       body[key] = value.toString();
     }
   }
-  
+
   const parsedBody = parseFormBody(body);
-  
+
   // Validate input
   const validation = validateFormData(affiliationSchema, parsedBody);
   if (!validation.success) {
@@ -3680,21 +3663,24 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
   }
 
   const { name, path, status, website, publicNotes, privateNotes } = validation.data;
-  
+
   // Generate path from name if not provided
-  const finalPath = path || name.toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-  
+  const finalPath =
+    path ||
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
   // Check if path already exists (excluding current affiliation)
   const existingPath = await db
     .select()
     .from(affiliations)
     .where(sql`${affiliations.path} = ${finalPath} AND ${affiliations.id} != ${Number(id)}`)
     .get();
-    
+
   if (existingPath) {
     return c.redirect(`/admin/affiliations/${id}/edit`);
   }
@@ -3720,17 +3706,20 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
     .where(eq(churchAffiliations.affiliationId, Number(id)))
     .all();
 
-  const currentChurchIds = currentAssociations.map(a => a.churchId);
+  const currentChurchIds = currentAssociations.map((a) => a.churchId);
 
   // Find churches to add and remove
-  const churchesToAdd = selectedChurches.filter(churchId => !currentChurchIds.includes(churchId));
-  const churchesToRemove = currentChurchIds.filter(churchId => !selectedChurches.includes(churchId));
+  const churchesToAdd = selectedChurches.filter((churchId) => !currentChurchIds.includes(churchId));
+  const churchesToRemove = currentChurchIds.filter((churchId) => !selectedChurches.includes(churchId));
 
   // Remove unselected churches
   if (churchesToRemove.length > 0) {
-    await db
-      .delete(churchAffiliations)
-      .where(sql`${churchAffiliations.affiliationId} = ${Number(id)} AND ${churchAffiliations.churchId} IN (${sql.join(churchesToRemove.map(id => sql`${id}`), sql`, `)})`);
+    await db.delete(churchAffiliations).where(
+      sql`${churchAffiliations.affiliationId} = ${Number(id)} AND ${churchAffiliations.churchId} IN (${sql.join(
+        churchesToRemove.map((id) => sql`${id}`),
+        sql`, `
+      )})`
+    );
   }
 
   // Add newly selected churches
@@ -3753,7 +3742,7 @@ app.post('/admin/affiliations/:id', adminMiddleware, async (c) => {
 });
 
 // Delete affiliation
-app.post('/admin/affiliations/:id/delete', adminMiddleware, async (c) => {
+app.post('/admin/affiliations/:id/delete', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
 
@@ -3764,7 +3753,7 @@ app.post('/admin/affiliations/:id/delete', adminMiddleware, async (c) => {
 });
 
 // Church management routes
-app.get('/admin/churches', adminMiddleware, async (c) => {
+app.get('/admin/churches', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
     const user = c.get('user');
@@ -4095,7 +4084,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
   } catch (error) {
     console.error('Error loading churches:', error);
     return c.html(
-      <Layout title="Error - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Error - Utah Churches" user={user}>
         <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
       </Layout>,
       500
@@ -4104,7 +4093,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
 });
 
 // Create new church
-app.get('/admin/churches/new', adminMiddleware, async (c) => {
+app.get('/admin/churches/new', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -4146,12 +4135,12 @@ app.get('/admin/churches/new', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/churches', adminMiddleware, async (c) => {
+app.post('/admin/churches', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
     // Get form data directly to handle multiple checkbox values
     const formData = await c.req.formData();
-    
+
     // Convert FormData to a regular object, handling multiple values
     const body: Record<string, any> = {};
     for (const [key, value] of formData.entries()) {
@@ -4169,7 +4158,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
         body[key] = value.toString();
       }
     }
-    
+
     const parsedBody = parseFormBody(body);
 
     // Parse complex form data
@@ -4286,7 +4275,7 @@ app.post('/admin/churches', adminMiddleware, async (c) => {
 });
 
 // Edit church
-app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
+app.get('/admin/churches/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -4367,13 +4356,13 @@ app.get('/admin/churches/:id/edit', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/churches/:id', adminMiddleware, async (c) => {
+app.post('/admin/churches/:id', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
     const id = c.req.param('id');
     // Get form data directly to handle multiple checkbox values
     const formData = await c.req.formData();
-    
+
     // Convert FormData to a regular object, handling multiple values
     const body: Record<string, any> = {};
     for (const [key, value] of formData.entries()) {
@@ -4391,7 +4380,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         body[key] = value.toString();
       }
     }
-    
+
     const parsedBody = parseFormBody(body);
 
     // Parse complex form data
@@ -4551,7 +4540,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
         .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
         .limit(1)
         .get();
-      
+
       if (nextChurch) {
         return c.redirect(`/admin/churches/${nextChurch.id}/edit`);
       }
@@ -4565,7 +4554,7 @@ app.post('/admin/churches/:id', adminMiddleware, async (c) => {
 });
 
 // Delete church
-app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
+app.post('/admin/churches/:id/delete', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
     const id = c.req.param('id');
@@ -4602,7 +4591,7 @@ app.post('/admin/churches/:id/delete', adminMiddleware, async (c) => {
 });
 
 // Extract church data from website
-app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
+app.post('/admin/churches/:id/extract', requireAdminBetter, async (c) => {
   try {
     const body = await c.req.parseBody();
     const websiteUrl = body.websiteUrl as string;
@@ -4638,7 +4627,7 @@ app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
 });
 
 // County management routes
-app.get('/admin/counties', adminMiddleware, async (c) => {
+app.get('/admin/counties', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -4767,7 +4756,7 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
 });
 
 // Create new county
-app.get('/admin/counties/new', adminMiddleware, async (c) => {
+app.get('/admin/counties/new', requireAdminBetter, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
@@ -4779,7 +4768,7 @@ app.get('/admin/counties/new', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/counties', adminMiddleware, async (c) => {
+app.post('/admin/counties', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
   const user = c.get('user');
@@ -4790,7 +4779,7 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
 
   if (!validation.success) {
     return c.html(
-      <Layout title="Create County - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Create County - Utah Churches" user={user}>
         <div style="max-width: 600px; margin: 0 auto;">
           <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
             <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
@@ -4808,7 +4797,7 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
   const existing = await db.select().from(counties).where(eq(counties.name, name)).get();
   if (existing) {
     return c.html(
-      <Layout title="Create County - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Create County - Utah Churches" user={user}>
         <div style="max-width: 600px; margin: 0 auto;">
           <CountyForm
             action="/admin/counties"
@@ -4832,7 +4821,7 @@ app.post('/admin/counties', adminMiddleware, async (c) => {
 });
 
 // Edit county
-app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
+app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const user = c.get('user');
@@ -4859,7 +4848,7 @@ app.get('/admin/counties/:id/edit', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/counties/:id', adminMiddleware, async (c) => {
+app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
@@ -4883,7 +4872,7 @@ app.post('/admin/counties/:id', adminMiddleware, async (c) => {
 });
 
 // Delete county
-app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
+app.post('/admin/counties/:id/delete', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
 
@@ -4894,7 +4883,7 @@ app.post('/admin/counties/:id/delete', adminMiddleware, async (c) => {
 });
 
 // Pages routes
-app.get('/admin/pages', adminMiddleware, async (c) => {
+app.get('/admin/pages', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -5040,7 +5029,7 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
   );
 });
 
-app.get('/admin/pages/new', adminMiddleware, async (c) => {
+app.get('/admin/pages/new', requireAdminBetter, async (c) => {
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
 
@@ -5079,7 +5068,7 @@ app.get('/admin/pages/new', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/pages', adminMiddleware, async (c) => {
+app.post('/admin/pages', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
 
@@ -5138,7 +5127,7 @@ app.post('/admin/pages', adminMiddleware, async (c) => {
   return c.redirect('/admin/pages');
 });
 
-app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
+app.get('/admin/pages/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
@@ -5189,7 +5178,7 @@ app.get('/admin/pages/:id/edit', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/pages/:id', adminMiddleware, async (c) => {
+app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
@@ -5264,7 +5253,7 @@ app.post('/admin/pages/:id', adminMiddleware, async (c) => {
   return c.redirect('/admin/pages');
 });
 
-app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
+app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
 
@@ -5294,7 +5283,7 @@ app.post('/admin/pages/:id/delete', adminMiddleware, async (c) => {
 });
 
 // Settings routes
-app.get('/admin/settings', adminMiddleware, async (c) => {
+app.get('/admin/settings', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
 
@@ -5310,7 +5299,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
   return c.html(
-    <Layout title="Settings - Utah Churches" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Settings - Utah Churches" user={user}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -5342,7 +5331,7 @@ app.get('/admin/settings', adminMiddleware, async (c) => {
   );
 });
 
-app.post('/admin/settings', adminMiddleware, async (c) => {
+app.post('/admin/settings', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
 
@@ -5532,7 +5521,7 @@ app.get('*', async (c) => {
     const db = createDb(c.env);
 
     // Check for user session
-    const user = await getCurrentUser(c);
+    const user = await getUser(c);
 
     // Get favicon URL and logo URL
     const faviconUrl = await getFaviconUrl(c.env);
@@ -5547,7 +5536,14 @@ app.get('*', async (c) => {
     if (page) {
       // Render the page content
       return c.html(
-        <Layout title={`${page.title} - Utah Churches`} user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages} currentPath={`/${slug}`}>
+        <Layout
+          title={`${page.title} - Utah Churches`}
+          user={user}
+          faviconUrl={faviconUrl}
+          logoUrl={logoUrl}
+          pages={navbarPages}
+          currentPath={`/${slug}`}
+        >
           <div class="bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div class="max-w-3xl mx-auto">
@@ -5574,7 +5570,7 @@ app.get('*', async (c) => {
   }
 
   // For 404 page, also check for user session
-  const user = await getCurrentUser(c);
+  const user = await getUser(c);
 
   // Get favicon and logo URLs for 404 page
   const faviconUrl = await getFaviconUrl(c.env);
@@ -5584,7 +5580,13 @@ app.get('*', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
 
   return c.html(
-    <Layout title="Page Not Found - Utah Churches" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
+    <Layout
+      title="Page Not Found - Utah Churches"
+      user={user}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
       <NotFound />
     </Layout>,
     404

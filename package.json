@@ -11,12 +11,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed-affiliations": "tsx scripts/seed-affiliations.ts",
     "db:import-churches": "tsx scripts/import-churches.ts",
-    "db:export-users-for-clerk": "tsx scripts/export-users-for-clerk.ts",
     "better-auth:setup": "tsx scripts/setup-better-auth-env.ts",
     "better-auth:schema": "tsx scripts/generate-auth-schema.ts",
     "better-auth:test": "tsx scripts/test-better-auth.ts",
-    "auth:validate": "tsx scripts/validate-auth-systems.ts",
-    "auth:rollback": "tsx scripts/auth-rollback.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
@@ -40,7 +37,6 @@
     "wrangler": "^4.22.0"
   },
   "dependencies": {
-    "@hono/clerk-auth": "^3.0.1",
     "@libsql/client": "^0.15.9",
     "better-auth": "^1.2.12",
     "drizzle-orm": "^0.44.2",

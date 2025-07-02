@@ -14,9 +14,10 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
         {/* Very subtle loading indicator */}
         <div class="absolute inset-0 rounded-full bg-gray-300 opacity-30"></div>
       </div>
-      
-      <script dangerouslySetInnerHTML={{ 
-        __html: `
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           (function() {
             const container = document.getElementById('better-auth-user-menu');
             if (!container) return;
@@ -68,8 +69,9 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
               });
             }
           })();
-        `
-      }} />
+        `,
+        }}
+      />
     </>
   );
 };

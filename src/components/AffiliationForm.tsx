@@ -9,15 +9,15 @@ type AffiliationFormProps = {
   isNew?: boolean;
 };
 
-export const AffiliationForm: FC<AffiliationFormProps> = ({ 
-  action, 
-  affiliation, 
-  affiliatedChurches = [], 
-  allChurches = [], 
-  error, 
-  isNew = false 
+export const AffiliationForm: FC<AffiliationFormProps> = ({
+  action,
+  affiliation,
+  affiliatedChurches = [],
+  allChurches = [],
+  error,
+  isNew = false,
 }) => {
-  const affiliatedChurchIds = affiliatedChurches.map(c => c.id);
+  const affiliatedChurchIds = affiliatedChurches.map((c) => c.id);
   return (
     <>
       <form
@@ -92,7 +92,9 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
                 </div>
-                <p class="mt-2 text-sm text-gray-500">URL-friendly path for the network page. Leave blank to auto-generate from name.</p>
+                <p class="mt-2 text-sm text-gray-500">
+                  URL-friendly path for the network page. Leave blank to auto-generate from name.
+                </p>
               </div>
 
               <div class="sm:col-span-3">
@@ -195,16 +197,18 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Affiliated Churches</h3>
                 <p class="mt-1 text-sm text-gray-500">Churches currently associated with this affiliation.</p>
               </div>
-              
+
               {/* Currently affiliated churches */}
               {affiliatedChurches.length > 0 && (
                 <div class="mt-6 mb-6 p-4 bg-blue-50 rounded-lg">
-                  <p class="text-sm font-medium text-blue-900 mb-3">Currently affiliated churches ({affiliatedChurches.length}):</p>
+                  <p class="text-sm font-medium text-blue-900 mb-3">
+                    Currently affiliated churches ({affiliatedChurches.length}):
+                  </p>
                   <div class="space-y-2">
-                    {affiliatedChurches.map(church => (
+                    {affiliatedChurches.map((church) => (
                       <div key={church.id} class="flex items-center justify-between bg-white p-3 rounded-md">
                         <div>
-                          <a 
+                          <a
                             href={`/admin/churches/${church.id}/edit`}
                             class="text-sm font-medium text-blue-600 hover:text-blue-800"
                           >
@@ -214,12 +218,17 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                             <span class="text-sm text-gray-500 ml-2">({church.countyName} County)</span>
                           )}
                         </div>
-                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                          church.status === 'Listed' ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                          church.status === 'Ready to list' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
-                          church.status === 'Heretical' ? 'bg-red-50 text-red-700 ring-red-600/20' :
-                          'bg-gray-50 text-gray-700 ring-gray-600/20'
-                        }`}>
+                        <span
+                          class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                            church.status === 'Listed'
+                              ? 'bg-green-50 text-green-700 ring-green-600/20'
+                              : church.status === 'Ready to list'
+                                ? 'bg-blue-50 text-blue-700 ring-blue-600/20'
+                                : church.status === 'Heretical'
+                                  ? 'bg-red-50 text-red-700 ring-red-600/20'
+                                  : 'bg-gray-50 text-gray-700 ring-gray-600/20'
+                          }`}
+                        >
                           {church.status || 'No status'}
                         </span>
                       </div>
@@ -227,7 +236,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Add/remove churches */}
               <div class="mt-6">
                 <label class="block text-sm font-medium text-gray-700 mb-3">
@@ -253,7 +262,9 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                     </label>
                   ))}
                 </div>
-                <p class="mt-2 text-sm text-gray-500">Check or uncheck churches to add or remove them from this affiliation.</p>
+                <p class="mt-2 text-sm text-gray-500">
+                  Check or uncheck churches to add or remove them from this affiliation.
+                </p>
               </div>
             </div>
           )}

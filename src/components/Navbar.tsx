@@ -72,9 +72,9 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 Networks
               </a>
               {pages
-                .filter(page => page.navbarOrder !== null)
+                .filter((page) => page.navbarOrder !== null)
                 .sort((a, b) => (a.navbarOrder || 0) - (b.navbarOrder || 0))
-                .map(page => (
+                .map((page) => (
                   <a
                     href={`/${page.path}`}
                     class={`${
@@ -150,9 +150,9 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             Networks
           </a>
           {pages
-            .filter(page => page.navbarOrder !== null)
+            .filter((page) => page.navbarOrder !== null)
             .sort((a, b) => (a.navbarOrder || 0) - (b.navbarOrder || 0))
-            .map(page => (
+            .map((page) => (
               <a
                 href={`/${page.path}`}
                 class={`${

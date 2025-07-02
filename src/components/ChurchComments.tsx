@@ -20,7 +20,7 @@ interface ChurchCommentsProps {
 
 export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, comments, user }) => {
   // Filter comments based on user role and status
-  const visibleComments = comments.filter(comment => {
+  const visibleComments = comments.filter((comment) => {
     // Always show approved public comments
     if (comment.status === 'approved' && comment.isPublic) {
       return true;
@@ -39,7 +39,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
   return (
     <div class="mt-8">
       <h2 class="text-2xl font-bold mb-4">Comments</h2>
-      
+
       {/* Add comment form for authenticated users */}
       {user && (
         <div class="bg-gray-50 rounded-lg p-4 mb-6">
@@ -55,25 +55,17 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
             ></textarea>
             <div class="flex items-center justify-between">
               <label class="flex items-center">
-                <input
-                  type="checkbox"
-                  name="isPublic"
-                  value="true"
-                  class="mr-2"
-                />
+                <input type="checkbox" name="isPublic" value="true" class="mr-2" />
                 <span class="text-sm text-gray-600">Make this comment public</span>
               </label>
-              <button
-                type="submit"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-              >
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
                 Post Comment
               </button>
             </div>
           </form>
         </div>
       )}
-      
+
       {/* Display comments */}
       {visibleComments.length === 0 ? (
         <p class="text-gray-500">No comments yet. Be the first to share your thoughts!</p>
@@ -84,23 +76,19 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
               <div class="flex items-start justify-between mb-2">
                 <div>
                   <span class="font-semibold">{comment.userName || 'Anonymous'}</span>
-                  {comment.userId === user?.id && (
-                    <span class="ml-2 text-xs text-gray-500">(You)</span>
-                  )}
-                  <span class="ml-2 text-xs text-gray-500">
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </span>
+                  {comment.userId === user?.id && <span class="ml-2 text-xs text-gray-500">(You)</span>}
+                  <span class="ml-2 text-xs text-gray-500">{new Date(comment.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div class="flex items-center gap-2">
                   {!comment.isPublic && (
                     <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Private</span>
                   )}
                   {comment.status !== 'approved' && (
-                    <span class={`text-xs px-2 py-1 rounded ${
-                      comment.status === 'pending' 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      class={`text-xs px-2 py-1 rounded ${
+                        comment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
                       {comment.status}
                     </span>
                   )}
@@ -114,12 +102,10 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
           ))}
         </div>
       )}
-      
+
       {!user && (
         <div class="mt-4 text-center">
-          <p class="text-sm text-gray-600 mb-2">
-            Want to add a comment?
-          </p>
+          <p class="text-sm text-gray-600 mb-2">Want to add a comment?</p>
           <a href="/login" class="text-blue-600 hover:underline">
             Sign in to contribute
           </a>

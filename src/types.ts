@@ -7,10 +7,6 @@ export interface Bindings {
   CLOUDFLARE_ACCOUNT_HASH: string;
   CLOUDFLARE_IMAGES_API_TOKEN: string;
   OPENROUTER_API_KEY: string;
-  CLERK_SECRET_KEY?: string;
-  CLERK_PUBLISHABLE_KEY?: string;
-  ENABLE_CLERK?: string;
-  USE_BETTER_AUTH?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
   GOOGLE_CLIENT_ID?: string;

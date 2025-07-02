@@ -1,5 +1,4 @@
 import type { FC } from 'hono/jsx';
-import { ClerkUserMenu } from './ClerkUserMenu';
 import { BetterAuthUserMenu } from './BetterAuthUserMenu';
 
 type FooterProps = {
@@ -7,11 +6,9 @@ type FooterProps = {
   churchId?: string;
   countyId?: string;
   affiliationId?: string;
-  clerkPublishableKey?: string;
-  useBetterAuth?: boolean;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, clerkPublishableKey = '', useBetterAuth = false }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -112,11 +109,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               Data
             </a>
             {/* User menu - minimalist approach */}
-            {useBetterAuth ? (
-              <BetterAuthUserMenu user={user} />
-            ) : (
-              <ClerkUserMenu publishableKey={clerkPublishableKey} user={user} />
-            )}
+            <BetterAuthUserMenu user={user} />
           </div>
         </div>
       </div>

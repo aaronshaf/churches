@@ -31,7 +31,7 @@ Database name: `utahchurches`
 - `hono` - Web framework optimized for edge
 - `@libsql/client` - Turso database client
 - `drizzle-orm` - Type-safe ORM
-- `bcryptjs` - Password hashing
+- `better-auth` - Self-hosted authentication with Google OAuth
 - `js-yaml` - YAML data export
 - `drizzle-kit` - Database migrations and schema management
 
@@ -53,6 +53,10 @@ Create a `.dev.vars` file with:
 TURSO_DATABASE_URL=your_database_url
 TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
+BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
+BETTER_AUTH_URL=http://localhost:8787
+GOOGLE_CLIENT_ID=your-google-client-id-here
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 ```
 
 ### Common Commands
@@ -77,14 +81,10 @@ pnpm db:reset-admin  # Reset admin password
 # Run custom migrations (when db:push doesn't work)
 pnpm tsx scripts/run-migration.ts
 
-# Better-Auth setup (migration from Clerk to self-hosted auth)
+# Better-Auth setup (self-hosted authentication)
 pnpm better-auth:setup    # Configure environment variables for better-auth
 pnpm better-auth:schema   # Create auth database tables  
 pnpm better-auth:test     # Show testing instructions
-pnpm auth:validate        # Validate current auth system works
-pnpm auth:rollback status # Check current auth system configuration
-pnpm auth:rollback switch # Switch between Clerk and better-auth
-pnpm auth:rollback rollback # Emergency rollback to Clerk
 
 # Code search with ast-grep
 ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
@@ -99,6 +99,10 @@ Set production secrets using wrangler:
 wrangler secret put TURSO_DATABASE_URL
 wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put BETTER_AUTH_URL
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
 ```
 
 ## Architecture
@@ -114,8 +118,10 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - **affiliations**: Church networks/denominations with status (Listed, Unlisted, Heretical)
 - **church_affiliations**: Many-to-many relationship
 - **church_gatherings**: Gathering times and notes for each church
-- **users**: Admin/contributor accounts
-- **sessions**: User authentication sessions
+- **users**: Admin/contributor accounts (better-auth)
+- **sessions**: User authentication sessions (better-auth)
+- **accounts**: OAuth account linking (better-auth)
+- **verification_tokens**: Email verification tokens (better-auth)
 - **pages**: Custom content pages with title, path, and content
 
 ### Routes
@@ -190,24 +196,19 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - Status enums for controlled values
 
 ### Security Patterns
-- Authentication: Currently using Clerk (SaaS), migrating to better-auth (self-hosted)
-- Clerk: JWT-based with role in publicMetadata
-- Better-auth: Database sessions with role field on user
-- Admin middleware for protected routes  
-- Environment variables for secrets
+- **Authentication**: Better-auth (self-hosted) with Google OAuth
+- **Sessions**: Database sessions with role field on user
+- **Admin middleware**: Protected routes using better-auth
+- **Environment variables**: Secrets stored securely
 
-### Authentication Migration (In Progress)
-- **Current**: Clerk authentication (USE_BETTER_AUTH=false or unset)
-- **Future**: Better-auth (USE_BETTER_AUTH=true) - self-hosted, Google OAuth only
-- **Feature Flag**: USE_BETTER_AUTH environment variable  
-- **Migration Status**: Phase 4 complete (gradual rollout ready)
-- **Unified Auth**: All routes work with both systems via feature flag
-- **OAuth**: Google OAuth only, no password storage (Apple OAuth planned)
-- **Monitoring**: Real-time auth system monitoring at `/admin/monitoring`
-- **Rollback**: Instant rollback capability via `pnpm auth:rollback`
-- **Setup**: Run `pnpm better-auth:setup` to configure better-auth
-- **Validation**: Run `pnpm auth:validate` to test current system
-- See `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` and `/PHASE_4_GRADUAL_ROLLOUT.md`
+### Authentication System
+- **System**: Better-auth (self-hosted authentication)
+- **OAuth**: Google OAuth only - no password storage (Apple OAuth planned)
+- **Session Management**: Database-backed sessions
+- **User Roles**: admin, contributor, user
+- **Routes**: `/auth/signin`, `/auth/signout`, `/auth/callback/google`
+- **Setup**: Run `pnpm better-auth:setup` to configure
+- **Testing**: Run `pnpm better-auth:test` for instructions
 
 ### UI/UX Patterns
 - Responsive grid layouts
@@ -248,3 +249,33 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - Admin topnav is shown on /data page for authenticated admins
 - 404 pages implement smart redirects for church URLs
 - Networks page shows unlisted churches if only unlisted exist
+
+## Authentication Migration History
+
+**Migration from Clerk to Better-Auth: COMPLETED** ✅
+
+The application has successfully migrated from Clerk (SaaS) to better-auth (self-hosted):
+
+### Migration Phases Completed:
+- **Phase 1**: Better-auth setup and database schema ✅
+- **Phase 2**: Unified auth system with feature flags ✅ 
+- **Phase 3**: Feature parity with Google OAuth ✅
+- **Phase 4**: Monitoring and rollback capabilities ✅
+- **Phase 5**: Complete migration and cleanup ✅
+
+### Final Migration State:
+- **Authentication**: 100% better-auth (self-hosted)
+- **OAuth Provider**: Google OAuth only (no password storage)
+- **User Management**: Database-backed with role-based access
+- **Session Management**: Database sessions via better-auth
+- **Cleanup**: All Clerk dependencies removed
+- **Environment**: Simplified to better-auth variables only
+
+### Benefits Achieved:
+- **Self-hosted**: Full control over authentication system
+- **Cost Reduction**: No more SaaS authentication fees
+- **Privacy**: User data stays in our database
+- **Customization**: Full control over auth flows and UI
+- **Edge Performance**: Authentication runs on Cloudflare Workers
+
+Migration documentation preserved in `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` and `/PHASE_4_GRADUAL_ROLLOUT.md` for reference.

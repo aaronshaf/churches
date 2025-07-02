@@ -396,17 +396,17 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                 {/* Affiliations */}
                 <div class="sm:col-span-6">
                   <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Affiliations</h3>
-                  
+
                   {/* Currently selected affiliations */}
                   {selectedAffiliationIds.length > 0 && (
                     <div class="mb-4 p-3 bg-blue-50 rounded-lg">
                       <p class="text-sm font-medium text-blue-900 mb-2">Currently selected:</p>
                       <div class="flex flex-wrap gap-2">
-                        {selectedAffiliationIds.map(id => {
-                          const affiliation = affiliations.find(a => a.id === id);
+                        {selectedAffiliationIds.map((id) => {
+                          const affiliation = affiliations.find((a) => a.id === id);
                           return affiliation ? (
-                            <a 
-                              key={id} 
+                            <a
+                              key={id}
                               href={`/admin/affiliations/${id}/edit`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -414,7 +414,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                             >
                               {affiliation.name}
                               <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
                               </svg>
                             </a>
                           ) : null;
@@ -422,7 +427,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       </div>
                     </div>
                   )}
-                  
+
                   <p class="text-sm text-gray-500 mb-4">Select all that apply</p>
                   <div class="space-y-3 max-h-48 overflow-y-auto border rounded-md p-4">
                     {affiliations.map((affiliation) => (
@@ -561,7 +566,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     <label for="churchImages" class="block text-sm font-medium text-gray-700 mb-2">
                       Upload new images
                     </label>
-                    <div 
+                    <div
                       id="drop-zone"
                       class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
                     >
