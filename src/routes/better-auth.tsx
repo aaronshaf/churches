@@ -3,7 +3,8 @@ import type { Bindings } from '../types';
 import { createAuth } from '../lib/auth';
 import { BetterAuthLogin } from '../components/BetterAuthLogin';
 import { Layout } from '../components/Layout';
-import { createDb } from '../db';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 import { users } from '../db/auth-schema';
 import { eq } from 'drizzle-orm';
 
@@ -31,26 +32,25 @@ betterAuthApp.post('/signin', async (c) => {
   const auth = createAuth(c.env);
   
   try {
-    const session = await auth.api.signInEmail({
+    const result = await auth.api.signInEmail({
       body: {
         email,
         password,
       },
     });
     
-    if (!session) {
+    if (!result.data) {
       return c.redirect('/auth/signin?error=Invalid credentials');
     }
     
-    // Set session cookie
-    c.header('Set-Cookie', session.headers.get('set-cookie') || '');
-    
-    // Get user to check role for redirect
-    const db = createDb(c.env);
-    const user = await db.select().from(users).where(eq(users.email, email)).get();
+    // Forward the session cookie
+    const cookies = result.headers.get('set-cookie');
+    if (cookies) {
+      c.header('Set-Cookie', cookies);
+    }
     
     // Redirect based on role
-    if (user?.role === 'admin') {
+    if (result.data.user.role === 'admin') {
       return c.redirect('/admin');
     } else {
       return c.redirect(redirectUrl);
@@ -61,7 +61,29 @@ betterAuthApp.post('/signin', async (c) => {
   }
 });
 
-// Handle signout
+// Handle signout (GET route for simple redirect)
+betterAuthApp.get('/signout', async (c) => {
+  const auth = createAuth(c.env);
+  
+  try {
+    const response = await auth.api.signOut({
+      headers: c.req.raw.headers,
+    });
+    
+    // Clear session cookie
+    const cookies = response.headers.get('set-cookie');
+    if (cookies) {
+      c.header('Set-Cookie', cookies);
+    }
+    
+    return c.redirect('/');
+  } catch (error) {
+    console.error('Signout error:', error);
+    return c.redirect('/');
+  }
+});
+
+// Handle signout (POST route for forms)
 betterAuthApp.post('/signout', async (c) => {
   const auth = createAuth(c.env);
   
@@ -71,7 +93,10 @@ betterAuthApp.post('/signout', async (c) => {
     });
     
     // Clear session cookie
-    c.header('Set-Cookie', response.headers.get('set-cookie') || '');
+    const cookies = response.headers.get('set-cookie');
+    if (cookies) {
+      c.header('Set-Cookie', cookies);
+    }
     
     return c.redirect('/');
   } catch (error) {
@@ -171,15 +196,22 @@ betterAuthApp.post('/signup', async (c) => {
       },
     });
     
-    if (!result) {
+    if (!result.data) {
       return c.redirect('/auth/signup?error=Registration failed');
     }
     
     // Set session cookie
-    c.header('Set-Cookie', result.headers.get('set-cookie') || '');
+    const cookies = result.headers.get('set-cookie');
+    if (cookies) {
+      c.header('Set-Cookie', cookies);
+    }
     
-    // First user becomes admin
-    const db = createDb(c.env);
+    // Check if this is the first user to make them admin
+    const client = createClient({
+      url: c.env.TURSO_DATABASE_URL,
+      authToken: c.env.TURSO_AUTH_TOKEN,
+    });
+    const db = drizzle(client, { schema: { users } });
     const userCount = await db.select().from(users).limit(2);
     
     if (userCount.length === 1) {

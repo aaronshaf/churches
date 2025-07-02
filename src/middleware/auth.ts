@@ -1,23 +1,21 @@
 import type { MiddlewareHandler } from 'hono';
 import { 
-  requireAuth as clerkRequireAuth, 
-  requireAdmin as clerkRequireAdmin,
-  getCurrentUser as clerkGetCurrentUser 
-} from './clerk-rbac';
+  requireAuth,
+  requireAdmin,
+  getCurrentUser as getUnifiedCurrentUser
+} from './unified-auth';
 
-// Authentication middleware - uses Clerk
+// Authentication middleware - uses unified auth (Clerk or better-auth based on flag)
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
-  return clerkRequireAuth(c, next);
+  return requireAuth(c, next);
 };
 
-// Admin middleware - uses Clerk with role-based access control
+// Admin middleware - uses unified auth with role-based access control
 export const adminMiddleware: MiddlewareHandler = async (c, next) => {
-  return clerkRequireAdmin(c, next);
+  return requireAdmin(c, next);
 };
 
 // Helper to get current user (for optional auth in public routes)
 export const getCurrentUser = async (c: any) => {
-  const user = await clerkGetCurrentUser(c);
-  // Return null instead of user with undefined properties
-  return user && user.id ? user : null;
+  return getUnifiedCurrentUser(c);
 };

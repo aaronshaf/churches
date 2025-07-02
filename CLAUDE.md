@@ -77,9 +77,10 @@ pnpm db:reset-admin  # Reset admin password
 # Run custom migrations (when db:push doesn't work)
 pnpm tsx scripts/run-migration.ts
 
-# Better-Auth setup (when USE_BETTER_AUTH=true)
-pnpm tsx scripts/generate-auth-schema.ts  # Create auth tables
-pnpm tsx scripts/seed-admin-better-auth.ts  # Show admin setup instructions
+# Better-Auth setup (migration from Clerk to self-hosted auth)
+pnpm better-auth:setup    # Configure environment variables for better-auth
+pnpm better-auth:schema   # Create auth database tables
+pnpm better-auth:test     # Show testing instructions
 
 # Code search with ast-grep
 ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
@@ -193,10 +194,12 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 
 ### Authentication Migration (In Progress)
 - **Current**: Clerk authentication (USE_BETTER_AUTH=false or unset)
-- **Future**: Better-auth (USE_BETTER_AUTH=true)
+- **Future**: Better-auth (USE_BETTER_AUTH=true) - self-hosted, database-driven
 - **Feature Flag**: USE_BETTER_AUTH environment variable
-- **Migration Status**: Phase 1 complete (setup and schema)
-- See `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` for details
+- **Migration Status**: Phase 2 complete (parallel implementation)
+- **Unified Auth**: All routes work with both systems via feature flag
+- **Setup**: Run `pnpm better-auth:setup` to configure better-auth
+- See `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` for full details
 
 ### UI/UX Patterns
 - Responsive grid layouts

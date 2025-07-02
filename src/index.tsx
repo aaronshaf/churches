@@ -25,6 +25,7 @@ import {
   settings,
 } from './db/schema';
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
+import { getUser } from './middleware/unified-auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
 import { betterAuthMiddleware, requireAdminBetter, requireContributorBetter } from './middleware/better-auth';
@@ -47,6 +48,7 @@ import {
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { adminUsersApp } from './routes/admin-users';
+import { adminUsersUnifiedApp } from './routes/admin-users-unified';
 import { betterAuthApp } from './routes/better-auth';
 import type { Bindings } from './types';
 
@@ -126,8 +128,8 @@ app.onError((err, c) => {
   );
 });
 
-// Mount Clerk-based admin users route
-app.route('/admin/users', adminUsersApp);
+// Mount admin users route (unified for both auth systems)
+app.route('/admin/users', adminUsersUnifiedApp);
 
 // Mount better-auth routes when feature flag is enabled
 app.use('/auth/*', async (c, next) => {
@@ -2813,6 +2815,15 @@ app.get('/debug/login', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
+  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
+  
+  // If using better-auth, redirect to the new auth signin page
+  if (useBetterAuth) {
+    const redirectUrl = c.req.query('redirect_url') || '/admin';
+    return c.redirect(`/auth/signin?redirect=${encodeURIComponent(redirectUrl)}`);
+  }
+  
+  // Otherwise use Clerk
   const redirectPath = c.req.query('redirect_url') || '/auth/callback';
   
   // Get the current host URL
@@ -2854,6 +2865,14 @@ app.get('/auth/callback', async (c) => {
 // POST /login route removed - Clerk handles authentication
 
 app.get('/logout', async (c) => {
+  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
+  
+  // If using better-auth, redirect to signout endpoint
+  if (useBetterAuth) {
+    return c.redirect('/auth/signout');
+  }
+  
+  // Otherwise use Clerk
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
   
@@ -2871,7 +2890,7 @@ app.get('/force-refresh', async (c) => {
 
 // Admin routes
 app.get('/admin', adminMiddleware, async (c) => {
-  const user = c.get('user');
+  const user = getUser(c);
   const db = createDb(c.env);
 
   // Get logo URL

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
-import { requireContributor } from '../middleware/clerk-rbac';
+import { requireContributor, getUser } from '../middleware/unified-auth';
 import { createClient } from '@libsql/client';
 import { churchSuggestions, comments } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -14,7 +14,7 @@ contributorApp.use('*', requireContributor);
 
 // Dashboard for contributors
 contributorApp.get('/dashboard', async (c) => {
-  const user = c.get('user');
+  const user = getUser(c);
   const db = drizzle(createClient({ 
     url: c.env.TURSO_DATABASE_URL,
     authToken: c.env.TURSO_AUTH_TOKEN,
@@ -90,7 +90,7 @@ contributorApp.get('/dashboard', async (c) => {
 
 // Suggest a church form
 contributorApp.get('/suggest', async (c) => {
-  const user = c.get('user');
+  const user = getUser(c);
 
   return c.html(
     <Layout title="Suggest a Church" user={user} currentPath="/contributor/suggest" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
@@ -233,7 +233,7 @@ contributorApp.get('/suggest', async (c) => {
 
 // Handle church suggestion submission
 contributorApp.post('/suggest', async (c) => {
-  const user = c.get('user');
+  const user = getUser(c);
   const formData = await c.req.formData();
   
   const db = drizzle(createClient({ 
@@ -272,7 +272,7 @@ contributorApp.post('/suggest', async (c) => {
 
 // Add comment to a church
 contributorApp.post('/churches/:id/comment', async (c) => {
-  const user = c.get('user');
+  const user = getUser(c);
   const churchId = parseInt(c.req.param('id'));
   const formData = await c.req.formData();
   
