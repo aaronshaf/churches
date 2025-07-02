@@ -17,6 +17,7 @@ type LayoutProps = {
   ogImage?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
   clerkPublishableKey?: string;
+  useBetterAuth?: boolean;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -34,6 +35,7 @@ export const Layout: FC<LayoutProps> = ({
   ogImage,
   pages = [],
   clerkPublishableKey = '',
+  useBetterAuth = false,
 }) => {
   return (
     <html lang="en">
@@ -289,7 +291,7 @@ export const Layout: FC<LayoutProps> = ({
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} clerkPublishableKey={clerkPublishableKey} />
+        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} clerkPublishableKey={clerkPublishableKey} useBetterAuth={useBetterAuth} />
       </body>
     </html>
   );

@@ -74,6 +74,7 @@ const createLayoutProps = (c: any, overrides: any = {}) => ({
   faviconUrl: undefined, // Will be set by individual routes as needed
   logoUrl: undefined, // Will be set by individual routes as needed
   clerkPublishableKey: c.env.CLERK_PUBLISHABLE_KEY || '',
+  useBetterAuth: c.env.USE_BETTER_AUTH === 'true',
   ...overrides,
 });
 

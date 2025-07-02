@@ -49,15 +49,15 @@ try {
     newLines.push('BETTER_AUTH_URL=http://localhost:8787');
   }
 
-  // Add optional Google OAuth variables if not present
+  // Add Google OAuth variables (required for better-auth)
   const hasGoogleClientId = lines.some(line => line.startsWith('GOOGLE_CLIENT_ID='));
   const hasGoogleClientSecret = lines.some(line => line.startsWith('GOOGLE_CLIENT_SECRET='));
   
   if (!hasGoogleClientId) {
-    newLines.push('# GOOGLE_CLIENT_ID=your-google-client-id');
+    newLines.push('# GOOGLE_CLIENT_ID=your-google-client-id  # REQUIRED for better-auth');
   }
   if (!hasGoogleClientSecret) {
-    newLines.push('# GOOGLE_CLIENT_SECRET=your-google-client-secret');
+    newLines.push('# GOOGLE_CLIENT_SECRET=your-google-client-secret  # REQUIRED for better-auth');
   }
 
   // Write the updated file
@@ -72,15 +72,20 @@ try {
   console.log('- BETTER_AUTH_URL=http://localhost:8787');
   
   if (!hasGoogleClientId || !hasGoogleClientSecret) {
-    console.log('\nOptional: Uncomment and fill in Google OAuth credentials if needed:');
-    console.log('- GOOGLE_CLIENT_ID');
-    console.log('- GOOGLE_CLIENT_SECRET');
+    console.log('\n⚠️ REQUIRED: Set up Google OAuth credentials:');
+    console.log('1. Go to: https://console.cloud.google.com/apis/credentials');
+    console.log('2. Create OAuth 2.0 Client ID');
+    console.log('3. Add authorized redirect URI: http://localhost:8787/auth/callback/google');
+    console.log('4. Uncomment and fill in these variables in .dev.vars:');
+    console.log('   - GOOGLE_CLIENT_ID');
+    console.log('   - GOOGLE_CLIENT_SECRET');
   }
 
   console.log('\nNext steps:');
-  console.log('1. Run: pnpm tsx scripts/generate-auth-schema.ts');
-  console.log('2. Run: pnpm dev');
-  console.log('3. Visit: http://localhost:8787/auth/signup');
+  console.log('1. Set up Google OAuth credentials (see above)');
+  console.log('2. Run: pnpm tsx scripts/generate-auth-schema.ts');
+  console.log('3. Run: pnpm dev');
+  console.log('4. Visit: http://localhost:8787/auth/signin (Google OAuth only)');
 
 } catch (error) {
   console.error('Error setting up environment:', error);

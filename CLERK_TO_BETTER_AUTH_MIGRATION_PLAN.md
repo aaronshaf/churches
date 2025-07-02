@@ -130,11 +130,8 @@ export function createAuth(env: any, cf?: any) {
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
     
-    // Email/Password configuration
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false, // Start without verification
-    },
+    // OAuth providers only - no password storage
+    // emailAndPassword disabled for security
     
     // Session configuration
     session: {
@@ -158,12 +155,17 @@ export function createAuth(env: any, cf?: any) {
       },
     },
     
-    // OAuth providers (configure as needed)
+    // OAuth providers - Google only for now, Apple later
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID,
         clientSecret: env.GOOGLE_CLIENT_SECRET,
+        enabled: !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET,
       },
+      // apple: {  // Future addition
+      //   clientId: env.APPLE_CLIENT_ID,
+      //   clientSecret: env.APPLE_CLIENT_SECRET,
+      // },
     },
   });
 }

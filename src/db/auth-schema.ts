@@ -33,6 +33,7 @@ export const accounts = sqliteTable('accounts', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
+// Verification tokens - not needed for OAuth-only flow but kept for better-auth compatibility
 export const verificationTokens = sqliteTable('verification_tokens', {
   id: text('id').primaryKey(),
   token: text('token').notNull(),

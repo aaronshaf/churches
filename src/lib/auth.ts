@@ -20,12 +20,6 @@ export function createAuth(env: any) {
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
     
-    // Email/Password configuration
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false, // Start without verification
-    },
-    
     // Session configuration
     session: {
       expiresIn: 60 * 60 * 24 * 30, // 30 days
@@ -44,7 +38,7 @@ export function createAuth(env: any) {
       },
     },
     
-    // OAuth providers (configure as needed)
+    // OAuth providers - Google only for now
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID || "",

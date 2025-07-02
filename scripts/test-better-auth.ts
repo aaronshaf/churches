@@ -22,15 +22,16 @@ console.log('   pnpm dev\n');
 
 console.log('4. Test the auth flows:\n');
 
-console.log('   Registration (first user becomes admin):');
-console.log('   - Visit: http://localhost:8787/auth/signup');
-console.log('   - Create an account');
-console.log('   - Should redirect to /admin\n');
+console.log('   Registration via Google OAuth (first user becomes admin):');
+console.log('   - Visit: http://localhost:8787/auth/signin');
+console.log('   - Click "Continue with Google"');
+console.log('   - Complete Google OAuth flow');
+console.log('   - Should redirect to /admin (first user auto-promoted)\n');
 
-console.log('   Login:');
+console.log('   Login via Google OAuth:');
 console.log('   - Visit: http://localhost:8787/login');
 console.log('   - Should redirect to /auth/signin');
-console.log('   - Login with your credentials\n');
+console.log('   - Click "Continue with Google"\n');
 
 console.log('   Admin functionality:');
 console.log('   - Visit: http://localhost:8787/admin');
@@ -50,5 +51,7 @@ console.log('Current environment check:');
 console.log(`USE_BETTER_AUTH: ${process.env.USE_BETTER_AUTH || 'not set'}`);
 console.log(`BETTER_AUTH_SECRET: ${process.env.BETTER_AUTH_SECRET ? 'set' : 'not set'}`);
 console.log(`BETTER_AUTH_URL: ${process.env.BETTER_AUTH_URL || 'not set'}`);
+console.log(`GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? 'set' : 'not set'}`);
+console.log(`GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? 'set' : 'not set'}`);
 console.log(`TURSO_DATABASE_URL: ${process.env.TURSO_DATABASE_URL ? 'set' : 'not set'}`);
 console.log(`TURSO_AUTH_TOKEN: ${process.env.TURSO_AUTH_TOKEN ? 'set' : 'not set'}`);
