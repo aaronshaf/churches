@@ -6,7 +6,7 @@ import {
   requireAuth as clerkRequireAuth, 
   requireAdmin as clerkRequireAdmin,
   getCurrentUser as clerkGetCurrentUser 
-} from './clerk';
+} from './clerk-rbac';
 
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
   // Use Clerk if enabled
@@ -62,7 +62,9 @@ export const adminMiddleware: MiddlewareHandler = async (c, next) => {
 export const getCurrentUser = async (c: any) => {
   // Use Clerk if enabled
   if (isClerkEnabled(c.env)) {
-    return await clerkGetCurrentUser(c);
+    const user = await clerkGetCurrentUser(c);
+    // Return null instead of user with undefined properties
+    return user && user.id ? user : null;
   }
 
   // Fall back to legacy session auth

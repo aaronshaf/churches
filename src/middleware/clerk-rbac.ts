@@ -6,7 +6,7 @@ import type { Bindings } from '../types';
 export const clerkMiddleware = honoClerkMiddleware;
 
 // User role types
-export type UserRole = 'admin' | 'contributor';
+export type UserRole = 'admin' | 'contributor' | 'user';
 
 export interface ClerkUser {
   id: string;
@@ -15,6 +15,8 @@ export interface ClerkUser {
   role: UserRole;
   firstName?: string;
   lastName?: string;
+  // For backward compatibility with legacy code
+  userType?: 'admin' | 'contributor';
 }
 
 export interface ClerkPublicMetadata {
@@ -24,7 +26,7 @@ export interface ClerkPublicMetadata {
 }
 
 // Helper to get user with role from Clerk
-const getUserWithRole = async (c: Context<{ Bindings: Bindings }>, userId: string): Promise<ClerkUser | null> => {
+const getUserWithRole = async (c: Context<{ Bindings: Bindings }>, userId: string, sessionClaims?: any): Promise<ClerkUser | null> => {
   try {
     if (!c.env.CLERK_SECRET_KEY) {
       console.error('CLERK_SECRET_KEY not available');
@@ -45,9 +47,19 @@ const getUserWithRole = async (c: Context<{ Bindings: Bindings }>, userId: strin
 
     const user = await response.json();
     
-    // Extract role from publicMetadata, default to 'contributor'
+    // Extract role from publicMetadata, default to 'user'
     const metadata = user.public_metadata as ClerkPublicMetadata;
-    const role = metadata?.role || 'contributor';
+    const roleFromJWT = sessionClaims?.publicMetadata?.role || 'user';
+    const freshRole = metadata?.role || 'user';
+    
+    // For admin roles from JWT, trust the cached value to avoid unnecessary future API calls
+    // For non-admin roles, always use fresh data to ensure accurate permissions
+    const role = (roleFromJWT === 'admin' && freshRole === 'admin') ? 'admin' : freshRole;
+    
+    // Log role changes for debugging
+    if (roleFromJWT !== freshRole) {
+      console.log(`Role updated from JWT cache: ${roleFromJWT} -> fresh API: ${freshRole}`);
+    }
     
     return {
       id: user.id,
@@ -56,6 +68,7 @@ const getUserWithRole = async (c: Context<{ Bindings: Bindings }>, userId: strin
       role,
       firstName: user.first_name || undefined,
       lastName: user.last_name || undefined,
+      userType: role === 'admin' ? 'admin' : 'contributor', // Backward compatibility
     };
   } catch (error) {
     console.error('Error fetching user from Clerk:', error);
@@ -71,7 +84,7 @@ export const requireAuth = async (c: Context<{ Bindings: Bindings }>, next: Next
     return c.redirect('/login');
   }
   
-  const user = await getUserWithRole(c, auth.userId);
+  const user = await getUserWithRole(c, auth.userId, auth.sessionClaims);
   if (!user) {
     return c.redirect('/login');
   }
@@ -90,7 +103,7 @@ export const requireAdmin = async (c: Context<{ Bindings: Bindings }>, next: Nex
     return c.redirect('/login');
   }
   
-  const user = await getUserWithRole(c, auth.userId);
+  const user = await getUserWithRole(c, auth.userId, auth.sessionClaims);
   if (!user) {
     return c.redirect('/login');
   }
@@ -101,10 +114,10 @@ export const requireAdmin = async (c: Context<{ Bindings: Bindings }>, next: Nex
       `<div style="padding: 2rem; text-align: center;">
         <h1>Access Denied</h1>
         <p>You don't have permission to access this area.</p>
+        <p>Required role: <strong>admin</strong></p>
         <p>Your current role: <strong>${user.role}</strong></p>
         <div style="margin-top: 2rem;">
           <a href="/" style="margin-right: 1rem;">Go to Home</a>
-          <a href="/dashboard">Go to Dashboard</a>
         </div>
       </div>`,
       403
@@ -125,7 +138,7 @@ export const requireContributor = async (c: Context<{ Bindings: Bindings }>, nex
     return c.redirect('/login');
   }
   
-  const user = await getUserWithRole(c, auth.userId);
+  const user = await getUserWithRole(c, auth.userId, auth.sessionClaims);
   if (!user) {
     return c.redirect('/login');
   }
@@ -135,7 +148,8 @@ export const requireContributor = async (c: Context<{ Bindings: Bindings }>, nex
     return c.html(
       `<div style="padding: 2rem; text-align: center;">
         <h1>Access Denied</h1>
-        <p>You need to be a contributor to access this feature.</p>
+        <p>You need to be a contributor or admin to access this feature.</p>
+        <p>Your current role: <strong>${user.role}</strong></p>
         <div style="margin-top: 2rem;">
           <a href="/">Go to Home</a>
         </div>
@@ -232,7 +246,7 @@ export const getAllUsersWithRoles = async (
         id: user.id,
         email: user.email_addresses?.[0]?.email_address,
         username: user.username || user.first_name || user.email_addresses?.[0]?.email_address,
-        role: metadata?.role || 'contributor',
+        role: metadata?.role || 'user',
         firstName: user.first_name || undefined,
         lastName: user.last_name || undefined,
       };

@@ -16,8 +16,7 @@ import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { UserForm } from './components/UserForm';
-import { ClerkLogout } from './components/ClerkLogout';
-import { ClerkLogin } from './components/ClerkLogin';
+import { ClerkSignIn, ClerkSignOut } from './components/ClerkAuth';
 import { createDb } from './db';
 import {
   affiliations,
@@ -33,7 +32,7 @@ import {
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { clerkMiddleware, requireAuth, requireAdmin } from './middleware/clerk';
+import { clerkMiddleware } from './middleware/clerk-rbac';
 import { isClerkEnabled } from './config/features';
 import {
   deleteFromCloudflareImages,
@@ -2786,7 +2785,7 @@ app.get('/data', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  // If Clerk is enabled, redirect to Clerk's hosted sign-in page
+  // If Clerk is enabled, show the Clerk sign-in component
   if (isClerkEnabled(c.env)) {
     const redirectPath = c.req.query('redirect_url') || '/admin';
     
@@ -2795,39 +2794,17 @@ app.get('/login', async (c) => {
     const baseUrl = `${url.protocol}//${url.host}`;
     const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
     
-    // Extract domain from publishable key
-    let accountsDomain = 'accounts.utahchurches.com'; // fallback
-    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)$/);
-    if (pkMatch) {
-      try {
-        const decoded = atob(pkMatch[1]);
-        const clerkDomain = decoded.endsWith('$') ? decoded.slice(0, -1) : decoded;
-        
-        // For test keys, remove "clerk." prefix if present
-        if (c.env.CLERK_PUBLISHABLE_KEY.startsWith('pk_test_')) {
-          // Test domains are like "square-polecat-66.clerk.accounts.dev"
-          // We need just "square-polecat-66.accounts.dev"
-          accountsDomain = clerkDomain.replace(/\.clerk\./, '.');
-        } else {
-          // For production, transform clerk.domain to accounts.domain
-          accountsDomain = clerkDomain.replace(/^clerk\./, 'accounts.');
-        }
-      } catch (e) {
-        console.error('Failed to decode domain from key:', e);
-      }
-    }
+    const faviconUrl = await getFaviconUrl(c.env);
+    const logoUrl = await getLogoUrl(c.env);
     
-    // Redirect to Clerk's hosted sign-in page
-    console.log('Redirecting to Clerk sign-in at:', accountsDomain);
-    console.log('With redirect URL:', fullRedirectUrl);
-    
-    // For test instances, check if localhost is allowed
-    if (c.env.CLERK_PUBLISHABLE_KEY.startsWith('pk_test_') && url.hostname === 'localhost') {
-      // Try the redirect - if localhost is configured in Clerk, it will work
-      // If not, Clerk will show an error page with instructions
-    }
-    
-    return c.redirect(`https://${accountsDomain}/sign-in?redirect_url=${encodeURIComponent(fullRedirectUrl)}`);
+    return c.html(
+      <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
+        <ClerkSignIn 
+          publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
+          redirectUrl={fullRedirectUrl}
+        />
+      </Layout>
+    );
   }
 
   // Otherwise use legacy auth
@@ -2899,86 +2876,7 @@ app.get('/logout', async (c) => {
     
     return c.html(
       <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-md w-full space-y-8">
-            <div class="text-center">
-              <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Signing out...</h2>
-              <p class="mt-2 text-sm text-gray-600">Please wait while we sign you out.</p>
-            </div>
-          </div>
-        </div>
-        <script 
-          src="https://unpkg.com/@clerk/clerk-js@4/dist/clerk.browser.js"
-          data-clerk-publishable-key={c.env.CLERK_PUBLISHABLE_KEY}
-        />
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Enhanced logout with better error handling
-            console.log('Logout script loaded');
-            
-            setTimeout(async () => {
-              try {
-                console.log('Starting logout process...');
-                console.log('Checking for Clerk on window:', typeof window.Clerk);
-                
-                if (typeof window.Clerk === 'function') {
-                  console.log('Clerk found, initializing...');
-                  const clerk = window.Clerk('${c.env.CLERK_PUBLISHABLE_KEY}');
-                  console.log('Clerk instance created');
-                  
-                  await clerk.load();
-                  console.log('Clerk loaded, attempting sign out...');
-                  
-                  await clerk.signOut();
-                  console.log('✅ Clerk signOut successful');
-                } else {
-                  console.warn('⚠️ Clerk not found on window, proceeding with manual cleanup');
-                }
-                
-                // Clear all browser storage regardless
-                console.log('Clearing localStorage and sessionStorage...');
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // Clear cookies more thoroughly
-                console.log('Clearing cookies...');
-                const cookies = document.cookie.split(";");
-                console.log('Found cookies:', cookies);
-                
-                cookies.forEach(function(cookie) {
-                  const eqPos = cookie.indexOf("=");
-                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                  if (name) {
-                    console.log('Clearing cookie:', name);
-                    // Clear cookie for current domain and path
-                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                    // Clear cookie for root domain
-                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
-                    // Clear cookie for parent domain (in case of subdomain)
-                    const parts = window.location.hostname.split('.');
-                    if (parts.length > 1) {
-                      const parentDomain = '.' + parts.slice(-2).join('.');
-                      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + parentDomain;
-                    }
-                    // Clear cookie for Clerk domain
-                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.utahchurches.com";
-                  }
-                });
-                
-                console.log('✅ All cleanup complete, redirecting to homepage...');
-                window.location.href = '/';
-              } catch (error) {
-                console.error('❌ Logout error:', error);
-                console.log('Falling back to manual cleanup and redirect...');
-                
-                // Fallback: just clear and redirect
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '/';
-              }
-            }, 1000); // Increased timeout to 1 second for better reliability
-          `
-        }} />
+        <ClerkSignOut publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} />
       </Layout>
     );
   }

@@ -3,7 +3,7 @@ import { getCookie } from 'hono/cookie';
 import { Layout } from '../components/Layout';
 import { validateSession } from '../utils/auth';
 import { isClerkEnabled } from '../config/features';
-import { requireAdmin as clerkRequireAdmin } from './clerk';
+import { requireAdmin as clerkRequireAdmin } from './clerk-rbac';
 
 export const requireAdminMiddleware: MiddlewareHandler = async (c, next) => {
   // Use Clerk if enabled
