@@ -2868,6 +2868,9 @@ app.get('/admin', adminMiddleware, async (c) => {
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   // Get statistics using COUNT for efficiency
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
@@ -2892,7 +2895,7 @@ app.get('/admin', adminMiddleware, async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin" logoUrl={logoUrl} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Admin Dashboard - Utah Churches" user={user} currentPath="/admin" logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3221,6 +3224,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
 
   // Get all affiliations first
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
@@ -3245,7 +3249,7 @@ app.get('/admin/affiliations', adminMiddleware, async (c) => {
   }));
 
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3703,6 +3707,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     const db = createDb(c.env);
     const user = c.get('user');
     const logoUrl = await getLogoUrl(c.env);
+    const navbarPages = await getNavbarPages(c.env);
     const allChurches = await db
       .select({
         id: churches.id,
@@ -3729,7 +3734,7 @@ app.get('/admin/churches', adminMiddleware, async (c) => {
     };
 
     return c.html(
-      <Layout title="Manage Churches - Utah Churches" user={user} logoUrl={logoUrl} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+      <Layout title="Manage Churches - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -4576,10 +4581,11 @@ app.get('/admin/counties', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
   return c.html(
-    <Layout title="Manage Counties - Utah Churches" user={user} logoUrl={logoUrl} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Counties - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4832,10 +4838,11 @@ app.get('/admin/pages', adminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
   const logoUrl = await getLogoUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
   const allPages = await db.select().from(pages).orderBy(pages.title).all();
 
   return c.html(
-    <Layout title="Manage Pages - Utah Churches" user={user} logoUrl={logoUrl} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
+    <Layout title="Manage Pages - Utah Churches" user={user} logoUrl={logoUrl} pages={navbarPages} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
