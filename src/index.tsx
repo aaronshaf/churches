@@ -53,10 +53,35 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Mount better-auth API routes BEFORE middleware
-app.on(['POST', 'GET'], '/api/auth/*', async (c) => {
+// Test route to verify pattern matching
+app.get('/api/auth/test', async (c) => {
+  return c.json({ message: 'Test route works!' });
+});
+
+// Debug route to see what better-auth provides
+app.get('/api/auth/debug', async (c) => {
   const auth = createAuth(c.env);
-  return auth.handler(c.req.raw);
+  return c.json({ 
+    message: 'Better-auth debug',
+    config: {
+      baseURL: auth.options.baseURL,
+      socialProviders: Object.keys(auth.options.socialProviders || {}),
+    }
+  });
+});
+
+// Mount better-auth API routes BEFORE middleware - try different pattern
+app.all('/api/auth/*', async (c) => {
+  console.log('Better-auth route called:', c.req.method, c.req.url);
+  const auth = createAuth(c.env);
+  try {
+    const result = await auth.handler(c.req.raw);
+    console.log('Better-auth handler result:', result ? 'success' : 'null');
+    return result;
+  } catch (error) {
+    console.error('Better-auth handler error:', error);
+    return c.json({ error: 'Auth handler failed' }, 500);
+  }
 });
 
 // Apply better-auth middleware globally

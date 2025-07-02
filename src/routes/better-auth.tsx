@@ -30,8 +30,8 @@ betterAuthApp.get('/signin', async (c) => {
           )}
 
           <div class="mt-8">
-            <a
-              href={`/auth/google?redirect=${encodeURIComponent(redirectUrl)}`}
+            <button
+              onclick={`signInWithGoogle('${encodeURIComponent(redirectUrl)}')`}
               class="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -53,37 +53,50 @@ betterAuthApp.get('/signin', async (c) => {
                 />
               </svg>
               Continue with Google
-            </a>
+            </button>
           </div>
         </div>
       </div>
+      
+      <script src="https://unpkg.com/better-auth@latest/dist/client.umd.js"></script>
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          const authClient = betterAuth.createAuthClient({
+            baseURL: window.location.origin
+          });
+
+          async function signInWithGoogle(redirectUrl) {
+            try {
+              const result = await authClient.signIn.social({
+                provider: "google",
+                callbackURL: window.location.origin + "/auth/callback/success?redirect=" + encodeURIComponent(redirectUrl)
+              });
+              console.log('Sign in result:', result);
+            } catch (error) {
+              console.error('Sign in error:', error);
+              window.location.href = '/auth/signin?error=' + encodeURIComponent(error.message);
+            }
+          }
+        `
+      }} />
     </Layout>
   );
 });
 
-// Google OAuth initiation - redirect to better-auth's sign-in
-betterAuthApp.get('/google', async (c) => {
+// Success callback after Better Auth OAuth
+betterAuthApp.get('/callback/success', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
   
-  // Store redirect URL in session/cookie for after OAuth
-  c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
-  
-  // Redirect to better-auth's Google sign-in endpoint
-  return c.redirect('/api/auth/sign-in/social/google');
-});
-
-// Google OAuth callback - let better-auth handle this, but check for first admin
-betterAuthApp.get('/callback/google', async (c) => {
-  // First, let better-auth handle the OAuth callback
-  const auth = createAuth(c.env);
-  
   try {
-    // Get current session after OAuth
+    // Get current session
+    const auth = createAuth(c.env);
     const session = await auth.api.getSession({
       headers: c.req.raw.headers,
     });
 
     if (session?.user) {
+      console.log('User authenticated:', session.user);
+      
       // Check if this is the first user and make them admin
       const client = createClient({
         url: c.env.TURSO_DATABASE_URL,
@@ -99,24 +112,18 @@ betterAuthApp.get('/callback/google', async (c) => {
         await db.update(users).set({ role: 'admin' }).where(eq(users.email, session.user.email));
         console.log('First user made admin:', session.user.email);
       }
-      
-      // Get redirect URL from cookie
-      const cookies_header = c.req.header('Cookie') || '';
-      const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
-      const redirectUrl = redirectMatch ? decodeURIComponent(redirectMatch[1]) : '/admin';
 
-      // Clear redirect cookie
-      c.header('Set-Cookie', 'auth_redirect=; Path=/; HttpOnly; Max-Age=0');
-
-      return c.redirect(redirectUrl);
+      return c.redirect(decodeURIComponent(redirectUrl));
     } else {
-      throw new Error('No session created after OAuth');
+      throw new Error('No session found after authentication');
     }
   } catch (error) {
-    console.error('OAuth callback processing error:', error);
-    return c.redirect('/auth/signin?error=OAuth callback failed');
+    console.error('Callback success error:', error);
+    return c.redirect('/auth/signin?error=Authentication failed');
   }
 });
+
+// Remove old manual OAuth - Better Auth handles this automatically
 
 // Handle signout (GET route for simple redirect)
 betterAuthApp.get('/signout', async (c) => {
