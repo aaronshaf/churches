@@ -23,6 +23,7 @@ import {
   pages,
   settings,
 } from './db/schema';
+import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
 import { adminUsersApp } from './routes/admin-users';
 import { betterAuthApp } from './routes/better-auth';
@@ -51,6 +52,18 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Mount better-auth API routes BEFORE middleware
+app.all('/api/auth/*', async (c) => {
+  const auth = createAuth(c.env);
+  try {
+    const response = await auth.handler(c.req.raw);
+    return response;
+  } catch (error) {
+    console.error('Better-auth handler error:', error);
+    return c.json({ error: 'Authentication error' }, 500);
+  }
+});
 
 // Apply better-auth middleware globally
 app.use('*', betterAuthMiddleware);
@@ -106,12 +119,6 @@ app.onError((err, c) => {
     </Layout>,
     err.status || 500
   );
-});
-
-// Mount better-auth API routes
-app.all('/api/auth/*', async (c) => {
-  const auth = c.get('betterAuth');
-  return auth.handler(c.req.raw);
 });
 
 // Mount better-auth routes
