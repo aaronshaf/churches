@@ -3,9 +3,18 @@ export interface Bindings {
   TURSO_DATABASE_URL: string;
   TURSO_AUTH_TOKEN: string;
   GOOGLE_MAPS_API_KEY: string;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  CLOUDFLARE_ACCOUNT_HASH: string;
+  CLOUDFLARE_IMAGES_API_TOKEN: string;
+  OPENROUTER_API_KEY: string;
   CLERK_SECRET_KEY?: string;
   CLERK_PUBLISHABLE_KEY?: string;
   ENABLE_CLERK?: string;
+  USE_BETTER_AUTH?: string;
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_URL?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 // User role types

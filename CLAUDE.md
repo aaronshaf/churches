@@ -77,6 +77,10 @@ pnpm db:reset-admin  # Reset admin password
 # Run custom migrations (when db:push doesn't work)
 pnpm tsx scripts/run-migration.ts
 
+# Better-Auth setup (when USE_BETTER_AUTH=true)
+pnpm tsx scripts/generate-auth-schema.ts  # Create auth tables
+pnpm tsx scripts/seed-admin-better-auth.ts  # Show admin setup instructions
+
 # Code search with ast-grep
 ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
 ast-grep --pattern 'churches.$_' src/      # Find church table queries
@@ -181,10 +185,18 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - Status enums for controlled values
 
 ### Security Patterns
-- Session-based authentication (not JWT)
-- bcrypt for password hashing
-- Admin middleware for protected routes
+- Authentication: Currently using Clerk (SaaS), migrating to better-auth (self-hosted)
+- Clerk: JWT-based with role in publicMetadata
+- Better-auth: Database sessions with role field on user
+- Admin middleware for protected routes  
 - Environment variables for secrets
+
+### Authentication Migration (In Progress)
+- **Current**: Clerk authentication (USE_BETTER_AUTH=false or unset)
+- **Future**: Better-auth (USE_BETTER_AUTH=true)
+- **Feature Flag**: USE_BETTER_AUTH environment variable
+- **Migration Status**: Phase 1 complete (setup and schema)
+- See `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` for details
 
 ### UI/UX Patterns
 - Responsive grid layouts

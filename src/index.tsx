@@ -27,6 +27,7 @@ import {
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
+import { betterAuthMiddleware, requireAdminBetter, requireContributorBetter } from './middleware/better-auth';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -46,19 +47,8 @@ import {
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { adminUsersApp } from './routes/admin-users';
-
-type Bindings = {
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
-  GOOGLE_MAPS_API_KEY: string;
-  CLOUDFLARE_ACCOUNT_ID: string;
-  CLOUDFLARE_ACCOUNT_HASH: string;
-  CLOUDFLARE_IMAGES_API_TOKEN: string;
-  OPENROUTER_API_KEY: string;
-  CLERK_SECRET_KEY: string;
-  CLERK_PUBLISHABLE_KEY: string;
-  USE_CLERK_AUTH?: string;
-};
+import { betterAuthApp } from './routes/better-auth';
+import type { Bindings } from './types';
 
 type Variables = {
   user: any;
@@ -66,8 +56,16 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Apply Clerk middleware globally
-app.use('*', clerkMiddleware());
+// Apply auth middleware conditionally based on feature flag
+app.use('*', async (c, next) => {
+  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
+  
+  if (useBetterAuth) {
+    return betterAuthMiddleware(c, next);
+  } else {
+    return clerkMiddleware()(c, next);
+  }
+});
 
 // Helper to create Layout props with common values
 const createLayoutProps = (c: any, overrides: any = {}) => ({
@@ -130,6 +128,17 @@ app.onError((err, c) => {
 
 // Mount Clerk-based admin users route
 app.route('/admin/users', adminUsersApp);
+
+// Mount better-auth routes when feature flag is enabled
+app.use('/auth/*', async (c, next) => {
+  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
+  if (useBetterAuth) {
+    return betterAuthApp.fetch(c.req.raw, c.env, c.executionCtx);
+  } else {
+    // If not using better-auth, return 404
+    return c.notFound();
+  }
+});
 
 app.get('/', async (c) => {
   try {
