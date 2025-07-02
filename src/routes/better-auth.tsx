@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { Hono } from 'hono';
+import { setCookie } from 'hono/cookie';
 import { Layout } from '../components/Layout';
 import { users } from '../db/auth-schema';
 import { createAuth } from '../lib/auth';
@@ -66,7 +67,11 @@ betterAuthApp.get('/google', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
   
   // Store redirect URL in session/cookie for after OAuth
-  c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
+  setCookie(c, 'auth_redirect', redirectUrl, {
+    path: '/',
+    httpOnly: true,
+    maxAge: 600
+  });
   
   // Create Google OAuth URL
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -175,14 +180,14 @@ betterAuthApp.get('/callback/google', async (c) => {
     const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
     const redirectUrl = redirectMatch ? decodeURIComponent(redirectMatch[1]) : '/admin';
 
-    // Set session cookie using Hono's cookie method - try simplest possible approach
-    c.cookie('session', sessionId, {
+    // Set session cookie using Hono's setCookie function
+    setCookie(c, 'session', sessionId, {
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
     
     // Clear redirect cookie
-    c.cookie('auth_redirect', '', {
+    setCookie(c, 'auth_redirect', '', {
       path: '/',
       maxAge: 0,
     });
