@@ -1,5 +1,4 @@
 import type { FC } from 'hono/jsx';
-import { BetterAuthUserMenu } from './BetterAuthUserMenu';
 
 type FooterProps = {
   user?: any;
@@ -108,8 +107,6 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               </svg>
               Data
             </a>
-            {/* User menu - minimalist approach */}
-            <BetterAuthUserMenu user={user} />
           </div>
         </div>
       </div>

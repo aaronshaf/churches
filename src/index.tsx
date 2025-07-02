@@ -23,6 +23,7 @@ import {
   pages,
   settings,
 } from './db/schema';
+import { users } from './db/auth-schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
 import { adminUsersApp } from './routes/admin-users';
@@ -58,25 +59,6 @@ app.get('/api/auth/test', async (c) => {
   return c.json({ message: 'Test route works!' });
 });
 
-// Serve static CSS file
-app.get('/css/styles.css', async (c) => {
-  try {
-    // @ts-ignore - __STATIC_CONTENT is available in Cloudflare Workers with sites
-    const asset = await c.env.__STATIC_CONTENT.get('css/styles.css');
-    if (!asset) {
-      return c.notFound();
-    }
-    return new Response(asset.body, {
-      headers: {
-        'Content-Type': 'text/css',
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
-  } catch (error) {
-    console.error('Error serving CSS:', error);
-    return c.notFound();
-  }
-});
 
 // Debug route to see what better-auth provides
 app.get('/api/auth/debug', async (c) => {
@@ -2921,9 +2903,69 @@ app.get('/force-refresh', async (c) => {
   return c.redirect('/logout');
 });
 
+// Auth Monitoring placeholder
+app.get('/admin/monitoring', requireAdminBetter, async (c) => {
+  const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
+
+  return c.html(
+    <Layout
+      title="Auth Monitoring - Utah Churches"
+      user={user}
+      currentPath="/admin/monitoring"
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
+      <div class="min-h-screen bg-gray-50 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white rounded-lg shadow px-6 py-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-4">Authentication Monitoring</h1>
+            <p class="text-gray-600 mb-6">
+              Authentication system monitoring and analytics will be available here in a future update.
+            </p>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800">Coming Soon</h3>
+                  <div class="mt-2 text-sm text-blue-700">
+                    <p>This feature will include:</p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                      <li>Login activity tracking</li>
+                      <li>Failed authentication attempts</li>
+                      <li>Active session monitoring</li>
+                      <li>User activity analytics</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-6">
+              <a
+                href="/admin"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <svg class="mr-2 -ml-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
 // Admin routes
 app.get('/admin', requireAdminBetter, async (c) => {
-  const user = getUser(c);
+  const user = c.get('betterUser');
   const db = createDb(c.env);
 
   // Get logo URL
@@ -2936,8 +2978,8 @@ app.get('/admin', requireAdminBetter, async (c) => {
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
-
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
+  const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
 
   // Get 1 oldest non-closed church for review
   const churchesForReview = await db
@@ -3223,7 +3265,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
                 <div class="mt-4">
                   <h3 class="text-lg font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
-                    Users
+                    Users ({userCount?.count || 0})
                   </h3>
                   <p class="mt-2 text-sm text-gray-500">Manage user accounts and permissions</p>
                 </div>
@@ -3321,7 +3363,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
 // Affiliation management routes
 app.get('/admin/affiliations', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
   // Get all affiliations first
@@ -3513,7 +3555,7 @@ app.get('/admin/affiliations', requireAdminBetter, async (c) => {
 
 // Create new affiliation
 app.get('/admin/affiliations/new', requireAdminBetter, async (c) => {
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
     <Layout title="Create Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
@@ -3531,7 +3573,7 @@ app.get('/admin/affiliations/new', requireAdminBetter, async (c) => {
 app.post('/admin/affiliations', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const parsedBody = parseFormBody(body);
 
   // Validate input
@@ -3625,7 +3667,7 @@ app.post('/admin/affiliations', requireAdminBetter, async (c) => {
 app.get('/admin/affiliations/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
   const affiliation = await db
@@ -3812,7 +3854,7 @@ app.post('/admin/affiliations/:id/delete', requireAdminBetter, async (c) => {
 app.get('/admin/churches', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
-    const user = c.get('user');
+    const user = c.get('betterUser');
     const logoUrl = await getLogoUrl(c.env);
     const allChurches = await db
       .select({
@@ -4151,7 +4193,7 @@ app.get('/admin/churches', requireAdminBetter, async (c) => {
 // Create new church
 app.get('/admin/churches/new', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
 
@@ -4333,7 +4375,7 @@ app.post('/admin/churches', requireAdminBetter, async (c) => {
 // Edit church
 app.get('/admin/churches/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
 
@@ -4685,7 +4727,7 @@ app.post('/admin/churches/:id/extract', requireAdminBetter, async (c) => {
 // County management routes
 app.get('/admin/counties', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
 
@@ -4813,7 +4855,7 @@ app.get('/admin/counties', requireAdminBetter, async (c) => {
 
 // Create new county
 app.get('/admin/counties/new', requireAdminBetter, async (c) => {
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
     <Layout title="Create County - Utah Churches" user={user} logoUrl={logoUrl}>
@@ -4827,7 +4869,7 @@ app.get('/admin/counties/new', requireAdminBetter, async (c) => {
 app.post('/admin/counties', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const body = await c.req.parseBody();
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const parsedBody = parseFormBody(body);
 
   // Validate input
@@ -4880,7 +4922,7 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
 app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const id = c.req.param('id');
-  const user = c.get('user');
+  const user = c.get('betterUser');
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
@@ -4941,7 +4983,7 @@ app.post('/admin/counties/:id/delete', requireAdminBetter, async (c) => {
 // Pages routes
 app.get('/admin/pages', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const allPages = await db.select().from(pages).orderBy(pages.title).all();
 
@@ -5086,7 +5128,7 @@ app.get('/admin/pages', requireAdminBetter, async (c) => {
 });
 
 app.get('/admin/pages/new', requireAdminBetter, async (c) => {
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
@@ -5185,7 +5227,7 @@ app.post('/admin/pages', requireAdminBetter, async (c) => {
 
 app.get('/admin/pages/:id/edit', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
 
@@ -5341,7 +5383,7 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
 // Settings routes
 app.get('/admin/settings', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
-  const user = c.get('user');
+  const user = c.get('betterUser');
 
   // Get current settings
   const siteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();

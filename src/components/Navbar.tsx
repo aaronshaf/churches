@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import { BetterAuthUserMenu } from './BetterAuthUserMenu';
 
 type NavbarProps = {
   user?: any;
@@ -29,8 +30,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             </a>
           </div>
 
-          {/* Primary Navigation - Right side */}
-          <div class="flex items-center">
+          {/* Primary Navigation and User Menu - Right side */}
+          <div class="flex items-center space-x-4">
             <div class="hidden sm:flex sm:space-x-8">
               <a
                 href="/"
@@ -90,10 +91,16 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   </a>
                 ))}
             </div>
+            
+            {/* User menu for desktop */}
+            <div class="hidden sm:block">
+              <BetterAuthUserMenu user={user} />
+            </div>
           </div>
 
-          {/* Mobile menu button */}
-          <div class="-mr-2 flex items-center sm:hidden">
+          {/* Mobile menu button and user menu */}
+          <div class="flex items-center space-x-2 sm:hidden">
+            <BetterAuthUserMenu user={user} />
             <button
               type="button"
               class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-200"
