@@ -133,15 +133,7 @@ app.onError((err, c) => {
 app.route('/admin/users', adminUsersUnifiedApp);
 
 // Mount better-auth routes when feature flag is enabled
-app.use('/auth/*', async (c, next) => {
-  const useBetterAuth = c.env.USE_BETTER_AUTH === 'true';
-  if (useBetterAuth) {
-    return betterAuthApp.fetch(c.req.raw, c.env, c.executionCtx);
-  } else {
-    // If not using better-auth, return 404
-    return c.notFound();
-  }
-});
+app.route('/auth', betterAuthApp);
 
 app.get('/', async (c) => {
   try {

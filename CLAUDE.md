@@ -79,8 +79,9 @@ pnpm tsx scripts/run-migration.ts
 
 # Better-Auth setup (migration from Clerk to self-hosted auth)
 pnpm better-auth:setup    # Configure environment variables for better-auth
-pnpm better-auth:schema   # Create auth database tables
+pnpm better-auth:schema   # Create auth database tables  
 pnpm better-auth:test     # Show testing instructions
+pnpm auth:validate        # Validate current auth system works
 
 # Code search with ast-grep
 ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
@@ -194,11 +195,13 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 
 ### Authentication Migration (In Progress)
 - **Current**: Clerk authentication (USE_BETTER_AUTH=false or unset)
-- **Future**: Better-auth (USE_BETTER_AUTH=true) - self-hosted, database-driven
-- **Feature Flag**: USE_BETTER_AUTH environment variable
-- **Migration Status**: Phase 2 complete (parallel implementation)
+- **Future**: Better-auth (USE_BETTER_AUTH=true) - self-hosted, Google OAuth only
+- **Feature Flag**: USE_BETTER_AUTH environment variable  
+- **Migration Status**: Phase 3 complete (feature parity with Google OAuth)
 - **Unified Auth**: All routes work with both systems via feature flag
+- **OAuth**: Google OAuth only, no password storage (Apple OAuth planned)
 - **Setup**: Run `pnpm better-auth:setup` to configure better-auth
+- **Validation**: Run `pnpm auth:validate` to test current system
 - See `/CLERK_TO_BETTER_AUTH_MIGRATION_PLAN.md` for full details
 
 ### UI/UX Patterns
