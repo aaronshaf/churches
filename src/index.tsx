@@ -2908,44 +2908,58 @@ app.get('/logout', async (c) => {
           </div>
         </div>
         <script 
-          src="https://unpkg.com/@clerk/clerk-js@latest/dist/clerk.browser.js"
+          src="https://unpkg.com/@clerk/clerk-js@4/dist/clerk.browser.js"
           data-clerk-publishable-key={c.env.CLERK_PUBLISHABLE_KEY}
         />
         <script dangerouslySetInnerHTML={{
           __html: `
-            // Simple logout approach
+            // Enhanced logout with better error handling
+            console.log('Logout script loaded');
+            
             setTimeout(async () => {
               try {
-                console.log('Starting logout...');
+                console.log('Starting logout process...');
+                console.log('Checking for Clerk on window:', typeof window.Clerk);
                 
                 if (typeof window.Clerk === 'function') {
+                  console.log('Clerk found, initializing...');
                   const clerk = window.Clerk('${c.env.CLERK_PUBLISHABLE_KEY}');
+                  console.log('Clerk instance created');
+                  
                   await clerk.load();
+                  console.log('Clerk loaded, attempting sign out...');
+                  
                   await clerk.signOut();
-                  console.log('Clerk signOut successful');
+                  console.log('✅ Clerk signOut successful');
+                } else {
+                  console.warn('⚠️ Clerk not found on window, proceeding with manual cleanup');
                 }
                 
                 // Clear all browser storage regardless
+                console.log('Clearing localStorage and sessionStorage...');
                 localStorage.clear();
                 sessionStorage.clear();
                 
                 // Clear cookies by setting them to expire
+                console.log('Clearing cookies...');
                 document.cookie.split(";").forEach(function(cookie) {
                   const eqPos = cookie.indexOf("=");
                   const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
                   document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
                 });
                 
-                console.log('Storage cleared, redirecting...');
+                console.log('✅ All cleanup complete, redirecting to homepage...');
                 window.location.href = '/';
               } catch (error) {
-                console.error('Logout error:', error);
+                console.error('❌ Logout error:', error);
+                console.log('Falling back to manual cleanup and redirect...');
+                
                 // Fallback: just clear and redirect
                 localStorage.clear();
                 sessionStorage.clear();
                 window.location.href = '/';
               }
-            }, 500);
+            }, 1000); // Increased timeout to 1 second for better reliability
           `
         }} />
       </Layout>
