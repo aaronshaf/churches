@@ -26,7 +26,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - **Framework**: Hono (lightweight web framework)
 - **Database**: Turso (SQLite at the edge)
 - **ORM**: Drizzle ORM
-- **Authentication**: Clerk (role-based access control)
+- **Authentication**: Better-auth (self-hosted, Google OAuth)
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: pnpm
 - **AI Integration**: OpenRouter API with Google Gemini
@@ -40,7 +40,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - pnpm 10.11.0+
 - Cloudflare account
 - Turso database account
-- Clerk account (for authentication)
+- Google OAuth credentials (for authentication)
 
 ### Environment Variables
 
@@ -55,9 +55,11 @@ CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
 CLOUDFLARE_IMAGES_API_TOKEN=your_cloudflare_images_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
-# Authentication (Clerk) - Required
-CLERK_PUBLISHABLE_KEY=pk_test_your_key
-CLERK_SECRET_KEY=sk_test_your_key
+# Authentication (Better-Auth) - Required
+BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
+BETTER_AUTH_URL=http://localhost:8787
+GOOGLE_CLIENT_ID=your-google-client-id-here
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 ```
 
 ### Installation
@@ -196,35 +198,39 @@ The extraction uses Google Gemini 2.5 Flash Lite which has a 1M+ token context w
 
 ## Authentication Setup
 
-### Clerk Configuration
+### Better-Auth Configuration
 
-The application uses [Clerk](https://clerk.com) for authentication with role-based access control.
+The application uses better-auth for self-hosted authentication with Google OAuth.
 
-1. **Create a Clerk Application**
-   - Sign up at [clerk.com](https://clerk.com)
-   - Create a new application
-   - Copy your API keys
+1. **Create Google OAuth Application**
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create a new project or select existing
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+   - Add authorized redirect URI: `http://localhost:8787/auth/callback/google`
 
 2. **Configure Environment Variables**
    ```bash
-   # Development keys (required)
-   CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
+   # Better-Auth configuration (required)
+   BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
+   BETTER_AUTH_URL=http://localhost:8787
+   GOOGLE_CLIENT_ID=your-google-client-id-here
+   GOOGLE_CLIENT_SECRET=your-google-client-secret-here
    ```
 
-3. **Set User Roles**
-   - The application uses `publicMetadata` for role-based access control
-   - Available roles: `admin`, `contributor`, `user`
-   - First user can be promoted to admin using:
+3. **Set Up Database Schema**
    ```bash
-   pnpm tsx scripts/set-clerk-admin.ts user@example.com
+   # Create better-auth tables
+   pnpm better-auth:schema
    ```
 
 4. **Production Setup**
    ```bash
    # Set production secrets
-   wrangler secret put CLERK_PUBLISHABLE_KEY
-   wrangler secret put CLERK_SECRET_KEY
+   wrangler secret put BETTER_AUTH_SECRET
+   wrangler secret put BETTER_AUTH_URL
+   wrangler secret put GOOGLE_CLIENT_ID
+   wrangler secret put GOOGLE_CLIENT_SECRET
    ```
 
 
@@ -241,9 +247,10 @@ wrangler secret put CLOUDFLARE_ACCOUNT_ID
 wrangler secret put CLOUDFLARE_ACCOUNT_HASH
 wrangler secret put CLOUDFLARE_IMAGES_API_TOKEN
 wrangler secret put OPENROUTER_API_KEY
-wrangler secret put CLERK_PUBLISHABLE_KEY
-wrangler secret put CLERK_SECRET_KEY
-wrangler secret put USE_CLERK_AUTH
+wrangler secret put BETTER_AUTH_SECRET
+wrangler secret put BETTER_AUTH_URL
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
 
 # Deploy
 pnpm deploy
