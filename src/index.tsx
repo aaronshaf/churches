@@ -29,6 +29,7 @@ import { getUser } from './middleware/unified-auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
 import { betterAuthMiddleware, requireAdminBetter, requireContributorBetter } from './middleware/better-auth';
+import { authMonitoringMiddleware } from './middleware/auth-monitoring';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -49,6 +50,7 @@ import {
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { adminUsersApp } from './routes/admin-users';
 import { adminUsersUnifiedApp } from './routes/admin-users-unified';
+import { adminMonitoringApp } from './routes/admin-monitoring';
 import { betterAuthApp } from './routes/better-auth';
 import type { Bindings } from './types';
 
@@ -68,6 +70,9 @@ app.use('*', async (c, next) => {
     return clerkMiddleware()(c, next);
   }
 });
+
+// Apply monitoring middleware globally
+app.use('*', authMonitoringMiddleware);
 
 // Helper to create Layout props with common values
 const createLayoutProps = (c: any, overrides: any = {}) => ({
@@ -131,6 +136,9 @@ app.onError((err, c) => {
 
 // Mount admin users route (unified for both auth systems)
 app.route('/admin/users', adminUsersUnifiedApp);
+
+// Mount admin monitoring route
+app.route('/admin/monitoring', adminMonitoringApp);
 
 // Mount better-auth routes when feature flag is enabled
 app.route('/auth', betterAuthApp);
@@ -3021,7 +3029,7 @@ app.get('/admin', adminMiddleware, async (c) => {
           {/* Manage */}
           <div class="mb-8" data-testid="manage-section">
             <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Manage</h2>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <a
                 href="/admin/churches"
                 class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
@@ -3221,6 +3229,40 @@ app.get('/admin', adminMiddleware, async (c) => {
                     Settings
                   </h3>
                   <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
+
+              <a
+                href="/admin/monitoring"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-monitoring"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Auth Monitoring
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Monitor authentication system performance</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"

@@ -10,24 +10,61 @@ import {
   requireAdminBetter,
   requireContributorBetter
 } from './better-auth';
+import { logAuthEvent } from './auth-monitoring';
 
 // Helper to check if using better-auth
 const useBetterAuth = (c: any) => c.env.USE_BETTER_AUTH === 'true';
 
 // Unified authentication middleware
 export const requireAuth: MiddlewareHandler = async (c, next) => {
-  if (useBetterAuth(c)) {
-    return requireAuthBetter(c, next);
+  const system = useBetterAuth(c) ? 'better-auth' : 'clerk';
+  
+  try {
+    if (useBetterAuth(c)) {
+      await requireAuthBetter(c, next);
+    } else {
+      await clerkRequireAuth(c, next);
+    }
+  } catch (error) {
+    logAuthEvent({
+      type: 'auth_error',
+      system,
+      error: error.message,
+      path: c.req.path,
+    });
+    throw error;
   }
-  return clerkRequireAuth(c, next);
 };
 
 // Unified admin middleware
 export const requireAdmin: MiddlewareHandler = async (c, next) => {
-  if (useBetterAuth(c)) {
-    return requireAdminBetter(c, next);
+  const system = useBetterAuth(c) ? 'better-auth' : 'clerk';
+  
+  try {
+    if (useBetterAuth(c)) {
+      await requireAdminBetter(c, next);
+    } else {
+      await clerkRequireAdmin(c, next);
+    }
+    
+    // Log successful role check
+    const user = getUser(c);
+    logAuthEvent({
+      type: 'role_check',
+      system,
+      userId: user?.id,
+      userRole: 'admin',
+      path: c.req.path,
+    });
+  } catch (error) {
+    logAuthEvent({
+      type: 'auth_error',
+      system,
+      error: error.message,
+      path: c.req.path,
+    });
+    throw error;
   }
-  return clerkRequireAdmin(c, next);
 };
 
 // Unified contributor middleware

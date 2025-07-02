@@ -7,6 +7,7 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { users } from '../db/auth-schema';
 import { eq } from 'drizzle-orm';
+import { logAuthEvent } from '../middleware/auth-monitoring';
 
 const betterAuthApp = new Hono<{ Bindings: Bindings }>();
 
@@ -59,6 +60,15 @@ betterAuthApp.get('/google', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
   const auth = createAuth(c.env);
   
+  // Log login attempt
+  logAuthEvent({
+    type: 'login_attempt',
+    system: 'better-auth',
+    path: c.req.path,
+    userAgent: c.req.header('User-Agent'),
+    ipAddress: c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For'),
+  });
+  
   try {
     // Store redirect URL in session/cookie for after OAuth
     c.header('Set-Cookie', `auth_redirect=${encodeURIComponent(redirectUrl)}; Path=/; HttpOnly; Max-Age=600`);
@@ -74,10 +84,20 @@ betterAuthApp.get('/google', async (c) => {
     if (result.data?.url) {
       return c.redirect(result.data.url);
     } else {
+      logAuthEvent({
+        type: 'login_failure',
+        system: 'better-auth',
+        error: 'Failed to initiate Google OAuth',
+      });
       return c.redirect('/auth/signin?error=Failed to initiate Google sign-in');
     }
   } catch (error) {
     console.error('Google OAuth initiation error:', error);
+    logAuthEvent({
+      type: 'login_failure',
+      system: 'better-auth',
+      error: error.message,
+    });
     return c.redirect('/auth/signin?error=Failed to initiate Google sign-in');
   }
 });
@@ -92,6 +112,11 @@ betterAuthApp.get('/callback/google', async (c) => {
     });
     
     if (!result.data?.user) {
+      logAuthEvent({
+        type: 'login_failure',
+        system: 'better-auth',
+        error: 'Google OAuth callback failed - no user data',
+      });
       return c.redirect('/auth/signin?error=Google sign-in failed');
     }
     
@@ -109,12 +134,22 @@ betterAuthApp.get('/callback/google', async (c) => {
     const db = drizzle(client, { schema: { users } });
     const userCount = await db.select().from(users).limit(2);
     
+    let userRole = result.data.user.role || 'user';
     if (userCount.length === 1) {
       // Make first user admin
       await db.update(users)
         .set({ role: 'admin' })
         .where(eq(users.email, result.data.user.email));
+      userRole = 'admin';
     }
+    
+    // Log successful login
+    logAuthEvent({
+      type: 'login_success',
+      system: 'better-auth',
+      userId: result.data.user.id,
+      userRole: userRole,
+    });
     
     // Get redirect URL from cookie
     const cookies_header = c.req.header('Cookie') || '';
@@ -125,14 +160,18 @@ betterAuthApp.get('/callback/google', async (c) => {
     c.header('Set-Cookie', 'auth_redirect=; Path=/; HttpOnly; Max-Age=0');
     
     // Redirect based on role
-    const updatedUser = userCount.length === 1 ? { ...result.data.user, role: 'admin' } : result.data.user;
-    if (updatedUser.role === 'admin') {
+    if (userRole === 'admin') {
       return c.redirect('/admin');
     } else {
       return c.redirect(redirectUrl);
     }
   } catch (error) {
     console.error('Google OAuth callback error:', error);
+    logAuthEvent({
+      type: 'login_failure',
+      system: 'better-auth',
+      error: error.message,
+    });
     return c.redirect('/auth/signin?error=Google sign-in failed');
   }
 });
@@ -146,6 +185,12 @@ betterAuthApp.get('/signout', async (c) => {
       headers: c.req.raw.headers,
     });
     
+    // Log logout
+    logAuthEvent({
+      type: 'logout',
+      system: 'better-auth',
+    });
+    
     // Clear session cookie
     const cookies = response.headers.get('set-cookie');
     if (cookies) {
@@ -155,6 +200,11 @@ betterAuthApp.get('/signout', async (c) => {
     return c.redirect('/');
   } catch (error) {
     console.error('Signout error:', error);
+    logAuthEvent({
+      type: 'auth_error',
+      system: 'better-auth',
+      error: error.message,
+    });
     return c.redirect('/');
   }
 });

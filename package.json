@@ -16,6 +16,7 @@
     "better-auth:schema": "tsx scripts/generate-auth-schema.ts",
     "better-auth:test": "tsx scripts/test-better-auth.ts",
     "auth:validate": "tsx scripts/validate-auth-systems.ts",
+    "auth:rollback": "tsx scripts/auth-rollback.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
