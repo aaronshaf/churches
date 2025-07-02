@@ -16,7 +16,7 @@ adminUsersApp.get('/', async (c) => {
   const users = await getAllUsersWithRoles(c);
 
   return c.html(
-    <Layout title="User Management - Admin" user={currentUser} currentPath="/admin/users">
+    <Layout title="User Management - Admin" user={currentUser} currentPath="/admin/users" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <UserRoleManager users={users} currentUserId={currentUser.id} />
     </Layout>
   );
@@ -52,7 +52,7 @@ adminUsersApp.get('/bulk', async (c) => {
   const currentUser = c.get('user');
 
   return c.html(
-    <Layout title="Bulk User Update - Admin" user={currentUser} currentPath="/admin/users">
+    <Layout title="Bulk User Update - Admin" user={currentUser} currentPath="/admin/users" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="max-w-4xl mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6">Bulk User Role Update</h1>
         

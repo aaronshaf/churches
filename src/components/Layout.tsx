@@ -16,6 +16,7 @@ type LayoutProps = {
   description?: string;
   ogImage?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+  clerkPublishableKey?: string;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -32,6 +33,7 @@ export const Layout: FC<LayoutProps> = ({
   description = 'Discover Christian churches in Utah. Find church locations, service times, and contact information across all Utah counties.',
   ogImage,
   pages = [],
+  clerkPublishableKey = '',
 }) => {
   return (
     <html lang="en">
@@ -283,7 +285,7 @@ export const Layout: FC<LayoutProps> = ({
         >
           Skip to main content
         </a>
-        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} />
+        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} clerkPublishableKey={clerkPublishableKey} />
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>

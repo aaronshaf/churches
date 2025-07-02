@@ -8,7 +8,7 @@ export async function AdminUsersPage(c: Context) {
   const users = await clerk.users.getUserList({ limit: 100 });
   
   return c.html(
-    <Layout title="Manage Users - Admin">
+    <Layout title="Manage Users - Admin" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="max-w-6xl mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6">User Management</h1>
         

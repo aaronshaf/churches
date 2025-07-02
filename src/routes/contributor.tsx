@@ -33,7 +33,7 @@ contributorApp.get('/dashboard', async (c) => {
     .orderBy(comments.createdAt);
 
   return c.html(
-    <Layout title="Contributor Dashboard" user={user} currentPath="/contributor/dashboard">
+    <Layout title="Contributor Dashboard" user={user} currentPath="/contributor/dashboard" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="max-w-6xl mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6">Contributor Dashboard</h1>
         
@@ -93,7 +93,7 @@ contributorApp.get('/suggest', async (c) => {
   const user = c.get('user');
 
   return c.html(
-    <Layout title="Suggest a Church" user={user} currentPath="/contributor/suggest">
+    <Layout title="Suggest a Church" user={user} currentPath="/contributor/suggest" clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
       <div class="max-w-3xl mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6">Suggest a Church</h1>
         
@@ -259,7 +259,7 @@ contributorApp.post('/suggest', async (c) => {
   } catch (error) {
     console.error('Error saving suggestion:', error);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" user={user} clerkPublishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''}>
         <div class="max-w-3xl mx-auto p-6">
           <h1 class="text-2xl font-bold mb-4">Error</h1>
           <p class="text-red-600">Failed to save your suggestion. Please try again.</p>

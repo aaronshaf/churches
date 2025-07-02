@@ -1,13 +1,15 @@
 import type { FC } from 'hono/jsx';
+import { ClerkUserMenu } from './ClerkUserMenu';
 
 type NavbarProps = {
   user?: any;
   currentPath?: string;
   logoUrl?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+  clerkPublishableKey?: string;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [] }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [], clerkPublishableKey = '' }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -89,29 +91,9 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     {page.title}
                   </a>
                 ))}
-              {user && (
-                <>
-                  <a
-                    href="/admin"
-                    class={`${
-                      currentPath?.startsWith('/admin')
-                        ? 'border-primary-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
-                  >
-                    Admin
-                  </a>
-                  <div class="flex items-center ml-6">
-                    <span class="text-sm text-gray-700 mr-3">{user.username}</span>
-                    <a
-                      href="/logout"
-                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-                    >
-                      Logout
-                    </a>
-                  </div>
-                </>
-              )}
+              
+              {/* Clerk User Menu */}
+              <ClerkUserMenu publishableKey={clerkPublishableKey} user={user} />
             </div>
           </div>
 
@@ -192,23 +174,37 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
           {user ? (
             <div class="space-y-1">
               <div class="px-4 pb-2">
-                <div class="text-base font-medium text-gray-800">{user.username}</div>
+                <div class="text-base font-medium text-gray-800">{user.firstName || user.username || user.email}</div>
                 <div class="text-sm font-medium text-gray-500">{user.email}</div>
+                {user.role && (
+                  <div class="text-xs font-medium text-primary-600 capitalize">{user.role}</div>
+                )}
               </div>
-              <a
-                href="/admin"
-                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-              >
-                Dashboard
-              </a>
+              {user.role === 'admin' && (
+                <a
+                  href="/admin"
+                  class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                >
+                  Admin Dashboard
+                </a>
+              )}
               <a
                 href="/logout"
                 class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
               >
-                Logout
+                Sign Out
               </a>
             </div>
-          ) : null}
+          ) : (
+            <div class="px-4 py-2">
+              <a
+                href="/login"
+                class="block px-4 py-2 text-base font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-md"
+              >
+                Sign In
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </nav>
