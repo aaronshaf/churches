@@ -20,9 +20,10 @@ async function generateAuthSchema() {
   console.log('Creating better-auth tables...');
 
   try {
-    // Create users table
+    // Drop and recreate users table to fix schema
+    await db.run(sql`DROP TABLE IF EXISTS users`);
     await db.run(sql`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
         email_verified INTEGER DEFAULT 0,
