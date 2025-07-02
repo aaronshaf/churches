@@ -6,9 +6,8 @@ type ClerkUserMenuProps = {
 };
 
 export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) => {
-  if (!user) {
-    return null; // Don't show anything when not signed in
-  }
+  // Always render the component, let Clerk decide if user is authenticated
+  // The user prop from server might be stale or null on some routes
 
   const scriptContent = `
     (async function initClerkUserMenu() {
@@ -16,9 +15,24 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
       if (!container) return;
       
       try {
-        // Check if Clerk is already loaded
-        if (window.Clerk && window.Clerk.isReady && window.Clerk.user) {
-          await mountClerkButton();
+        console.log('ClerkUserMenu: Initializing...', { 
+          hasClerk: !!window.Clerk, 
+          isReady: window.Clerk?.isReady,
+          hasUser: !!window.Clerk?.user 
+        });
+        
+        // Check if Clerk is already loaded and ready
+        if (window.Clerk) {
+          // Clerk exists, but might not be ready
+          if (window.Clerk.isReady) {
+            console.log('ClerkUserMenu: Clerk already ready');
+            await mountClerkButton();
+          } else {
+            // Wait for Clerk to be ready
+            console.log('ClerkUserMenu: Waiting for Clerk to be ready');
+            await window.Clerk.load();
+            await mountClerkButton();
+          }
           return;
         }
         
@@ -33,6 +47,10 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
           };
           
           document.head.appendChild(script);
+        } else {
+          // Script exists but Clerk might still be loading
+          // Wait for it to be available
+          await mountClerkButton();
         }
         
         async function mountClerkButton() {
@@ -54,6 +72,12 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
           if (!clerk.isReady) {
             await clerk.load();
           }
+          
+          console.log('ClerkUserMenu: About to mount', { 
+            hasContainer: !!container, 
+            hasUser: !!clerk.user,
+            userId: clerk.user?.id 
+          });
           
           // Only mount if user is authenticated
           if (container && clerk.user) {
