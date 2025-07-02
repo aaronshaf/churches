@@ -32,3 +32,4 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 .claude/settings.local.json
+.prod.vars
