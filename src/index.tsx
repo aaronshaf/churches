@@ -2800,7 +2800,7 @@ app.get('/login', async (c) => {
     const redirectUrl = c.req.query('redirect_url') || '/admin';
     // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
     const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
-    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.raymati.com';
+    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.com';
     return c.redirect(`https://accounts.${clerkDomain}/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
   }
 
@@ -2873,7 +2873,7 @@ app.get('/logout', async (c) => {
   if (isClerkEnabled(c.env)) {
     // Extract domain from publishable key (format: pk_live_xxx.xxx.com$)
     const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)\$/);
-    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.raymati.com';
+    const clerkDomain = pkMatch ? pkMatch[1] : 'clerk.utahchurches.com';
     return c.redirect(`https://accounts.${clerkDomain}/sign-out?redirect_url=${encodeURIComponent('/')}`);
   }
 
