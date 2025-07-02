@@ -254,4 +254,4 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 
 **Current Authentication**: Better-auth (self-hosted) with Google OAuth ✅
 
-The application uses better-auth for self-hosted authentication, providing full control over user management and sessions. Previously migrated from Clerk SaaS to reduce costs and increase privacy.
+The application uses better-auth for self-hosted authentication, providing full control over user management and sessions.
