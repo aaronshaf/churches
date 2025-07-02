@@ -67,6 +67,9 @@ export const churchAffiliations = sqliteTable(
   })
 );
 
+// Legacy tables - no longer used, authentication is handled by Clerk
+// Keeping definitions for migration purposes only
+/*
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
@@ -87,6 +90,7 @@ export const sessions = sqliteTable('sessions', {
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
 });
+*/
 
 export const churchGatherings = sqliteTable('church_gatherings', {
   id: integer('id').primaryKey({ autoIncrement: true }),

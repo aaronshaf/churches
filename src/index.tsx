@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { desc, eq, sql, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -24,7 +23,6 @@ import {
   counties,
   pages,
   settings,
-  users,
 } from './db/schema';
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
@@ -44,7 +42,6 @@ import {
   parseFormBody,
   parseGatheringsFromForm,
   prepareChurchDataFromForm,
-  userSchema,
   validateFormData,
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
@@ -69,13 +66,8 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Apply Clerk middleware globally if enabled
-app.use('*', async (c, next) => {
-  if (isClerkEnabled(c.env)) {
-    return clerkMiddleware()(c, next);
-  }
-  return next();
-});
+// Apply Clerk middleware globally
+app.use('*', clerkMiddleware());
 
 app.use('/api/*', cors());
 
@@ -2778,13 +2770,11 @@ app.get('/data', async (c) => {
 // Debug route
 app.get('/debug/login', async (c) => {
   try {
-    const clerkEnabled = isClerkEnabled(c.env);
     const faviconUrl = await getFaviconUrl(c.env);
     const logoUrl = await getLogoUrl(c.env);
     
     return c.json({
-      clerkEnabled,
-      USE_CLERK_AUTH: c.env.USE_CLERK_AUTH,
+      clerkEnabled: true,
       CLERK_PUBLISHABLE_KEY: c.env.CLERK_PUBLISHABLE_KEY ? 'Set' : 'Not set',
       faviconUrl,
       logoUrl,
@@ -2829,46 +2819,8 @@ app.get('/logout', async (c) => {
   );
 });
 
-// Debug route to force complete logout and fresh login
+// Force refresh route - logs out and redirects to login
 app.get('/force-refresh', async (c) => {
-  if (isClerkEnabled(c.env)) {
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-    
-    return c.html(
-      <Layout title="Refreshing Session..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-md w-full space-y-8">
-            <div class="text-center">
-              <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Refreshing Session...</h2>
-              <p class="mt-2 text-sm text-gray-600">Please wait while we refresh your authentication.</p>
-            </div>
-          </div>
-        </div>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Force clear all authentication data
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Clear all cookies
-            document.cookie.split(";").forEach(function(c) { 
-              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-            });
-            
-            console.log('Cleared all local storage, session storage, and cookies');
-            
-            // Redirect to sign-in with explicit signOut=true parameter
-            setTimeout(() => {
-              window.location.href = 'https://square-polecat-66.accounts.dev/sign-in?redirect_url=' + 
-                encodeURIComponent('http://localhost:8787/admin') + '&sign_out=true';
-            }, 1000);
-          `
-        }} />
-      </Layout>
-    );
-  }
-  
   return c.redirect('/logout');
 });
 
