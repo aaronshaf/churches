@@ -76,7 +76,11 @@ app.all('/api/auth/*', async (c) => {
   const auth = createAuth(c.env);
   try {
     const result = await auth.handler(c.req.raw);
-    console.log('Better-auth handler result:', result ? 'success' : 'null');
+    console.log('Better-auth handler result status:', result?.status);
+    console.log('Better-auth handler result type:', typeof result);
+    if (result?.status === 404) {
+      console.log('Better-auth 404 - endpoint not found');
+    }
     return result;
   } catch (error) {
     console.error('Better-auth handler error:', error);
