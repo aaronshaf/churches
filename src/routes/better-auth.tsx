@@ -17,17 +17,45 @@ betterAuthApp.get('/signin', async (c) => {
   const error = c.req.query('error');
   const redirectUrl = c.req.query('redirect') || '/admin';
   
-  // Get logo URL
+  // Get all required data for Layout component
   const db = createDb(c.env);
+  
+  // Check for user session
+  const { getUser } = await import('../middleware/better-auth');
+  const user = await getUser(c);
+  
+  // Get logo URL
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
   const logoUrl = logoUrlSetting?.value || undefined;
+  
+  // Get favicon URL
+  const faviconUrlSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
+  const faviconUrl = faviconUrlSetting?.value || undefined;
+  
+  // Get navbar pages
+  const { isNotNull } = await import('drizzle-orm');
+  const { pages } = await import('../db/schema');
+  const navbarPages = await db
+    .select({
+      id: pages.id,
+      title: pages.title,
+      path: pages.path,
+      navbarOrder: pages.navbarOrder,
+    })
+    .from(pages)
+    .where(isNotNull(pages.navbarOrder))
+    .orderBy(pages.navbarOrder)
+    .all();
 
   return c.html(
     <Layout
       title="Sign In - Utah Churches"
       description="Sign in to manage your churches"
       currentPath="/auth/signin"
+      user={user}
+      faviconUrl={faviconUrl}
       logoUrl={logoUrl}
+      pages={navbarPages}
     >
       <div class="flex flex-col justify-center py-12 sm:px-6 lg:px-8 min-h-[calc(100vh-300px)]">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
