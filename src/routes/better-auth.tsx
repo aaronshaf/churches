@@ -90,13 +90,13 @@ betterAuthApp.get('/signin', async (c) => {
           )}
 
           {/* Main Card */}
-          <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div class="px-8 py-10">
               {/* Google Sign In Button */}
               <div class="space-y-6">
                 <a
                   href={`/auth/google?redirect=${encodeURIComponent(redirectUrl)}`}
-                  class="group relative w-full flex justify-center items-center px-6 py-4 border-2 border-gray-200 rounded-xl text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  class="group relative w-full flex justify-center items-center px-6 py-4 border-2 border-gray-200 rounded-xl text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200"
                 >
                   <svg class="w-5 h-5 mr-3 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
                     <path
@@ -130,13 +130,6 @@ betterAuthApp.get('/signin', async (c) => {
                   </div>
                 </div>
 
-                {/* Security Badge */}
-                <div class="flex items-center justify-center space-x-2 text-sm text-gray-500">
-                  <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <span>Protected by Google OAuth</span>
-                </div>
               </div>
             </div>
 
@@ -155,15 +148,6 @@ betterAuthApp.get('/signin', async (c) => {
             </div>
           </div>
 
-          {/* Additional Info */}
-          <div class="text-center">
-            <p class="text-sm text-gray-500">
-              Need help?{' '}
-              <a href="/" class="font-medium text-primary-600 hover:text-primary-500">
-                Contact support
-              </a>
-            </p>
-          </div>
         </div>
       </div>
     </Layout>
