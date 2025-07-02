@@ -78,6 +78,19 @@ async function generateAuthSchema() {
     `);
     console.log('✓ Created verification_tokens table');
 
+    // Create verification table (required by better-auth)
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS verification (
+        id TEXT PRIMARY KEY,
+        identifier TEXT NOT NULL,
+        value TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+    console.log('✓ Created verification table');
+
     // Create indexes
     await db.run(sql`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`);
     await db.run(sql`CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id)`);
