@@ -26,7 +26,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - **Framework**: Hono (lightweight web framework)
 - **Database**: Turso (SQLite at the edge)
 - **ORM**: Drizzle ORM
-- **Authentication**: Clerk (with legacy session fallback)
+- **Authentication**: Clerk (role-based access control)
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: pnpm
 - **AI Integration**: OpenRouter API with Google Gemini
@@ -55,8 +55,7 @@ CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
 CLOUDFLARE_IMAGES_API_TOKEN=your_cloudflare_images_token
 OPENROUTER_API_KEY=your_openrouter_api_key
 
-# Authentication (Clerk)
-USE_CLERK_AUTH=true  # Set to false to use legacy session auth
+# Authentication (Clerk) - Required
 CLERK_PUBLISHABLE_KEY=pk_test_your_key
 CLERK_SECRET_KEY=sk_test_your_key
 ```
@@ -83,8 +82,6 @@ pnpm dev              # Start development server
 pnpm db:generate      # Generate Drizzle migrations
 pnpm db:push         # Push schema changes to database
 pnpm db:studio       # Open Drizzle Studio
-pnpm db:seed         # Seed admin user
-pnpm db:reset-admin  # Reset admin password
 
 # Deployment
 pnpm deploy          # Deploy to Cloudflare Workers
@@ -115,8 +112,6 @@ The application uses the following main tables:
 - `church_affiliations` - Many-to-many relationship
 - `church_gatherings` - Service times and details
 - `church_images` - Church photos and images
-- `users` - Admin/contributor accounts
-- `sessions` - Authentication sessions
 - `pages` - Static pages (FAQ, About, etc.)
 - `settings` - Site configuration
 
@@ -203,7 +198,7 @@ The extraction uses Google Gemini 2.5 Flash Lite which has a 1M+ token context w
 
 ### Clerk Configuration
 
-The application uses [Clerk](https://clerk.com) for authentication with support for gradual migration from legacy session-based auth.
+The application uses [Clerk](https://clerk.com) for authentication with role-based access control.
 
 1. **Create a Clerk Application**
    - Sign up at [clerk.com](https://clerk.com)
@@ -212,10 +207,7 @@ The application uses [Clerk](https://clerk.com) for authentication with support 
 
 2. **Configure Environment Variables**
    ```bash
-   # Enable Clerk authentication
-   USE_CLERK_AUTH=true
-   
-   # Development keys
+   # Development keys (required)
    CLERK_PUBLISHABLE_KEY=pk_test_...
    CLERK_SECRET_KEY=sk_test_...
    ```
@@ -233,15 +225,8 @@ The application uses [Clerk](https://clerk.com) for authentication with support 
    # Set production secrets
    wrangler secret put CLERK_PUBLISHABLE_KEY
    wrangler secret put CLERK_SECRET_KEY
-   wrangler secret put USE_CLERK_AUTH  # Set to "true"
    ```
 
-### Legacy Authentication
-
-To use legacy session-based authentication:
-- Set `USE_CLERK_AUTH=false` in environment variables
-- Use `pnpm db:seed` to create an admin user
-- Login with username/password at `/login`
 
 ## Deployment
 
