@@ -2786,7 +2786,7 @@ app.get('/debug/login', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  const redirectPath = c.req.query('redirect_url') || '/admin';
+  const redirectPath = c.req.query('redirect_url') || '/auth/callback';
   
   // Get the current host URL
   const url = new URL(c.req.url);
@@ -2804,6 +2804,24 @@ app.get('/login', async (c) => {
       />
     </Layout>
   );
+});
+
+// Auth callback route - checks user role and redirects appropriately
+app.get('/auth/callback', async (c) => {
+  const user = await getCurrentUser(c);
+  
+  if (!user) {
+    // Not authenticated, redirect to login
+    return c.redirect('/login');
+  }
+  
+  // Check if user has admin role
+  if (user.role === 'admin') {
+    return c.redirect('/admin');
+  }
+  
+  // Non-admin users go to home page
+  return c.redirect('/');
 });
 
 // POST /login route removed - Clerk handles authentication

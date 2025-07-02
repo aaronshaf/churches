@@ -15,8 +15,8 @@ export const CLERK_CONFIG = {
   // Redirect URLs
   signInUrl: '/login',
   signUpUrl: '/login', // Same as sign in for now
-  afterSignInUrl: '/admin',
-  afterSignUpUrl: '/admin',
+  afterSignInUrl: '/auth/callback',
+  afterSignUpUrl: '/auth/callback',
   afterSignOutUrl: '/',
 };
 
