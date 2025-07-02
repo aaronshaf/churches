@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Utah Churches - An application for discovering Christian churches in Utah.
 Database name: `utahchurches`
-Production URL: https://utahchurches.aaronshaf.workers.dev
 
 ## Technology Stack & Library Choices
 
