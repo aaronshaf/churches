@@ -24,7 +24,7 @@ export function createAuth(env: any) {
     session: {
       expiresIn: 60 * 60 * 24 * 30, // 30 days
       updateAge: 60 * 60 * 24, // Update session if older than 1 day
-      cookieName: 'utah-churches-session',
+      cookieName: 'session',
     },
 
     // User configuration with custom fields

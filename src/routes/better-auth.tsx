@@ -170,38 +170,34 @@ betterAuthApp.get('/callback/google', async (c) => {
       userAgent: c.req.header('User-Agent') || null,
     });
     
-    c.header('Set-Cookie', `utah-churches-session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
-    console.log('Session created:', sessionId);
-
-    // Get redirect URL
+    // Get redirect URL first
     const cookies_header = c.req.header('Cookie') || '';
     const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
     const redirectUrl = redirectMatch ? decodeURIComponent(redirectMatch[1]) : '/admin';
 
+    // Set session cookie using Hono's cookie method - try simplest possible approach
+    c.cookie('session', sessionId, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+    
     // Clear redirect cookie
-    c.header('Set-Cookie', 'auth_redirect=; Path=/; HttpOnly; Max-Age=0');
+    c.cookie('auth_redirect', '', {
+      path: '/',
+      maxAge: 0,
+    });
+    
+    console.log('Session created:', sessionId);
+    console.log('Session cookie set with Hono cookie method');
+    
+    // Debug: Check all response headers
+    console.log('Response headers before redirect:');
+    for (const [key, value] of Object.entries(c.res.headers)) {
+      console.log(`  ${key}: ${value}`);
+    }
 
-    // Show success page that redirects after cookie is set
-    return c.html(
-      <Layout title="Signing In..." currentPath="/auth/callback/google">
-        <div class="min-h-screen flex items-center justify-center bg-gray-50">
-          <div class="max-w-md w-full space-y-8 text-center">
-            <div>
-              <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Welcome!</h2>
-              <p class="mt-2 text-sm text-gray-600">Successfully signed in. Redirecting...</p>
-            </div>
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-        </div>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            setTimeout(function() {
-              window.location.href = '${redirectUrl}';
-            }, 1500);
-          `
-        }} />
-      </Layout>
-    );
+    // Try redirect approach instead of HTML response
+    return c.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
     return c.redirect('/auth/signin?error=Google sign-in failed');
