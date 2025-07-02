@@ -31,7 +31,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
           </div>
 
           {/* Primary Navigation and User Menu - Right side */}
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center">
             <div class="hidden sm:flex sm:space-x-8">
               <a
                 href="/"
@@ -93,7 +93,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             </div>
             
             {/* User menu for desktop */}
-            <div class="hidden sm:block">
+            <div class={`hidden sm:block ${user ? 'ml-8' : 'ml-4'}`}>
               <BetterAuthUserMenu user={user} />
             </div>
           </div>
