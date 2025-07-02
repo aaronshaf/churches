@@ -57,8 +57,20 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
           
           // Only mount if user is authenticated
           if (container && clerk.user) {
-            // Clear the placeholder content
-            container.innerHTML = '';
+            // Fade out loading indicator
+            const loader = container.querySelector('.animate-pulse');
+            if (loader) {
+              loader.style.transition = 'opacity 150ms ease-out';
+              loader.style.opacity = '0';
+              setTimeout(() => {
+                container.innerHTML = '';
+              }, 150);
+            } else {
+              container.innerHTML = '';
+            }
+            
+            // Small delay to ensure smooth transition
+            await new Promise(resolve => setTimeout(resolve, 150));
             
             // Mount Clerk's UserButton component directly
             await clerk.mountUserButton(container, {
@@ -68,6 +80,7 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
                   userButtonPopoverCard: 'shadow-lg border border-gray-200',
                   userButtonPopoverActionButton: 'hover:bg-gray-50',
                   userButtonTrigger: 'opacity-70 hover:opacity-100 transition-opacity',
+                  rootBox: 'w-6 h-6',
                 }
               },
               userProfileMode: 'modal',
@@ -84,10 +97,10 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
 
   return (
     <>
-      {/* Clerk User Menu Container - minimalist for footer */}
-      <div id="clerk-user-menu" class="inline-flex items-center">
-        {/* Neutral placeholder that matches Clerk's UserButton size */}
-        <div class="h-6 w-6"></div>
+      {/* Clerk User Menu Container - reserve space to prevent layout shift */}
+      <div id="clerk-user-menu" class="inline-flex items-center w-6 h-6 relative">
+        {/* Subtle loading indicator */}
+        <div class="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
       </div>
       
       <script dangerouslySetInnerHTML={{ __html: scriptContent }} />

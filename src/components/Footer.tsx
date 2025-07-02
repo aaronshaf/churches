@@ -19,7 +19,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
             <p class="italic">Greet the friends, each by name."</p>
             <p class="mt-1 text-gray-500">– 3 John 1:15</p>
           </div>
-          <div class="mt-4 sm:mt-0 flex items-center space-x-4">
+          <div class="mt-4 sm:mt-0 flex items-center space-x-3">
             {user && churchId && (
               <a
                 href={`/admin/churches/${churchId}/edit`}
