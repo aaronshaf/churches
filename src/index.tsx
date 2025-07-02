@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { desc, eq, sql, isNotNull } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
@@ -11,7 +10,6 @@ import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
 import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
-import { LoginForm } from './components/LoginForm';
 import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
@@ -31,9 +29,7 @@ import {
 } from './db/schema';
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
-import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
 import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
-import { isClerkEnabled } from './config/features';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -44,7 +40,6 @@ import {
   affiliationSchema,
   churchWithGatheringsSchema,
   countySchema,
-  loginSchema,
   pageSchema,
   parseAffiliationsFromForm,
   parseFormBody,
@@ -798,8 +793,7 @@ app.get('/churches/:path', async (c) => {
   const db = createDb(c.env);
   const churchPath = c.req.param('path');
 
-  // Check for admin session (optional)
-  const sessionId = getCookie(c, 'session');
+  // Check for admin user (optional)
   const user = await getCurrentUser(c);
 
   // Helper function to format URLs for display
@@ -2571,8 +2565,7 @@ app.get('/data', async (c) => {
   try {
     const db = createDb(c.env);
 
-    // Check for admin session
-    const sessionId = getCookie(c, 'session');
+    // Check for admin user
     const user = await getCurrentUser(c);
 
     // Get count of churches with 'Listed' or 'Unlisted' status
@@ -2804,127 +2797,37 @@ app.get('/debug/login', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  try {
-    // If Clerk is enabled, show the Clerk sign-in component
-    if (isClerkEnabled(c.env)) {
-      const redirectPath = c.req.query('redirect_url') || '/admin';
-      
-      // Get the current host URL
-      const url = new URL(c.req.url);
-      const baseUrl = `${url.protocol}//${url.host}`;
-      const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
-      
-      const faviconUrl = await getFaviconUrl(c.env);
-      const logoUrl = await getLogoUrl(c.env);
-      
-      return c.html(
-        <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
-          <ClerkSignIn 
-            publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
-            redirectUrl={fullRedirectUrl}
-          />
-        </Layout>
-      );
-    }
-  } catch (error) {
-    console.error('Login route error:', error);
-    return c.html(
-      <Layout title="Error - Utah Churches">
-        <div class="max-w-2xl mx-auto px-4 py-8">
-          <h1 class="text-2xl font-bold text-red-600 mb-4">Error</h1>
-          <p class="text-gray-700 mb-4">An error occurred while loading the login page:</p>
-          <pre class="bg-gray-100 p-4 rounded overflow-x-auto">{error.message}</pre>
-          <p class="mt-4">
-            <a href="/" class="text-blue-600 hover:underline">Return to home</a>
-          </p>
-        </div>
-      </Layout>,
-      500
-    );
-  }
-
-  // Otherwise use legacy auth
-  const user = await getCurrentUser(c);
-  if (user) {
-    return c.redirect('/admin');
-  }
-
+  const redirectPath = c.req.query('redirect_url') || '/admin';
+  
+  // Get the current host URL
+  const url = new URL(c.req.url);
+  const baseUrl = `${url.protocol}//${url.host}`;
+  const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
+  
+  const faviconUrl = await getFaviconUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
+  
   return c.html(
-    <Layout title="Login - Utah Churches">
-      <LoginForm />
+    <Layout title="Sign in" faviconUrl={faviconUrl} logoUrl={logoUrl}>
+      <ClerkSignIn 
+        publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} 
+        redirectUrl={fullRedirectUrl}
+      />
     </Layout>
   );
 });
 
-app.post('/login', async (c) => {
-  // If Clerk is enabled, this route shouldn't be used
-  if (isClerkEnabled(c.env)) {
-    return c.redirect('/login');
-  }
-
-  const db = createDb(c.env);
-  const body = await c.req.parseBody();
-
-  // Validate input
-  const validation = validateFormData(loginSchema, parseFormBody(body));
-
-  if (!validation.success) {
-    return c.html(
-      <Layout title="Login - Utah Churches">
-        <LoginForm error={validation.message} />
-      </Layout>
-    );
-  }
-
-  const { username, password } = validation.data;
-
-  // Find user
-  const user = await db.select().from(users).where(eq(users.username, username)).get();
-
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return c.html(
-      <Layout title="Login - Utah Churches">
-        <LoginForm error="Invalid username or password" />
-      </Layout>
-    );
-  }
-
-  // Create session
-  const sessionId = await createSession(user.id, c.env);
-
-  // Set cookie
-  setCookie(c, 'session', sessionId, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-
-  // Always redirect to /admin after login
-  return c.redirect('/admin');
-});
+// POST /login route removed - Clerk handles authentication
 
 app.get('/logout', async (c) => {
-  // If Clerk is enabled, show a simple logout page that uses Clerk's JavaScript
-  if (isClerkEnabled(c.env)) {
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-    
-    return c.html(
-      <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <ClerkSignOut publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} />
-      </Layout>
-    );
-  }
-
-  // Otherwise use legacy logout
-  const sessionId = getCookie(c, 'session');
-  if (sessionId) {
-    await deleteSession(sessionId, c.env);
-    deleteCookie(c, 'session');
-  }
-
-  return c.redirect('/');
+  const faviconUrl = await getFaviconUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
+  
+  return c.html(
+    <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
+      <ClerkSignOut publishableKey={c.env.CLERK_PUBLISHABLE_KEY || ''} />
+    </Layout>
+  );
 });
 
 // Debug route to force complete logout and fresh login
