@@ -128,6 +128,26 @@ async function getNavbarPages(
   return navbarPages;
 }
 
+// Helper function to gather all common Layout props
+async function getLayoutProps(c: any): Promise<{
+  user: any;
+  faviconUrl?: string;
+  logoUrl?: string;
+  pages: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+}> {
+  const user = await getUser(c);
+  const faviconUrl = await getFaviconUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
+  const pages = await getNavbarPages(c.env);
+
+  return {
+    user,
+    faviconUrl,
+    logoUrl,
+    pages,
+  };
+}
+
 // Global error handler
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
@@ -156,21 +176,12 @@ app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
 
-    // Check for user session
-    const user = await getUser(c);
+    // Get all layout props
+    const layoutProps = await getLayoutProps(c);
 
     // Get front page title from settings
     const frontPageTitleSetting = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
     const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches in Utah';
-
-    // Get favicon URL from settings
-    const faviconUrl = await getFaviconUrl(c.env);
-
-    // Get logo URL from settings
-    const logoUrl = await getLogoUrl(c.env);
-
-    // Get navbar pages
-    const navbarPages = await getNavbarPages(c.env);
 
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
@@ -194,10 +205,7 @@ app.get('/', async (c) => {
       <Layout
         title={frontPageTitle}
         currentPath="/"
-        user={user}
-        faviconUrl={faviconUrl}
-        logoUrl={logoUrl}
-        pages={navbarPages}
+        {...layoutProps}
       >
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2851,26 +2859,14 @@ app.get('/data', async (c) => {
 // Terms of Service route
 app.get('/terms', async (c) => {
   try {
-    // Check for user session
-    const user = await getUser(c);
-
-    // Get favicon URL
-    const faviconUrl = await getFaviconUrl(c.env);
-
-    // Get logo URL
-    const logoUrl = await getLogoUrl(c.env);
-
-    // Get navbar pages
-    const navbarPages = await getNavbarPages(c.env);
+    // Get all layout props
+    const layoutProps = await getLayoutProps(c);
 
     return c.html(
       <Layout
         title="Terms of Service - Utah Churches"
         currentPath="/terms"
-        user={user}
-        faviconUrl={faviconUrl}
-        logoUrl={logoUrl}
-        pages={navbarPages}
+        {...layoutProps}
       >
         <div class="bg-white">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -2957,26 +2953,14 @@ app.get('/terms', async (c) => {
 // Privacy Policy route
 app.get('/privacy', async (c) => {
   try {
-    // Check for user session
-    const user = await getUser(c);
-
-    // Get favicon URL
-    const faviconUrl = await getFaviconUrl(c.env);
-
-    // Get logo URL
-    const logoUrl = await getLogoUrl(c.env);
-
-    // Get navbar pages
-    const navbarPages = await getNavbarPages(c.env);
+    // Get all layout props
+    const layoutProps = await getLayoutProps(c);
 
     return c.html(
       <Layout
         title="Privacy Policy - Utah Churches"
         currentPath="/privacy"
-        user={user}
-        faviconUrl={faviconUrl}
-        logoUrl={logoUrl}
-        pages={navbarPages}
+        {...layoutProps}
       >
         <div class="bg-white">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -5624,6 +5608,9 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
 
+  // Get layout props
+  const layoutProps = await getLayoutProps(c);
+
   // Get current settings
   const siteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
 
@@ -5635,15 +5622,13 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
 
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
-  // Get navbar pages
-  const navbarPages = await getNavbarPages(c.env);
-
   return c.html(
     <Layout 
       title="Settings - Utah Churches" 
-      user={user} 
-      logoUrl={logoUrlSetting?.value || undefined}
-      pages={navbarPages}
+      user={user}
+      faviconUrl={layoutProps.faviconUrl}
+      logoUrl={layoutProps.logoUrl}
+      pages={layoutProps.pages}
     >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
