@@ -5635,8 +5635,16 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
 
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
 
+  // Get navbar pages
+  const navbarPages = await getNavbarPages(c.env);
+
   return c.html(
-    <Layout title="Settings - Utah Churches" user={user} logoUrl={logoUrlSetting?.value || undefined}>
+    <Layout 
+      title="Settings - Utah Churches" 
+      user={user} 
+      logoUrl={logoUrlSetting?.value || undefined}
+      pages={navbarPages}
+    >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
