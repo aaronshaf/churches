@@ -73,6 +73,14 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+// Apply Clerk middleware globally if enabled
+app.use('*', async (c, next) => {
+  if (isClerkEnabled(c.env)) {
+    return clerkMiddleware()(c, next);
+  }
+  return next();
+});
+
 app.use('/api/*', cors());
 
 // Helper function to fetch favicon URL
