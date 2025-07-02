@@ -7,69 +7,125 @@ type ClerkUserMenuProps = {
 
 export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) => {
   if (!user) {
-    return (
-      <a
-        href="/login"
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-600 bg-white hover:bg-gray-50 border-primary-300 transition-colors"
-      >
-        Sign in
-      </a>
-    );
+    return null; // Don't show anything when not signed in
   }
 
   const scriptContent = `
-    // Initialize Clerk for user menu
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@clerk/clerk-js@latest/dist/clerk.browser.js';
-    script.setAttribute('data-clerk-publishable-key', ${JSON.stringify(publishableKey)});
-    
-    script.onload = async () => {
-      try {
-        // Wait for Clerk to be available
-        let retries = 0;
-        while (!window.Clerk && retries < 20) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          retries++;
+    (async function initClerkUserMenu() {
+      // Get DOM elements
+      const container = document.getElementById('clerk-user-menu');
+      const fallback = document.getElementById('clerk-fallback');
+      const loading = document.getElementById('clerk-loading');
+      
+      // Show fallback after 300ms if Clerk hasn't loaded
+      const fallbackTimer = setTimeout(() => {
+        if (fallback && loading) {
+          loading.style.display = 'none';
+          fallback.style.display = 'flex';
+          fallback.style.opacity = '1';
         }
-        
-        if (!window.Clerk) {
-          console.error('Clerk not available');
+      }, 300);
+      
+      try {
+        // Check if Clerk is already loaded
+        if (window.Clerk) {
+          clearTimeout(fallbackTimer);
+          await mountClerkButton();
           return;
         }
         
-        const clerk = window.Clerk;
-        
-        // Wait for Clerk to be ready
-        if (!clerk.isReady) {
-          await clerk.load();
-        }
-        
-        // Mount the user button
-        const container = document.getElementById('clerk-user-menu');
-        if (container && clerk.user) {
-          // Clear the fallback content
-          container.innerHTML = '';
+        // Load Clerk script if not already present
+        if (!document.querySelector('script[data-clerk-publishable-key]')) {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/@clerk/clerk-js@latest/dist/clerk.browser.js';
+          script.setAttribute('data-clerk-publishable-key', ${JSON.stringify(publishableKey)});
           
-          // Mount Clerk's UserButton component
-          await clerk.mountUserButton(container, {
-            appearance: {
-              elements: {
-                userButtonAvatarBox: 'w-8 h-8',
-                userButtonPopoverCard: 'shadow-lg border border-gray-200',
-                userButtonPopoverActionButton: 'hover:bg-gray-50',
-              }
-            },
-            userProfileMode: 'navigation',
-            userProfileUrl: '/user-profile',
-            afterSignOutUrl: '/',
-          });
+          script.onload = async () => {
+            clearTimeout(fallbackTimer);
+            await mountClerkButton();
+          };
+          
+          document.head.appendChild(script);
         }
+        
+        async function mountClerkButton() {
+          // Wait for Clerk to be available
+          let retries = 0;
+          while (!window.Clerk && retries < 30) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            retries++;
+          }
+          
+          if (!window.Clerk) {
+            console.error('Clerk not available after retries');
+            return;
+          }
+          
+          const clerk = window.Clerk;
+          
+          // Wait for Clerk to be ready
+          if (!clerk.isReady) {
+            await clerk.load();
+          }
+          
+          // Mount the user button with smooth transition
+          if (container && clerk.user) {
+            // Hide loading placeholder
+            if (loading) {
+              loading.style.display = 'none';
+            }
+            
+            // Fade out fallback if visible
+            if (fallback && fallback.style.display !== 'none') {
+              fallback.style.opacity = '0';
+              fallback.style.transition = 'opacity 200ms ease-out';
+              setTimeout(() => {
+                fallback.style.display = 'none';
+              }, 200);
+            }
+            
+            // Create Clerk container
+            const clerkContainer = document.createElement('div');
+            clerkContainer.id = 'clerk-button-container';
+            clerkContainer.style.opacity = '0';
+            clerkContainer.style.transition = 'opacity 200ms ease-in';
+            
+            container.appendChild(clerkContainer);
+            
+            // Mount Clerk's UserButton component
+            await clerk.mountUserButton(clerkContainer, {
+              appearance: {
+                elements: {
+                  userButtonAvatarBox: 'w-8 h-8',
+                  userButtonPopoverCard: 'shadow-lg border border-gray-200',
+                  userButtonPopoverActionButton: 'hover:bg-gray-50',
+                }
+              },
+              userProfileMode: 'navigation',
+              userProfileUrl: '/user-profile',
+              afterSignOutUrl: '/',
+            });
+            
+            // Fade in Clerk button
+            setTimeout(() => {
+              clerkContainer.style.opacity = '1';
+            }, 50);
+          }
+        }
+        
       } catch (error) {
+        clearTimeout(fallbackTimer);
         console.error('Error mounting Clerk user menu:', error);
+        // Hide loading and show fallback on error
+        if (loading) {
+          loading.style.display = 'none';
+        }
+        if (fallback) {
+          fallback.style.display = 'flex';
+          fallback.style.opacity = '1';
+        }
       }
-    };
-    
-    document.head.appendChild(script);
+    })();
   `;
 
   return (
@@ -84,25 +140,24 @@ export const ClerkUserMenu: FC<ClerkUserMenuProps> = ({ publishableKey, user }) 
         </a>
       )}
       
-      {/* Clerk User Menu */}
-      <div id="clerk-user-menu" class="flex items-center">
-        {/* Fallback content while Clerk loads */}
-        <div class="flex items-center space-x-3">
-          {/* User avatar */}
-          <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+      {/* Clerk User Menu Container */}
+      <div id="clerk-user-menu" class="flex items-center relative">
+        {/* Fallback content - hidden initially, shown only if Clerk takes too long */}
+        <div 
+          id="clerk-fallback" 
+          class="items-center space-x-2" 
+          style="display: none; opacity: 0; transition: opacity 200ms ease-in-out;"
+        >
+          {/* Simplified avatar matching Clerk's style */}
+          <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center cursor-pointer hover:bg-primary-700 transition-colors">
             <span class="text-sm font-medium text-white">
               {user.firstName?.charAt(0) || user.email?.charAt(0) || 'U'}
             </span>
           </div>
-          {/* User name */}
-          <span class="text-sm font-medium text-gray-700 hidden sm:block">
-            {user.firstName || user.username || user.email}
-          </span>
-          {/* Dropdown arrow */}
-          <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
+        
+        {/* Loading placeholder - very minimal to reduce flicker */}
+        <div id="clerk-loading" class="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
       </div>
       
       <script dangerouslySetInnerHTML={{ __html: scriptContent }} />
