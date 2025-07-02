@@ -32,7 +32,7 @@ import {
 import { adminMiddleware, getCurrentUser } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { clerkMiddleware } from './middleware/clerk-rbac';
+import { clerkMiddleware, getAllUsersWithRoles } from './middleware/clerk-rbac';
 import { isClerkEnabled } from './config/features';
 import {
   deleteFromCloudflareImages,
@@ -2982,7 +2982,8 @@ app.get('/admin', adminMiddleware, async (c) => {
   const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
   const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
-  const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
+  
+  
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
 
   // Get 1 oldest non-closed church for review
@@ -3198,40 +3199,6 @@ app.get('/admin', adminMiddleware, async (c) => {
                     Counties ({countyCount?.count || 0})
                   </h3>
                   <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
-                </div>
-                <span
-                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-                  aria-hidden="true"
-                >
-                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
-                  </svg>
-                </span>
-              </a>
-
-              <a
-                href="/admin/users"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                data-testid="card-users"
-              >
-                <div>
-                  <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                      />
-                    </svg>
-                  </span>
-                </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
-                    <span class="absolute inset-0" aria-hidden="true"></span>
-                    Users ({userCount?.count || 0})
-                  </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage admin access and permissions</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
