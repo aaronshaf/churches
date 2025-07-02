@@ -2848,6 +2848,245 @@ app.get('/data', async (c) => {
   }
 });
 
+// Terms of Service route
+app.get('/terms', async (c) => {
+  try {
+    // Check for user session
+    const user = await getUser(c);
+
+    // Get favicon URL
+    const faviconUrl = await getFaviconUrl(c.env);
+
+    // Get logo URL
+    const logoUrl = await getLogoUrl(c.env);
+
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
+    return c.html(
+      <Layout
+        title="Terms of Service - Utah Churches"
+        currentPath="/terms"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
+        pages={navbarPages}
+      >
+        <div class="bg-white">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="max-w-3xl mx-auto">
+              <h1 class="text-3xl font-bold text-gray-900 mb-8">Terms of Service</h1>
+              <div class="prose prose-lg max-w-none">
+                <p class="text-lg text-gray-600 mb-6">
+                  Last updated: {new Date().toLocaleDateString()}
+                </p>
+
+                <h2>1. Acceptance of Terms</h2>
+                <p>
+                  By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.
+                </p>
+
+                <h2>2. Use License</h2>
+                <p>
+                  Permission is granted to temporarily download one copy of the materials on Utah Churches website for personal, 
+                  non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+                </p>
+                <ul>
+                  <li>modify or copy the materials</li>
+                  <li>use the materials for any commercial purpose or for any public display (commercial or non-commercial)</li>
+                  <li>attempt to decompile or reverse engineer any software contained on the website</li>
+                  <li>remove any copyright or other proprietary notations from the materials</li>
+                </ul>
+
+                <h2>3. Disclaimer</h2>
+                <p>
+                  The materials on Utah Churches website are provided on an 'as is' basis. Utah Churches makes no warranties, 
+                  expressed or implied, and hereby disclaims and negates all other warranties including without limitation, 
+                  implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement 
+                  of intellectual property or other violation of rights.
+                </p>
+
+                <h2>4. Limitations</h2>
+                <p>
+                  In no event shall Utah Churches or its suppliers be liable for any damages (including, without limitation, 
+                  damages for loss of data or profit, or due to business interruption) arising out of the use or inability to 
+                  use the materials on Utah Churches website, even if Utah Churches or an authorized representative has been 
+                  notified orally or in writing of the possibility of such damage.
+                </p>
+
+                <h2>5. Accuracy of Materials</h2>
+                <p>
+                  The materials appearing on Utah Churches website could include technical, typographical, or photographic errors. 
+                  Utah Churches does not warrant that any of the materials on its website are accurate, complete, or current.
+                </p>
+
+                <h2>6. Links</h2>
+                <p>
+                  Utah Churches has not reviewed all of the sites linked to our website and is not responsible for the contents 
+                  of any such linked site. The inclusion of any link does not imply endorsement by Utah Churches of the site.
+                </p>
+
+                <h2>7. Modifications</h2>
+                <p>
+                  Utah Churches may revise these terms of service for its website at any time without notice. By using this website, 
+                  you are agreeing to be bound by the then current version of these terms of service.
+                </p>
+
+                <h2>8. Contact Information</h2>
+                <p>
+                  If you have any questions about these Terms of Service, please contact us through the contact information 
+                  provided on this website.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  } catch (error) {
+    console.error('Error loading terms page:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches">
+        <ErrorPage error={error.message || 'Failed to load terms page'} statusCode={500} />
+      </Layout>,
+      500
+    );
+  }
+});
+
+// Privacy Policy route
+app.get('/privacy', async (c) => {
+  try {
+    // Check for user session
+    const user = await getUser(c);
+
+    // Get favicon URL
+    const faviconUrl = await getFaviconUrl(c.env);
+
+    // Get logo URL
+    const logoUrl = await getLogoUrl(c.env);
+
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
+    return c.html(
+      <Layout
+        title="Privacy Policy - Utah Churches"
+        currentPath="/privacy"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
+        pages={navbarPages}
+      >
+        <div class="bg-white">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="max-w-3xl mx-auto">
+              <h1 class="text-3xl font-bold text-gray-900 mb-8">Privacy Policy</h1>
+              <div class="prose prose-lg max-w-none">
+                <p class="text-lg text-gray-600 mb-6">
+                  Last updated: {new Date().toLocaleDateString()}
+                </p>
+
+                <h2>1. Information We Collect</h2>
+                <p>
+                  We collect information you provide directly to us, such as when you create an account, use our services, 
+                  or contact us for support.
+                </p>
+
+                <h3>Information You Provide</h3>
+                <ul>
+                  <li>Account information (name, email address)</li>
+                  <li>Profile information</li>
+                  <li>Communications with us</li>
+                </ul>
+
+                <h3>Information We Collect Automatically</h3>
+                <ul>
+                  <li>Usage information and analytics</li>
+                  <li>Device and browser information</li>
+                  <li>IP address and location data</li>
+                </ul>
+
+                <h2>2. How We Use Your Information</h2>
+                <p>We use the information we collect to:</p>
+                <ul>
+                  <li>Provide, maintain, and improve our services</li>
+                  <li>Process transactions and send related information</li>
+                  <li>Send you technical notices and support messages</li>
+                  <li>Respond to your comments and questions</li>
+                  <li>Monitor and analyze trends and usage</li>
+                </ul>
+
+                <h2>3. Information Sharing</h2>
+                <p>
+                  We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, 
+                  except as described in this policy.
+                </p>
+
+                <h3>We may share your information:</h3>
+                <ul>
+                  <li>With your consent</li>
+                  <li>To comply with legal obligations</li>
+                  <li>To protect our rights and prevent fraud</li>
+                  <li>With service providers who assist our operations</li>
+                </ul>
+
+                <h2>4. Data Security</h2>
+                <p>
+                  We implement appropriate security measures to protect your personal information against unauthorized access, 
+                  alteration, disclosure, or destruction.
+                </p>
+
+                <h2>5. Cookies and Tracking</h2>
+                <p>
+                  We use cookies and similar technologies to enhance your experience, analyze usage, and provide personalized content.
+                </p>
+
+                <h2>6. Your Rights</h2>
+                <p>You have the right to:</p>
+                <ul>
+                  <li>Access your personal information</li>
+                  <li>Correct inaccurate information</li>
+                  <li>Delete your personal information</li>
+                  <li>Object to processing of your information</li>
+                  <li>Data portability</li>
+                </ul>
+
+                <h2>7. Children's Privacy</h2>
+                <p>
+                  Our service is not directed to children under 13. We do not knowingly collect personal information from 
+                  children under 13. If we become aware that a child under 13 has provided us with personal information, 
+                  we will delete such information.
+                </p>
+
+                <h2>8. Changes to This Policy</h2>
+                <p>
+                  We may update this Privacy Policy from time to time. We will notify you of any changes by posting the 
+                  new Privacy Policy on this page and updating the "Last updated" date.
+                </p>
+
+                <h2>9. Contact Us</h2>
+                <p>
+                  If you have any questions about this Privacy Policy, please contact us through the contact information 
+                  provided on this website.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  } catch (error) {
+    console.error('Error loading privacy page:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches">
+        <ErrorPage error={error.message || 'Failed to load privacy page'} statusCode={500} />
+      </Layout>,
+      500
+    );
+  }
+});
+
 // Debug route
 app.get('/debug/login', async (c) => {
   try {
