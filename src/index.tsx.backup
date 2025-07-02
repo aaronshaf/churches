@@ -16,8 +16,6 @@ import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { UserForm } from './components/UserForm';
-import { ClerkLogout } from './components/ClerkLogout';
-import { ClerkLogin } from './components/ClerkLogin';
 import { createDb } from './db';
 import {
   affiliations,
@@ -30,10 +28,10 @@ import {
   settings,
   users,
 } from './db/schema';
-import { adminMiddleware, getCurrentUser } from './middleware/auth';
+import { adminMiddleware } from './middleware/auth';
 import { requireAdminMiddleware } from './middleware/requireAdmin';
 import { createSession, deleteSession, validateSession, verifyPassword } from './utils/auth';
-import { clerkMiddleware, requireAuth, requireAdmin } from './middleware/clerk';
+import { clerkMiddleware, requireAuth, requireAdmin, getCurrentUser } from './middleware/clerk';
 import { isClerkEnabled } from './config/features';
 import {
   deleteFromCloudflareImages,
@@ -55,7 +53,6 @@ import {
   validateFormData,
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
-import { adminUsersApp } from './routes/admin-users';
 
 type Bindings = {
   TURSO_DATABASE_URL: string;
@@ -135,15 +132,16 @@ app.onError((err, c) => {
   );
 });
 
-// Mount Clerk-based admin users route
-app.route('/admin/users', adminUsersApp);
-
 app.get('/', async (c) => {
   try {
     const db = createDb(c.env);
 
     // Check for user session
-    const user = await getCurrentUser(c);
+    let user = null;
+    const sessionId = getCookie(c, 'session');
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
 
     // Get front page title from settings
     const frontPageTitleSetting = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
@@ -369,7 +367,8 @@ app.get('/counties/:path', async (c) => {
   const countyPath = c.req.param('path');
 
   // Check if user is logged in
-  const user = await getCurrentUser(c);
+  const sessionId = getCookie(c, 'session');
+  const user = await validateSession(sessionId, c.env);
 
   // Get county by path
   const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
@@ -589,7 +588,11 @@ app.get('/networks', async (c) => {
   const db = createDb(c.env);
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
 
   // Get all listed affiliations with church count (only count churches with 'Listed' status)
   const listedAffiliations = await db
@@ -801,7 +804,10 @@ app.get('/churches/:path', async (c) => {
 
   // Check for admin session (optional)
   const sessionId = getCookie(c, 'session');
-  const user = await getCurrentUser(c);
+  let user = null;
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -1386,7 +1392,11 @@ app.get('/networks/:id', async (c) => {
   const affiliationIdOrPath = c.req.param('id');
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -1581,7 +1591,11 @@ app.get('/map', async (c) => {
   const showHereticalOption = c.req.query('heretical') !== undefined;
 
   // Check for user session
-    const user = await getCurrentUser(c);
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
 
   // Get all churches with coordinates (excluding heretical unless param is present)
   const allChurchesWithCoords = await db
@@ -2574,7 +2588,10 @@ app.get('/data', async (c) => {
 
     // Check for admin session
     const sessionId = getCookie(c, 'session');
-    const user = await getCurrentUser(c);
+    let user = null;
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
 
     // Get count of churches with 'Listed' or 'Unlisted' status
     const churchCount = await db
@@ -2786,54 +2803,36 @@ app.get('/data', async (c) => {
 
 // Login routes
 app.get('/login', async (c) => {
-  // If Clerk is enabled, redirect to Clerk's hosted sign-in page
+  // If Clerk is enabled, redirect to Clerk sign-in
   if (isClerkEnabled(c.env)) {
-    const redirectPath = c.req.query('redirect_url') || '/admin';
+    const redirectUrl = c.req.query('redirect_url') || '/admin';
     
-    // Get the current host URL
-    const url = new URL(c.req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
-    const fullRedirectUrl = redirectPath.startsWith('http') ? redirectPath : `${baseUrl}${redirectPath}`;
-    
-    // Extract domain from publishable key
-    let accountsDomain = 'accounts.utahchurches.com'; // fallback
+    // Extract and decode domain from publishable key
     const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)$/);
     if (pkMatch) {
       try {
-        const decoded = atob(pkMatch[1]);
-        const clerkDomain = decoded.endsWith('$') ? decoded.slice(0, -1) : decoded;
-        
-        // For test keys, remove "clerk." prefix if present
-        if (c.env.CLERK_PUBLISHABLE_KEY.startsWith('pk_test_')) {
-          // Test domains are like "square-polecat-66.clerk.accounts.dev"
-          // We need just "square-polecat-66.accounts.dev"
-          accountsDomain = clerkDomain.replace(/\.clerk\./, '.');
-        } else {
-          // For production, transform clerk.domain to accounts.domain
-          accountsDomain = clerkDomain.replace(/^clerk\./, 'accounts.');
-        }
+        // Decode base64 to get clerk domain (e.g., "clerk.utahchurches.com$")
+        const decoded = atob(pkMatch[1]).replace(/\$$/, ''); // Remove trailing $
+        // Transform clerk.domain.com to accounts.domain.com
+        const accountsUrl = decoded.replace(/^clerk\./, 'accounts.');
+        return c.redirect(`https://${accountsUrl}/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
       } catch (e) {
-        console.error('Failed to decode domain from key:', e);
+        // Fallback if decoding fails
+        return c.redirect(`https://accounts.utahchurches.com/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
       }
     }
     
-    // Redirect to Clerk's hosted sign-in page
-    console.log('Redirecting to Clerk sign-in at:', accountsDomain);
-    console.log('With redirect URL:', fullRedirectUrl);
-    
-    // For test instances, check if localhost is allowed
-    if (c.env.CLERK_PUBLISHABLE_KEY.startsWith('pk_test_') && url.hostname === 'localhost') {
-      // Try the redirect - if localhost is configured in Clerk, it will work
-      // If not, Clerk will show an error page with instructions
-    }
-    
-    return c.redirect(`https://${accountsDomain}/sign-in?redirect_url=${encodeURIComponent(fullRedirectUrl)}`);
+    // Fallback
+    return c.redirect(`https://accounts.utahchurches.com/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`);
   }
 
   // Otherwise use legacy auth
-  const user = await getCurrentUser(c);
-  if (user) {
-    return c.redirect('/admin');
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    const user = await validateSession(sessionId, c.env);
+    if (user) {
+      return c.redirect('/admin');
+    }
   }
 
   return c.html(
@@ -2892,64 +2891,25 @@ app.post('/login', async (c) => {
 });
 
 app.get('/logout', async (c) => {
-  // If Clerk is enabled, show a simple logout page that uses Clerk's JavaScript
+  // If Clerk is enabled, redirect to Clerk sign-out
   if (isClerkEnabled(c.env)) {
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
+    // Extract and decode domain from publishable key
+    const pkMatch = c.env.CLERK_PUBLISHABLE_KEY.match(/pk_(?:test|live)_(.+)$/);
+    if (pkMatch) {
+      try {
+        // Decode base64 to get clerk domain (e.g., "clerk.utahchurches.com$")
+        const decoded = atob(pkMatch[1]).replace(/\$$/, ''); // Remove trailing $
+        // Transform clerk.domain.com to accounts.domain.com
+        const accountsUrl = decoded.replace(/^clerk\./, 'accounts.');
+        return c.redirect(`https://${accountsUrl}/sign-out?redirect_url=${encodeURIComponent('/')}`);
+      } catch (e) {
+        // Fallback if decoding fails
+        return c.redirect(`https://accounts.utahchurches.com/sign-out?redirect_url=${encodeURIComponent('/')}`);
+      }
+    }
     
-    return c.html(
-      <Layout title="Signing out..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-md w-full space-y-8">
-            <div class="text-center">
-              <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Signing out...</h2>
-              <p class="mt-2 text-sm text-gray-600">Please wait while we sign you out.</p>
-            </div>
-          </div>
-        </div>
-        <script 
-          src="https://square-polecat-66.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-          data-clerk-publishable-key={c.env.CLERK_PUBLISHABLE_KEY}
-        />
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Simple logout approach
-            setTimeout(async () => {
-              try {
-                console.log('Starting logout...');
-                
-                if (typeof window.Clerk === 'function') {
-                  const clerk = window.Clerk('${c.env.CLERK_PUBLISHABLE_KEY}');
-                  await clerk.load();
-                  await clerk.signOut();
-                  console.log('Clerk signOut successful');
-                }
-                
-                // Clear all browser storage regardless
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // Clear cookies by setting them to expire
-                document.cookie.split(";").forEach(function(cookie) {
-                  const eqPos = cookie.indexOf("=");
-                  const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                  document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                });
-                
-                console.log('Storage cleared, redirecting...');
-                window.location.href = '/';
-              } catch (error) {
-                console.error('Logout error:', error);
-                // Fallback: just clear and redirect
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = '/';
-              }
-            }, 500);
-          `
-        }} />
-      </Layout>
-    );
+    // Fallback
+    return c.redirect(`https://accounts.utahchurches.com/sign-out?redirect_url=${encodeURIComponent('/')}`);
   }
 
   // Otherwise use legacy logout
@@ -2960,49 +2920,6 @@ app.get('/logout', async (c) => {
   }
 
   return c.redirect('/');
-});
-
-// Debug route to force complete logout and fresh login
-app.get('/force-refresh', async (c) => {
-  if (isClerkEnabled(c.env)) {
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-    
-    return c.html(
-      <Layout title="Refreshing Session..." faviconUrl={faviconUrl} logoUrl={logoUrl}>
-        <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-md w-full space-y-8">
-            <div class="text-center">
-              <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Refreshing Session...</h2>
-              <p class="mt-2 text-sm text-gray-600">Please wait while we refresh your authentication.</p>
-            </div>
-          </div>
-        </div>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Force clear all authentication data
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Clear all cookies
-            document.cookie.split(";").forEach(function(c) { 
-              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-            });
-            
-            console.log('Cleared all local storage, session storage, and cookies');
-            
-            // Redirect to sign-in with explicit signOut=true parameter
-            setTimeout(() => {
-              window.location.href = 'https://square-polecat-66.accounts.dev/sign-in?redirect_url=' + 
-                encodeURIComponent('http://localhost:8787/admin') + '&sign_out=true';
-            }, 1000);
-          `
-        }} />
-      </Layout>
-    );
-  }
-  
-  return c.redirect('/logout');
 });
 
 // Admin routes
@@ -3359,7 +3276,8 @@ app.get('/admin', adminMiddleware, async (c) => {
   );
 });
 
-app.get('/admin/users-legacy', requireAdminMiddleware, async (c) => {
+// Admin user management routes
+app.get('/admin/users', requireAdminMiddleware, async (c) => {
   const db = createDb(c.env);
   const user = c.get('user');
 
@@ -5913,7 +5831,11 @@ app.get('*', async (c) => {
     const db = createDb(c.env);
 
     // Check for user session
-    const user = await getCurrentUser(c);
+    let user = null;
+    const sessionId = getCookie(c, 'session');
+    if (sessionId) {
+      user = await validateSession(sessionId, c.env);
+    }
 
     // Get favicon URL and logo URL
     const faviconUrl = await getFaviconUrl(c.env);
@@ -5955,7 +5877,11 @@ app.get('*', async (c) => {
   }
 
   // For 404 page, also check for user session
-  const user = await getCurrentUser(c);
+  let user = null;
+  const sessionId = getCookie(c, 'session');
+  if (sessionId) {
+    user = await validateSession(sessionId, c.env);
+  }
 
   // Get favicon and logo URLs for 404 page
   const faviconUrl = await getFaviconUrl(c.env);
