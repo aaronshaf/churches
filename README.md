@@ -26,6 +26,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - **Framework**: Hono (lightweight web framework)
 - **Database**: Turso (SQLite at the edge)
 - **ORM**: Drizzle ORM
+- **Authentication**: Clerk (with legacy session fallback)
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: pnpm
 - **AI Integration**: OpenRouter API with Google Gemini
@@ -39,6 +40,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 - pnpm 10.11.0+
 - Cloudflare account
 - Turso database account
+- Clerk account (for authentication)
 
 ### Environment Variables
 
@@ -52,6 +54,11 @@ CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
 CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
 CLOUDFLARE_IMAGES_API_TOKEN=your_cloudflare_images_token
 OPENROUTER_API_KEY=your_openrouter_api_key
+
+# Authentication (Clerk)
+USE_CLERK_AUTH=true  # Set to false to use legacy session auth
+CLERK_PUBLISHABLE_KEY=pk_test_your_key
+CLERK_SECRET_KEY=sk_test_your_key
 ```
 
 ### Installation
@@ -192,6 +199,50 @@ The application includes an AI-powered feature to automatically extract church i
 
 The extraction uses Google Gemini 2.5 Flash Lite which has a 1M+ token context window, allowing it to process even very large church websites.
 
+## Authentication Setup
+
+### Clerk Configuration
+
+The application uses [Clerk](https://clerk.com) for authentication with support for gradual migration from legacy session-based auth.
+
+1. **Create a Clerk Application**
+   - Sign up at [clerk.com](https://clerk.com)
+   - Create a new application
+   - Copy your API keys
+
+2. **Configure Environment Variables**
+   ```bash
+   # Enable Clerk authentication
+   USE_CLERK_AUTH=true
+   
+   # Development keys
+   CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_SECRET_KEY=sk_test_...
+   ```
+
+3. **Set User Roles**
+   - The application uses `publicMetadata` for role-based access control
+   - Available roles: `admin`, `contributor`, `user`
+   - First user can be promoted to admin using:
+   ```bash
+   pnpm tsx scripts/set-clerk-admin.ts user@example.com
+   ```
+
+4. **Production Setup**
+   ```bash
+   # Set production secrets
+   wrangler secret put CLERK_PUBLISHABLE_KEY
+   wrangler secret put CLERK_SECRET_KEY
+   wrangler secret put USE_CLERK_AUTH  # Set to "true"
+   ```
+
+### Legacy Authentication
+
+To use legacy session-based authentication:
+- Set `USE_CLERK_AUTH=false` in environment variables
+- Use `pnpm db:seed` to create an admin user
+- Login with username/password at `/login`
+
 ## Deployment
 
 ### Deploy to Cloudflare Workers
@@ -205,6 +256,9 @@ wrangler secret put CLOUDFLARE_ACCOUNT_ID
 wrangler secret put CLOUDFLARE_ACCOUNT_HASH
 wrangler secret put CLOUDFLARE_IMAGES_API_TOKEN
 wrangler secret put OPENROUTER_API_KEY
+wrangler secret put CLERK_PUBLISHABLE_KEY
+wrangler secret put CLERK_SECRET_KEY
+wrangler secret put USE_CLERK_AUTH
 
 # Deploy
 pnpm deploy
