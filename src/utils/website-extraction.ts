@@ -17,7 +17,7 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
 4) Service times - Include actual clock times with AM/PM and very brief notes:
    - Time MUST be an actual clock time with AM/PM (e.g., "10 AM", "10:30 AM", "6:30 PM")
    - Always include a space before AM/PM (e.g., "9 AM" not "9AM")
-   - ALWAYS include the day of the week for ALL services (e.g., "10 AM Sunday", "6:30 PM Wednesday")
+   - ALWAYS include the day of the week for ALL gatherings (e.g., "10 AM Sunday", "6:30 PM Wednesday")
    - Never omit the day - always specify it (Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, or Saturday)
    - CRITICAL: The day in the time MUST match any day mentioned in the notes!
    - DO NOT mix days (e.g., never have "8 AM Saturday" with notes about "Sunday worship")
@@ -25,8 +25,8 @@ const EXTRACTION_PROMPT = `From this church website text, extract the following 
    - ONLY include descriptors that are EXPLICITLY STATED on the website
    - DO NOT infer, assume, or guess service styles based on context
    - DO NOT add labels like "Traditional", "Contemporary", "Modern", "Blended" unless those EXACT words appear on the website
-   - DO NOT categorize services based on music style, worship format, or other characteristics
-   - Valid note examples ONLY if the website uses these exact terms: "Bible study", "Morning prayer", "Youth service", "Children's ministry", "Spanish service", "Midweek service"
+   - DO NOT categorize gatherings based on music style, worship format, or other characteristics
+   - Valid note examples ONLY if the website uses these exact terms: "Bible study", "Morning prayer", "Youth gathering", "Children's ministry", "Spanish gathering", "Midweek gathering"
    - Apostrophes are fine to use (e.g., "Children's ministry")
    - NEVER include full sentences or explanations
    - If confused about which day a service occurs, read the context carefully
@@ -138,14 +138,14 @@ function parseTimeForSort(timeStr: string): number {
     hour = 0;
   }
 
-  // Check if it's a weekday service (has day in parentheses)
+  // Check if it's a weekday gathering (has day in parentheses)
   const dayMatch = timeStr.match(/\((Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\)/i);
-  const dayOffset = dayMatch ? 10000 : 0; // Weekday services sort after Sunday
+  const dayOffset = dayMatch ? 10000 : 0; // Weekday gatherings sort after Sunday
 
   return dayOffset + (hour * 60 + minute);
 }
 
-// Sort service times by time of day
+// Sort gathering times by time of day
 function sortServiceTimes(times: ServiceTime[]): ServiceTime[] {
   return times.sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time));
 }

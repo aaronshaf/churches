@@ -908,8 +908,8 @@ app.get('/churches/:path', async (c) => {
     return nextDate.toISOString().split('T')[0];
   };
 
-  // Parse service time to extract day and time
-  const parseServiceTime = (timeStr: string) => {
+  // Parse gathering time to extract day and time
+  const parseGatheringTime = (timeStr: string) => {
     // Match patterns like "10 AM Sunday" or "6:30 PM Wednesday"
     const match = timeStr.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM))\s+(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/i);
     if (match) {
@@ -926,7 +926,7 @@ app.get('/churches/:path', async (c) => {
   // Build JSON-LD structured data with Events
   const events = churchGatheringsList
     .map((gathering) => {
-      const parsed = parseServiceTime(gathering.time);
+      const parsed = parseGatheringTime(gathering.time);
       if (!parsed) return null;
       
       const nextDate = getNextDayDate(parsed.day);
@@ -944,8 +944,8 @@ app.get('/churches/:path', async (c) => {
       
       return {
         '@type': 'Event',
-        name: gathering.notes || 'Church Service',
-        description: `${gathering.notes || 'Church Service'} at ${church.name}`,
+        name: gathering.notes || 'Church Gathering',
+        description: `${gathering.notes || 'Church Gathering'} at ${church.name}`,
         startDate: `${nextDate}T${eventTime}`,
         eventSchedule: {
           '@type': 'Schedule',
@@ -1103,7 +1103,7 @@ app.get('/churches/:path', async (c) => {
 
                     {churchGatheringsList.length > 0 && (
                       <div>
-                        <h3 class="text-base font-medium text-gray-500">Services</h3>
+                        <h3 class="text-base font-medium text-gray-500">Gatherings</h3>
                         <div class="mt-1 space-y-1">
                           {churchGatheringsList.map((gathering) => (
                             <div class="text-base text-gray-900">
@@ -1887,10 +1887,10 @@ app.get('/map', async (c) => {
           content.style.maxWidth = '350px';
           content.style.lineHeight = '1.5';
           
-          // Format service times
-          let serviceTimes = '';
+          // Format gathering times
+          let gatheringTimes = '';
           if (church.gatherings && church.gatherings.length > 0) {
-            serviceTimes = church.gatherings.map(g => g.time).join(', ');
+            gatheringTimes = church.gatherings.map(g => g.time).join(', ');
           }
           
           // Build website links
@@ -1920,7 +1920,7 @@ app.get('/map', async (c) => {
           content.innerHTML = \`
             <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem; font-weight: 600;">\${church.name}</h3>
             \${church.gatheringAddress ? \`<div style="margin-bottom: 0.25rem;">\${church.gatheringAddress}</div>\` : ''}
-            \${serviceTimes ? \`<div style="margin-bottom: 0.25rem;">Service times: \${serviceTimes}</div>\` : ''}
+            \${gatheringTimes ? \`<div style="margin-bottom: 0.25rem;">Gathering times: \${gatheringTimes}</div>\` : ''}
             \${websiteLinks.length > 0 ? \`<div style="margin-bottom: 0.25rem;">\${websiteLinks.join(' | ')}</div>\` : ''}
             \${church.email ? \`<div style="margin-bottom: 0.25rem;"><a href="mailto:\${church.email}" style="color: #4299e1;">\${church.email}</a></div>\` : ''}
             \${church.phone ? \`<div style="margin-bottom: 0.25rem;"><a href="tel:\${church.phone}" style="color: #4299e1;">\${church.phone}</a></div>\` : ''}
@@ -4537,7 +4537,7 @@ app.post('/admin/churches/:id/extract', adminMiddleware, async (c) => {
         phone: !!extractedData.phone,
         email: !!extractedData.email,
         address: !!extractedData.address,
-        serviceTimes: !!extractedData.service_times?.length,
+        gatheringTimes: !!extractedData.service_times?.length,
         instagram: !!extractedData.instagram,
         facebook: !!extractedData.facebook,
         spotify: !!extractedData.spotify,

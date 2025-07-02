@@ -12,7 +12,7 @@ Utah Churches provides a comprehensive directory of evangelical churches across 
 
 - 📍 **Interactive Map** - Find churches near you with Google Maps integration
 - 🏛️ **County Organization** - Browse churches organized by Utah counties
-- 🔍 **Church Details** - View service times, contact info, and affiliations
+- 🔍 **Church Details** - View gathering times, contact info, and affiliations
 - 📊 **Data Export** - Download church data in JSON, YAML, CSV, or XLSX formats
 - 🌐 **Multi-language Support** - Track churches serving in different languages
 - 🔐 **Admin Dashboard** - Manage churches, affiliations, and users
@@ -110,7 +110,7 @@ The application uses the following main tables:
 - `counties` - Utah counties
 - `affiliations` - Church networks/denominations
 - `church_affiliations` - Many-to-many relationship
-- `church_gatherings` - Service times and details
+- `church_gatherings` - Gathering times and details
 - `church_images` - Church photos and images
 - `pages` - Static pages (FAQ, About, etc.)
 - `settings` - Site configuration
@@ -162,7 +162,7 @@ When editing churches, administrators can use the "Save and continue" button to:
 ### Efficient Data Entry
 - Drag-and-drop image reordering
 - Automatic address formatting and normalization
-- Service time validation and normalization
+- Gathering time validation and normalization
 - AI extraction for rapid data collection from church websites
 
 ## AI-Powered Data Extraction
@@ -180,7 +180,7 @@ The application includes an AI-powered feature to automatically extract church i
 - Phone numbers (formatted consistently)
 - Email addresses
 - Physical addresses (with proper capitalization)
-- Service times with:
+- Gathering times with:
   - Normalized time formats (e.g., "9 AM" not "9am")
   - Day of week for multi-day schedules
   - Brief notes (2-4 words max like "Traditional" or "Bible study")

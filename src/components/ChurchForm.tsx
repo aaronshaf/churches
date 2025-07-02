@@ -219,10 +219,10 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Service Information</h3>
                 </div>
 
-                {/* Services */}
+                {/* Gatherings */}
                 <div class="sm:col-span-6">
-                  <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Services</h3>
-                  <p class="text-sm text-gray-500 mb-4">Add service times and optional notes</p>
+                  <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Gatherings</h3>
+                  <p class="text-sm text-gray-500 mb-4">Add gathering times and optional notes</p>
 
                   <div id="gatherings-container" class="space-y-4">
                     {gatherings.map((gathering, index) => (

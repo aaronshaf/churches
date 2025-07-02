@@ -105,7 +105,7 @@ wrangler secret put GOOGLE_MAPS_API_KEY
 - **counties**: Utah counties
 - **affiliations**: Church networks/denominations with status (Listed, Unlisted, Heretical)
 - **church_affiliations**: Many-to-many relationship
-- **church_gatherings**: Service times and notes for each church
+- **church_gatherings**: Gathering times and notes for each church
 - **users**: Admin/contributor accounts
 - **sessions**: User authentication sessions
 - **pages**: Custom content pages with title, path, and content
