@@ -39,7 +39,6 @@ async function generateAuthSchema() {
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         expires_at INTEGER NOT NULL,
-        token TEXT NOT NULL UNIQUE,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         ip_address TEXT,
@@ -81,7 +80,6 @@ async function generateAuthSchema() {
 
     // Create indexes
     await db.run(sql`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`);
-    await db.run(sql`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)`);
     await db.run(sql`CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id)`);
     await db.run(sql`CREATE INDEX IF NOT EXISTS idx_verification_tokens_token ON verification_tokens(token)`);
     console.log('✓ Created indexes');
