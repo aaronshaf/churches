@@ -4,6 +4,7 @@ import { Navbar } from './Navbar';
 
 type LayoutProps = {
   title?: string;
+  siteTitle?: string;
   children: any;
   user?: any;
   currentPath?: string;
@@ -19,7 +20,8 @@ type LayoutProps = {
 };
 
 export const Layout: FC<LayoutProps> = ({
-  title = 'Utah Churches',
+  title,
+  siteTitle = 'Churches',
   children,
   user,
   currentPath,
@@ -29,23 +31,24 @@ export const Layout: FC<LayoutProps> = ({
   affiliationId,
   faviconUrl,
   logoUrl,
-  description = 'Discover Christian churches in Utah. Find church locations, service times, and contact information across all Utah counties.',
+  description = 'Discover Christian churches. Find church locations, service times, and contact information.',
   ogImage,
   pages = [],
 }) => {
+  const pageTitle = title ? `${title} - ${siteTitle}` : siteTitle;
   return (
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{title}</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={description} />
 
         {/* Open Graph meta tags for Facebook */}
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://utahchurches.org" />
+        <meta property="og:url" content={currentPath ? `${currentPath}` : '/'} />
         {(ogImage || logoUrl) && <meta property="og:image" content={ogImage || logoUrl} />}
 
         {/* Twitter Card meta tags */}

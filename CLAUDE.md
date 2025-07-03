@@ -250,6 +250,27 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - 404 pages implement smart redirects for church URLs
 - Networks page shows unlisted churches if only unlisted exist
 
+## SEO & Structured Data
+
+### JSON-LD Implementation
+- **Where**: Only on individual church detail pages (`/churches/:path`)
+- **Schema Type**: Church with Event sub-schemas for gatherings
+- **Dynamic Values**: Domain and region are configurable via settings table
+  - `site_domain` setting (defaults to utahchurches.org)
+  - `site_region` setting (defaults to UT)
+- **Features**:
+  - Church information with address, geo coordinates, contact details
+  - Statement of Faith as `subjectOf` CreativeWork
+  - Church gatherings as recurring Event schemas
+  - Social media links in `sameAs` array
+  - Organization affiliations in `memberOf`
+- **Note**: Logo field excluded as churches don't have logos in the system
+
+### Sitemap & Robots.txt
+- Both files use dynamic domain from settings
+- Sitemap includes all listed churches, counties, networks, and pages
+- Robots.txt blocks admin and API routes
+
 ## Authentication System History
 
 **Current Authentication**: Better-auth (self-hosted) with Google OAuth ✅

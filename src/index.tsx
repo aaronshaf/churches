@@ -137,17 +137,20 @@ async function getLayoutProps(c: any): Promise<{
   user: any;
   faviconUrl?: string;
   logoUrl?: string;
+  siteTitle: string;
   pages: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
 }> {
   const user = await getUser(c);
   const faviconUrl = await getFaviconUrl(c.env);
   const logoUrl = await getLogoUrl(c.env);
+  const siteTitle = await getSiteTitle(c.env);
   const pages = await getNavbarPages(c.env);
 
   return {
     user,
     faviconUrl,
     logoUrl,
+    siteTitle,
     pages,
   };
 }
@@ -1098,6 +1101,10 @@ app.post('/suggest-church', async (c) => {
 });
 
 app.get('/robots.txt', async (c) => {
+  const db = createDb(c.env);
+  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
+  
   const robotsTxt = `User-agent: *
 Allow: /
 
@@ -1109,7 +1116,7 @@ Disallow: /logout
 # API endpoints
 Disallow: /api/
 
-Sitemap: https://utahchurches.org/sitemap.xml`;
+Sitemap: https://${siteDomain}/sitemap.xml`;
 
   return c.text(robotsTxt, 200, {
     'Content-Type': 'text/plain',
@@ -1119,6 +1126,10 @@ Sitemap: https://utahchurches.org/sitemap.xml`;
 
 app.get('/sitemap.xml', async (c) => {
   const db = createDb(c.env);
+
+  // Get site domain from settings
+  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
 
   // Get all churches, counties, and pages
   const [allChurches, allCounties, allPages, listedAffiliations] = await Promise.all([
@@ -1146,29 +1157,29 @@ app.get('/sitemap.xml', async (c) => {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://utahchurches.org/</loc>
+    <loc>https://${siteDomain}/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://utahchurches.org/map</loc>
+    <loc>https://${siteDomain}/map</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://utahchurches.org/networks</loc>
+    <loc>https://${siteDomain}/networks</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://utahchurches.org/data</loc>
+    <loc>https://${siteDomain}/data</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>${allCounties
     .map(
       (county) => `
   <url>
-    <loc>https://utahchurches.org/counties/${county.path}</loc>
+    <loc>https://${siteDomain}/counties/${county.path}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`
@@ -1184,7 +1195,7 @@ app.get('/sitemap.xml', async (c) => {
         if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
           return `
   <url>
-    <loc>https://utahchurches.org/churches/${church.path}</loc>
+    <loc>https://${siteDomain}/churches/${church.path}</loc>
     <lastmod>${date.toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -1193,7 +1204,7 @@ app.get('/sitemap.xml', async (c) => {
       }
       return `
   <url>
-    <loc>https://utahchurches.org/churches/${church.path}</loc>
+    <loc>https://${siteDomain}/churches/${church.path}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
@@ -1202,7 +1213,7 @@ app.get('/sitemap.xml', async (c) => {
     .map(
       (affiliation) => `
   <url>
-    <loc>https://utahchurches.org/networks/${affiliation.path || affiliation.id}</loc>
+    <loc>https://${siteDomain}/networks/${affiliation.path || affiliation.id}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`
@@ -1211,7 +1222,7 @@ app.get('/sitemap.xml', async (c) => {
     .map(
       (page) => `
   <url>
-    <loc>https://utahchurches.org/${page.path}</loc>
+    <loc>https://${siteDomain}/${page.path}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>`
@@ -1365,6 +1376,14 @@ app.get('/churches/:path', async (c) => {
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
+  // Get domain and region from settings
+  const [domainSetting, regionSetting] = await Promise.all([
+    db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
+    db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+  ]);
+  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
+  const siteRegion = regionSetting?.value || 'US';
+
   // Helper function to get next occurrence of a day
   const getNextDayDate = (dayName: string): string => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1440,7 +1459,7 @@ app.get('/churches/:path', async (c) => {
               '@type': 'PostalAddress',
               streetAddress: church.gatheringAddress,
               addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
-              addressRegion: 'UT',
+              addressRegion: siteRegion,
               addressCountry: 'US',
             },
           }),
@@ -1454,40 +1473,60 @@ app.get('/churches/:path', async (c) => {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Church',
+    '@id': `https://${siteDomain}/churches/${church.path}`,
     name: church.name,
+    alternateName: church.alternateName || undefined,
     ...(church.gatheringAddress && {
       address: {
         '@type': 'PostalAddress',
         streetAddress: church.gatheringAddress,
         addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
-        addressRegion: 'UT',
+        addressRegion: siteRegion,
         addressCountry: 'US',
+        postalCode: church.zip || undefined,
       },
     }),
     ...(church.latitude &&
       church.longitude && {
         geo: {
           '@type': 'GeoCoordinates',
-          latitude: church.latitude,
-          longitude: church.longitude,
+          latitude: church.latitude.toString(),
+          longitude: church.longitude.toString(),
         },
       }),
     ...(church.phone && { telephone: church.phone }),
-    ...(church.email && { email: church.email }),
+    ...(church.email && { email: `mailto:${church.email}` }),
     ...(church.website && { url: church.website }),
     ...(churchGatheringsList.length > 0 && {
       openingHours: churchGatheringsList.map((g) => g.time).join(', '),
     }),
     ...(church.publicNotes && { description: church.publicNotes }),
+    ...(church.mailingAddress && {
+      location: {
+        '@type': 'PostalAddress',
+        streetAddress: church.mailingAddress,
+        addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
+        addressRegion: siteRegion,
+        addressCountry: 'US',
+      },
+    }),
     ...(churchAffiliationsList.length > 0 && {
       memberOf: churchAffiliationsList.map((a) => ({
         '@type': 'Organization',
+        '@id': a.website || undefined,
         name: a.name,
         ...(a.website && { url: a.website }),
       })),
     }),
     sameAs: [church.facebook, church.instagram, church.youtube, church.spotify].filter(Boolean),
     ...(events.length > 0 && { event: events }),
+    ...(church.statementOfFaith && {
+      subjectOf: {
+        '@type': 'CreativeWork',
+        name: 'Statement of Faith',
+        url: church.statementOfFaith,
+      },
+    }),
   };
 
   return c.html(

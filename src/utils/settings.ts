@@ -15,6 +15,18 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
   }
 }
 
+export async function getSiteTitle(env: Bindings): Promise<string> {
+  try {
+    const db = createDb(env);
+    const siteTitleSetting = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
+
+    return siteTitleSetting?.value || 'Churches';
+  } catch (error) {
+    console.error('Error fetching site title:', error);
+    return 'Churches';
+  }
+}
+
 export async function getSiteSettings(env: Bindings) {
   try {
     const db = createDb(env);
@@ -27,17 +39,17 @@ export async function getSiteSettings(env: Bindings) {
     ]);
 
     return {
-      siteTitle: siteTitle?.value || 'Utah Churches',
+      siteTitle: siteTitle?.value || 'Churches',
       tagline: tagline?.value || 'A directory of evangelical churches',
-      frontPageTitle: frontPageTitle?.value || 'Christian Churches in Utah',
+      frontPageTitle: frontPageTitle?.value || 'Christian Churches',
       faviconUrl: faviconUrl?.value || undefined,
     };
   } catch (error) {
     console.error('Error fetching site settings:', error);
     return {
-      siteTitle: 'Utah Churches',
+      siteTitle: 'Churches',
       tagline: 'A directory of evangelical churches',
-      frontPageTitle: 'Christian Churches in Utah',
+      frontPageTitle: 'Christian Churches',
       faviconUrl: undefined,
     };
   }
