@@ -15,7 +15,7 @@ import { Layout } from '../../components/Layout';
 import { ChurchForm } from '../../components/ChurchForm';
 import { NotFound } from '../../components/NotFound';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import { getLogoUrl } from '../../utils/logo';
+import { getLogoUrl } from '../../utils/settings';
 import {
   churchWithGatheringsSchema,
   parseFormBody,
