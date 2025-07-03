@@ -10,7 +10,7 @@ type NavbarProps = {
 
 export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [] }) => {
   return (
-    <nav class="bg-white shadow-sm border-b border-gray-200" data-testid="navbar">
+    <nav class="bg-white shadow-sm border-b border-gray-200" aria-label="Main navigation" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16 sm:h-20">
           {/* Logo/Brand - Left side */}
@@ -18,6 +18,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             <a
               href="/"
               class="flex items-center"
+              aria-label="Utah Churches - Home"
               data-testid="logo-link"
               onmouseover="prefetchAfterDelay('/', 200)"
               onmouseout="cancelPrefetch()"
@@ -40,6 +41,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
+                aria-current={currentPath === '/' ? 'page' : undefined}
                 data-testid="nav-churches"
                 onmouseover="prefetchAfterDelay('/', 200)"
                 onmouseout="cancelPrefetch()"
@@ -53,6 +55,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
+                aria-current={currentPath === '/map' ? 'page' : undefined}
                 data-testid="nav-map"
                 onmouseover="prefetchAfterDelay('/map', 200)"
                 onmouseout="cancelPrefetch()"
@@ -66,6 +69,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
+                aria-current={currentPath === '/networks' || currentPath?.startsWith('/admin/affiliations') ? 'page' : undefined}
                 data-testid="nav-networks"
                 onmouseover="prefetchAfterDelay('/networks', 200)"
                 onmouseout="cancelPrefetch()"
@@ -106,15 +110,17 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-200"
               aria-controls="mobile-menu"
               aria-expanded="false"
-              onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
+              aria-label="Toggle navigation menu"
+              onclick="const menu = document.getElementById('mobile-menu'); const expanded = menu.classList.toggle('hidden'); this.setAttribute('aria-expanded', !expanded);"
               data-testid="mobile-menu-button"
             >
-              <span class="sr-only">Open main menu</span>
+              <span class="sr-only">Toggle main menu</span>
               <svg
                 class="block h-6 w-6 transition-transform duration-200 hover:scale-110"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>

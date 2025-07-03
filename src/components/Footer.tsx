@@ -10,22 +10,24 @@ type FooterProps = {
 
 export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, currentPath }) => {
   return (
-    <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
+    <footer class="bg-white border-t border-gray-200 mt-auto" aria-label="Site footer" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row justify-between items-center">
           <div class="text-gray-600 text-sm text-center sm:text-left">
-            <p class="italic">"Peace be to you. The friends greet you.</p>
-            <p class="italic">Greet the friends, each by name."</p>
-            <p class="mt-1 text-gray-500">– 3 John 1:15</p>
+            <blockquote cite="3 John 1:15">
+              <p class="italic">"Peace be to you. The friends greet you.</p>
+              <p class="italic">Greet the friends, each by name."</p>
+              <cite class="mt-1 text-gray-500 not-italic">– 3 John 1:15</cite>
+            </blockquote>
           </div>
-          <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+          <nav class="mt-4 sm:mt-0 flex items-center space-x-3" aria-label="Footer navigation">
             {!user && churchId && (
               <a
                 href={`/auth/signin${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ''}`}
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="feedback-link"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -42,7 +44,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="edit-church-link"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -59,7 +61,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="edit-county-link"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -76,7 +78,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="edit-affiliation-link"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -93,7 +95,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="admin-link"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -115,7 +117,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
               data-testid="suggest-church-link"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -130,7 +132,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
               data-testid="data-link"
             >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -140,7 +142,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
               </svg>
               Data
             </a>
-          </div>
+          </nav>
         </div>
       </div>
     </footer>
