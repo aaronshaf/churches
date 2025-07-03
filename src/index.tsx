@@ -790,10 +790,10 @@ app.get('/suggest-church', async (c) => {
       currentPath="/suggest-church"
     >
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-        <form method="POST" action="/suggest-church" onsubmit="handleSuggestSubmit(event)" class="space-y-8" data-testid="suggest-church-form">
+        <form method="POST" action="/suggest-church" onsubmit="handleSuggestSubmit(event)" class="space-y-8 max-w-4xl mx-auto" data-testid="suggest-church-form">
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
             <div class="px-4 py-6 sm:p-8">
-              <div class="max-w-2xl">
+              <div class="mx-auto">
                 <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-4">Suggest a Church</h2>
 
                 {showSuccess && (
@@ -884,16 +884,33 @@ app.get('/suggest-church', async (c) => {
                   
                   <div class="sm:col-span-6">
                     <label for="website" class="block text-sm font-medium leading-6 text-gray-900">
-                      Website
+                      Website <span class="text-red-500">*</span>
                     </label>
                     <div class="mt-1">
                       <input
                         type="url"
                         id="website"
                         name="website"
+                        required
                         class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                         placeholder="https://example.church"
                         data-testid="website-input"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div class="sm:col-span-6">
+                    <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
+                      Statement of Faith URL
+                    </label>
+                    <div class="mt-1">
+                      <input
+                        type="url"
+                        id="statement-of-faith"
+                        name="statementOfFaith"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://example.church/beliefs"
+                        data-testid="statement-of-faith-input"
                       />
                     </div>
                   </div>
@@ -926,22 +943,6 @@ app.get('/suggest-church', async (c) => {
                         class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                         placeholder="info@example.church"
                         data-testid="email-input"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div class="sm:col-span-6">
-                    <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
-                      Statement of Faith URL
-                    </label>
-                    <div class="mt-1">
-                      <input
-                        type="url"
-                        id="statement-of-faith"
-                        name="statementOfFaith"
-                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                        placeholder="https://example.church/beliefs"
-                        data-testid="statement-of-faith-input"
                       />
                     </div>
                   </div>
@@ -1031,7 +1032,7 @@ app.get('/suggest-church', async (c) => {
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-x-6 px-4 py-4 sm:px-8">
+          <div class="flex items-center justify-end gap-x-6 px-4 py-3 sm:px-8">
             <a
               href="/"
               class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
@@ -3518,6 +3519,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
   const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
   const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
+  const submissionCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churchSuggestions).get();
 
   // Get 1 oldest non-closed church for review
   const churchesForReview = await db
@@ -3846,6 +3848,40 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     Settings
                   </h3>
                   <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
+
+              <a
+                href="/admin/submissions"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-submissions"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Submissions ({submissionCount?.count || 0})
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">Review church suggestions from users</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
