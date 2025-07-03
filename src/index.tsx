@@ -51,6 +51,7 @@ import {
   validateFormData,
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
+import { getSiteTitle } from './utils/settings';
 
 type Variables = {
   user: any;
@@ -166,7 +167,7 @@ app.onError((err, c) => {
     err.cause?.message?.includes('Network connection lost');
 
   return c.html(
-    <Layout title="Error - Utah Churches">
+    <Layout title="Error">
       <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={err.status || 500} />
     </Layout>,
     err.status || 500
@@ -186,9 +187,21 @@ app.get('/', async (c) => {
     // Get all layout props
     const layoutProps = await getLayoutProps(c);
 
-    // Get front page title from settings
-    const frontPageTitleSetting = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
-    const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches in Utah';
+    // Check for missing critical settings
+    const [siteDomainSetting, siteRegionSetting, siteTitleSetting, frontPageTitleSetting] = await Promise.all([
+      db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
+      db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+      db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
+      db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
+    ]);
+
+    const missingSettings = [];
+    if (!siteDomainSetting?.value) missingSettings.push('Site Domain');
+    if (!siteRegionSetting?.value) missingSettings.push('Site Region');
+    if (!siteTitleSetting?.value) missingSettings.push('Site Title');
+    if (!frontPageTitleSetting?.value) missingSettings.push('Front Page Title');
+
+    const frontPageTitle = frontPageTitleSetting?.value || 'Christian Churches';
 
     // Get counties that have churches, with church count (only Listed and Unlisted)
     const countiesWithChurches = await db
@@ -216,9 +229,38 @@ app.get('/', async (c) => {
       >
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Setup Alert for Admins */}
+            {layoutProps.user?.role === 'admin' && missingSettings.length > 0 && (
+              <div class="mb-6 rounded-md bg-yellow-50 border border-yellow-200 p-4">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">Setup Incomplete</h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                      <p>The following site settings need to be configured:</p>
+                      <ul class="list-disc list-inside mt-1">
+                        {missingSettings.map(setting => (
+                          <li>{setting}</li>
+                        ))}
+                      </ul>
+                      <p class="mt-2">
+                        <a href="/admin/settings" class="font-medium underline text-yellow-700 hover:text-yellow-600">
+                          Go to Settings →
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Header */}
             <div class="mb-4">
-              <h1 class="sr-only">Churches in Utah</h1>
+              <h1 class="sr-only">Churches</h1>
               <p class="sr-only">A directory of evangelical churches</p>
             </div>
 
@@ -247,7 +289,7 @@ app.get('/', async (c) => {
                       </svg>
                       <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
                     </div>
-                    <p class="text-primary-100">Explore an interactive map of evangelical churches in Utah</p>
+                    <p class="text-primary-100">Explore an interactive map of evangelical churches</p>
                   </div>
                   <svg
                     class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
@@ -392,7 +434,7 @@ app.get('/', async (c) => {
   } catch (error) {
     console.error('Error loading home page:', error);
     return c.html(
-      <Layout title="Error - Utah Churches">
+      <Layout title="Error">
         <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
       </Layout>,
       500
@@ -412,7 +454,7 @@ app.get('/counties/:path', async (c) => {
 
   if (!county) {
     return c.html(
-      <Layout title="Page Not Found - Utah Churches" user={user}>
+      <Layout title="Page Not Found" user={user}>
         <NotFound />
       </Layout>,
       404
@@ -480,7 +522,7 @@ app.get('/counties/:path', async (c) => {
 
   return c.html(
     <Layout
-      title={`${county.name} Churches - Utah Churches`}
+      title={`${county.name} Churches`}
       user={user}
       countyId={county.id.toString()}
       faviconUrl={faviconUrl}
@@ -662,7 +704,7 @@ app.get('/networks', async (c) => {
 
   return c.html(
     <Layout
-      title="Church Networks - Utah Churches"
+      title="Church Networks"
       currentPath="/networks"
       user={user}
       faviconUrl={faviconUrl}
@@ -736,7 +778,7 @@ app.get('/suggest-church', async (c) => {
   if (!user) {
     return c.html(
       <Layout
-        title="Suggest a Church - Utah Churches"
+        title="Suggest a Church"
         user={user}
         logoUrl={logoUrl}
         pages={navbarPages}
@@ -1531,7 +1573,7 @@ app.get('/churches/:path', async (c) => {
 
   return c.html(
     <Layout
-      title={`${church.name} - Utah Churches`}
+      title={`${church.name}`}
       jsonLd={jsonLd}
       user={user}
       churchId={church.id}
@@ -1969,7 +2011,7 @@ app.get('/networks/:id', async (c) => {
 
   return c.html(
     <Layout
-      title={`${affiliation.name} - Utah Churches`}
+      title={`${affiliation.name}`}
       user={user}
       affiliationId={affiliation.id.toString()}
       logoUrl={logoUrl}
@@ -1985,7 +2027,7 @@ app.get('/networks/:id', async (c) => {
                   <h1 class="text-4xl font-bold text-white md:text-5xl">{affiliation.name}</h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {listedChurches.length + unlistedChurches.length}{' '}
-                    {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'} in Utah
+                    {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'}
                   </p>
                 </div>
               </div>
@@ -2188,7 +2230,7 @@ app.get('/map', async (c) => {
 
   return c.html(
     <Layout
-      title="Church Map - Utah Churches"
+      title="Church Map"
       currentPath="/map"
       user={user}
       faviconUrl={faviconUrl}
@@ -2277,7 +2319,7 @@ app.get('/map', async (c) => {
           const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
           await google.maps.importLibrary("geometry");
           
-          // Initialize map centered on Utah
+          // Initialize map centered on region
           map = new Map(document.getElementById('map'), {
             mapId: "churches",
             gestureHandling: "greedy",
@@ -2538,7 +2580,7 @@ app.get('/map', async (c) => {
             position.coords.longitude
           );
           
-          // Check if user is in Utah
+          // Check if user is in the region (TODO: make these bounds configurable)
           if (
             position.coords.latitude >= 36.9979667 && // Southern border
             position.coords.latitude <= 42.0013889 && // Northern border
@@ -2922,7 +2964,7 @@ app.get('/churches.csv', async (c) => {
 
   return c.text(csvContent, 200, {
     'Content-Type': 'text/csv',
-    'Content-Disposition': 'attachment; filename="utah-churches.csv"',
+    'Content-Disposition': 'attachment; filename="churches.csv"',
   });
 });
 
@@ -3106,7 +3148,7 @@ app.get('/churches.xlsx', async (c) => {
 
   return c.body(xlsxBuffer, 200, {
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition': 'attachment; filename="utah-churches.xlsx"',
+    'Content-Disposition': 'attachment; filename="churches.xlsx"',
   });
 });
 
@@ -3137,7 +3179,7 @@ app.get('/data', async (c) => {
 
     return c.html(
       <Layout
-        title="Download Data - Utah Churches"
+        title="Download Data"
         currentPath="/data"
         user={user}
         faviconUrl={faviconUrl}
@@ -3317,7 +3359,7 @@ app.get('/data', async (c) => {
   } catch (error) {
     console.error('Error loading data page:', error);
     return c.html(
-      <Layout title="Error - Utah Churches">
+      <Layout title="Error">
         <ErrorPage error={error.message || 'Failed to load data'} statusCode={500} />
       </Layout>,
       500
@@ -3496,7 +3538,7 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
 
     return c.html(
       <Layout
-        title="Activity Monitoring - Utah Churches"
+        title="Activity Monitoring"
         currentPath="/admin/monitoring"
         {...layoutProps}
       >
@@ -3513,7 +3555,7 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
   } catch (error) {
     console.error('Error loading monitoring dashboard:', error);
     return c.html(
-      <Layout title="Error - Utah Churches">
+      <Layout title="Error">
         <ErrorPage error={error.message || 'Failed to load monitoring dashboard'} statusCode={500} />
       </Layout>,
       500
@@ -3557,7 +3599,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
   return c.html(
     <Layout
-      title="Admin Dashboard - Utah Churches"
+      title="Admin Dashboard"
       user={user}
       currentPath="/admin"
       logoUrl={logoUrl}
@@ -3758,7 +3800,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Counties ({countyCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage Utah county information</p>
+                  <p class="mt-2 text-sm text-gray-500">Manage county information</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -4233,7 +4275,7 @@ app.get('/admin/affiliations', requireAdminBetter, async (c) => {
   }));
 
   return c.html(
-    <Layout title="Manage Affiliations - Utah Churches" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl}>
+    <Layout title="Manage Affiliations" user={user} currentPath="/admin/affiliations" logoUrl={logoUrl}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -4402,7 +4444,7 @@ app.get('/admin/affiliations/new', requireAdminBetter, async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create Affiliation - Utah Churches" user={user} logoUrl={logoUrl}>
+    <Layout title="Create Affiliation" user={user} logoUrl={logoUrl>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">
@@ -4425,7 +4467,7 @@ app.post('/admin/affiliations', requireAdminBetter, async (c) => {
 
   if (!validation.success) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user}>
+      <Layout title="Create Affiliation" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -4457,7 +4499,7 @@ app.post('/admin/affiliations', requireAdminBetter, async (c) => {
   const existing = await db.select().from(affiliations).where(eq(affiliations.name, name)).get();
   if (existing) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user}>
+      <Layout title="Create Affiliation" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -4478,7 +4520,7 @@ app.post('/admin/affiliations', requireAdminBetter, async (c) => {
   const existingPath = await db.select().from(affiliations).where(eq(affiliations.path, finalPath)).get();
   if (existingPath) {
     return c.html(
-      <Layout title="Create Affiliation - Utah Churches" user={user}>
+      <Layout title="Create Affiliation" user={user}>
         <div class="bg-gray-50 py-8">
           <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow sm:rounded-lg p-6">
@@ -5118,7 +5160,7 @@ app.post('/admin/churches', requireAdminBetter, async (c) => {
     if (!validation.success) {
       // Return a more user-friendly error response
       return c.html(
-        <Layout title="Error - Utah Churches">
+        <Layout title="Error">
           <div class="max-w-2xl mx-auto px-4 py-8">
             <div class="bg-red-50 border border-red-200 rounded-md p-4">
               <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>

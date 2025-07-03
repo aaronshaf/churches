@@ -1,17 +1,17 @@
-# Utah Churches
+# Churches Directory
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A directory of evangelical churches in Utah, built with Cloudflare Workers, Hono, and Turso.
+A directory of evangelical churches, built with Cloudflare Workers, Hono, and Turso.
 
 ## Overview
 
-Utah Churches provides a comprehensive directory of evangelical churches across Utah's counties. The application features an interactive map, detailed church information, and data export capabilities.
+This application provides a comprehensive directory of evangelical churches organized by county. The application features an interactive map, detailed church information, and data export capabilities.
 
 ## Features
 
 - 📍 **Interactive Map** - Find churches near you with Google Maps integration
-- 🏛️ **County Organization** - Browse churches organized by Utah counties
+- 🏛️ **County Organization** - Browse churches organized by counties
 - 🔍 **Church Details** - View gathering times, contact info, and affiliations
 - 📊 **Data Export** - Download church data in JSON, YAML, CSV, or XLSX formats
 - 🌐 **Multi-language Support** - Track churches serving in different languages
@@ -109,7 +109,7 @@ pnpm deploy          # Deploy to Cloudflare Workers
 The application uses the following main tables:
 
 - `churches` - Church information including location, contacts, and status
-- `counties` - Utah counties
+- `counties` - Geographic counties
 - `affiliations` - Church networks/denominations
 - `church_affiliations` - Many-to-many relationship
 - `church_gatherings` - Gathering times and details
@@ -195,6 +195,18 @@ The application includes an AI-powered feature to automatically extract church i
 3. Add to `.dev.vars` and production secrets
 
 The extraction uses Google Gemini 2.5 Flash Lite which has a 1M+ token context window, allowing it to process even very large church websites.
+
+## SEO & Structured Data
+
+The application includes JSON-LD structured data on individual church pages (`/churches/:path`) to improve search engine understanding and visibility. This includes:
+
+- Church schema with address, contact information, and geo coordinates
+- Event schemas for recurring church gatherings
+- Organization affiliations
+- Social media links
+- Statement of Faith as a related CreativeWork
+
+The domain and region in structured data are configurable via the site settings.
 
 ## Authentication Setup
 
