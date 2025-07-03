@@ -99,7 +99,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
       )}
 
       {/* Comments List */}
-      {visibleComments.length > 0 ? (
+      {visibleComments.length > 0 && (
         <div class="space-y-3" data-testid="comments-list">
           {visibleComments.map((comment, index) => (
             <div key={comment.id} class="group" data-testid={`comment-${index}`}>
@@ -180,23 +180,6 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
               </div>
             </div>
           ))}
-        </div>
-      ) : (
-        <div class="text-center py-12" data-testid="empty-comments">
-          <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <h4 class="text-sm font-medium text-gray-900 mb-1" data-testid="empty-comments-title">
-            {canSeeAllComments ? 'No community feedback yet' : 'No personal notes yet'}
-          </h4>
-          <p class="text-sm text-gray-500 mb-4">
-            {canSeeAllComments 
-              ? 'Be the first to share feedback about this church'
-              : 'Add your first note about this church above'
-            }
-          </p>
         </div>
       )}
     </div>
