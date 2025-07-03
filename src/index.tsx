@@ -21,6 +21,7 @@ import {
   churches,
   churchGatherings,
   churchImages,
+  churchSuggestions,
   comments,
   counties,
   pages,
@@ -565,6 +566,24 @@ app.get('/counties/:path', async (c) => {
               </button>
             </div>
           )}
+
+          {/* Suggest a Church Prompt */}
+          <div class="mt-12 bg-gray-50 rounded-lg p-6 text-center" data-testid="suggest-church-prompt">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Don't see your church?</h3>
+            <p class="text-gray-600 mb-4">
+              Help us grow our directory by suggesting churches in {county.name} that we might have missed.
+            </p>
+            <a
+              href="/suggest-church"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              data-testid="suggest-church-link"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Suggest a Church
+            </a>
+          </div>
         </div>
       </div>
 
@@ -718,6 +737,203 @@ app.get('/networks', async (c) => {
       </div>
     </Layout>
   );
+});
+
+// Suggest a Church page
+app.get('/suggest-church', async (c) => {
+  const user = await getUser(c);
+  const logoUrl = await getLogoUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
+  const showSuccess = c.req.query('success') === 'true';
+
+  return c.html(
+    <Layout
+      title="Suggest a Church - Utah Churches"
+      user={user}
+      logoUrl={logoUrl}
+      pages={navbarPages}
+      currentPath="/suggest-church"
+    >
+      <div class="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-6 sm:p-8">
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">Suggest a Church</h1>
+          <p class="text-lg text-gray-600 mb-8">
+            Know of a church that's not in our directory? Help us grow our database by suggesting it below.
+          </p>
+
+          {showSuccess && (
+            <div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4" data-testid="success-message">
+              <div class="flex">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-green-800">
+                    Thank you! Your church suggestion has been submitted successfully.
+                  </p>
+                  <p class="mt-1 text-sm text-green-700">
+                    We'll review your submission and add the church to our directory if it meets our criteria.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form method="POST" action="/suggest-church" class="space-y-6" data-testid="suggest-church-form">
+            <div>
+              <label for="church-name" class="block text-sm font-medium text-gray-700 mb-1">
+                Church Name <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="church-name"
+                name="churchName"
+                required
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Grace Community Church"
+                data-testid="church-name-input"
+              />
+            </div>
+
+            <div>
+              <label for="denomination" class="block text-sm font-medium text-gray-700 mb-1">
+                Denomination or Affiliation
+              </label>
+              <input
+                type="text"
+                id="denomination"
+                name="denomination"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Baptist, Presbyterian, Non-denominational, etc."
+                data-testid="denomination-input"
+              />
+            </div>
+
+            <div>
+              <label for="address" class="block text-sm font-medium text-gray-700 mb-1">
+                Address
+              </label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="123 Main St, Salt Lake City, UT 84101"
+                data-testid="address-input"
+              />
+            </div>
+
+            <div>
+              <label for="website" class="block text-sm font-medium text-gray-700 mb-1">
+                Website
+              </label>
+              <input
+                type="url"
+                id="website"
+                name="website"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="https://example.church"
+                data-testid="website-input"
+              />
+            </div>
+
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="info@example.church"
+                data-testid="email-input"
+              />
+            </div>
+
+            <div>
+              <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="(801) 555-0123"
+                data-testid="phone-input"
+              />
+            </div>
+
+            <div>
+              <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                Additional Notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows="4"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Any additional information about this church..."
+                data-testid="notes-textarea"
+              ></textarea>
+            </div>
+
+            <div class="pt-4">
+              <button
+                type="submit"
+                class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                data-testid="submit-suggestion-button"
+              >
+                Submit Suggestion
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Layout>
+  );
+});
+
+// Handle church suggestion submission
+app.post('/suggest-church', async (c) => {
+  const user = await getUser(c);
+  const db = createDb(c.env);
+  
+  const body = await c.req.parseBody();
+  
+  // Extract city and state from address if provided
+  let city = '';
+  let zip = '';
+  const addressStr = String(body.address || '');
+  if (addressStr) {
+    // Simple regex to extract city and zip from addresses like "123 Main St, Salt Lake City, UT 84101"
+    const match = addressStr.match(/,\s*([^,]+),\s*UT\s*(\d{5})?/);
+    if (match) {
+      city = match[1].trim();
+      zip = match[2] || '';
+    }
+  }
+  
+  // Store the suggestion in the dedicated church_suggestions table
+  await db.insert(churchSuggestions).values({
+    userId: user?.id || 'anonymous',
+    churchName: String(body.churchName || ''),
+    address: addressStr,
+    city: city,
+    state: 'UT',
+    zip: zip,
+    website: String(body.website || ''),
+    phone: String(body.phone || ''),
+    email: String(body.email || ''),
+    notes: `Denomination/Affiliation: ${body.denomination || 'Not provided'}\nAdditional Notes: ${body.notes || 'None'}`,
+    status: 'pending',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  // Redirect back to suggest page with success message
+  return c.redirect('/suggest-church?success=true');
 });
 
 app.get('/robots.txt', async (c) => {

@@ -72,7 +72,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                 rows="4"
                 required
                 class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm placeholder-gray-400 resize-none px-4 py-3"
-                placeholder={`Submit comment about ${churchName}...`}
+                placeholder={`Submit comment about ${churchName}`}
                 data-testid="comment-textarea"
               ></textarea>
             </div>

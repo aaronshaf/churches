@@ -72,6 +72,19 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               >
                 Networks
               </a>
+              <a
+                href="/suggest-church"
+                class={`${
+                  currentPath === '/suggest-church'
+                    ? 'border-primary-500 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
+                data-testid="nav-suggest"
+                onmouseover="prefetchAfterDelay('/suggest-church', 200)"
+                onmouseout="cancelPrefetch()"
+              >
+                Suggest
+              </a>
               {pages
                 .filter((page) => page.navbarOrder !== null)
                 .sort((a, b) => (a.navbarOrder || 0) - (b.navbarOrder || 0))
@@ -155,6 +168,16 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             } block pl-3 pr-4 py-2 border-l text-base font-medium`}
           >
             Networks
+          </a>
+          <a
+            href="/suggest-church"
+            class={`${
+              currentPath === '/suggest-church'
+                ? 'bg-primary-50 border-primary-500 text-primary-700'
+                : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+            } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+          >
+            Suggest a Church
           </a>
           {pages
             .filter((page) => page.navbarOrder !== null)
