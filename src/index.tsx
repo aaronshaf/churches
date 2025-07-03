@@ -789,12 +789,12 @@ app.get('/suggest-church', async (c) => {
       pages={navbarPages}
       currentPath="/suggest-church"
     >
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         <form method="POST" action="/suggest-church" onsubmit="handleSuggestSubmit(event)" class="space-y-8" data-testid="suggest-church-form">
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
             <div class="px-4 py-6 sm:p-8">
               <div class="max-w-2xl">
-                <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-8">Suggest a Church</h2>
+                <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-4">Suggest a Church</h2>
 
                 {showSuccess && (
                   <div class="rounded-md bg-green-50 p-4 mb-6" data-testid="success-message">
@@ -816,17 +816,12 @@ app.get('/suggest-church', async (c) => {
                   </div>
                 )}
 
-                <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                  {/* Basic Information */}
-                  <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Basic Information</h3>
-                  </div>
-                  
+                <div class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-6">
                   <div class="sm:col-span-4">
                     <label for="church-name" class="block text-sm font-medium leading-6 text-gray-900">
                       Church Name <span class="text-red-500">*</span>
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="text"
                         id="church-name"
@@ -843,7 +838,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="denomination" class="block text-sm font-medium leading-6 text-gray-900">
                       Affiliations
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="text"
                         id="denomination"
@@ -854,17 +849,12 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-
-                  {/* Location Information */}
-                  <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Location Information</h3>
-                  </div>
                   
                   <div class="sm:col-span-6">
                     <label for="address" class="block text-sm font-medium leading-6 text-gray-900">
                       Address
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="text"
                         id="address"
@@ -876,16 +866,11 @@ app.get('/suggest-church', async (c) => {
                     </div>
                   </div>
 
-                  {/* Service Information */}
-                  <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Service Information</h3>
-                  </div>
-
                   <div class="sm:col-span-6">
                     <label for="service-times" class="block text-sm font-medium leading-6 text-gray-900">
                       Service Times
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <textarea
                         id="service-times"
                         name="serviceTimes"
@@ -896,17 +881,12 @@ app.get('/suggest-church', async (c) => {
                       ></textarea>
                     </div>
                   </div>
-
-                  {/* Contact Information */}
-                  <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Contact Information</h3>
-                  </div>
                   
                   <div class="sm:col-span-6">
                     <label for="website" class="block text-sm font-medium leading-6 text-gray-900">
                       Website
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="url"
                         id="website"
@@ -922,7 +902,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="phone" class="block text-sm font-medium leading-6 text-gray-900">
                       Phone Number
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="tel"
                         id="phone"
@@ -938,7 +918,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="email" class="block text-sm font-medium leading-6 text-gray-900">
                       Email
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="email"
                         id="email"
@@ -949,16 +929,28 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-
-                  {/* Social Media */}
+                  
                   <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Social Media</h3>
+                    <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
+                      Statement of Faith URL
+                    </label>
+                    <div class="mt-1">
+                      <input
+                        type="url"
+                        id="statement-of-faith"
+                        name="statementOfFaith"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://example.church/beliefs"
+                        data-testid="statement-of-faith-input"
+                      />
+                    </div>
                   </div>
+
                   <div class="sm:col-span-3">
                     <label for="facebook" class="block text-sm font-medium leading-6 text-gray-900">
                       Facebook
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="url"
                         id="facebook"
@@ -974,7 +966,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="instagram" class="block text-sm font-medium leading-6 text-gray-900">
                       Instagram
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="url"
                         id="instagram"
@@ -990,7 +982,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="youtube" class="block text-sm font-medium leading-6 text-gray-900">
                       YouTube
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="url"
                         id="youtube"
@@ -1006,7 +998,7 @@ app.get('/suggest-church', async (c) => {
                     <label for="spotify" class="block text-sm font-medium leading-6 text-gray-900">
                       Spotify
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <input
                         type="url"
                         id="spotify"
@@ -1017,33 +1009,12 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-                  
-                  {/* Additional Information */}
-                  <div class="sm:col-span-6">
-                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Additional Information</h3>
-                  </div>
-
-                  <div class="sm:col-span-6">
-                    <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
-                      Statement of Faith URL
-                    </label>
-                    <div class="mt-2">
-                      <input
-                        type="url"
-                        id="statement-of-faith"
-                        name="statementOfFaith"
-                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                        placeholder="https://example.church/beliefs"
-                        data-testid="statement-of-faith-input"
-                      />
-                    </div>
-                  </div>
 
                   <div class="sm:col-span-6">
                     <label for="notes" class="block text-sm font-medium leading-6 text-gray-900">
                       Additional Notes
                     </label>
-                    <div class="mt-2">
+                    <div class="mt-1">
                       <textarea
                         id="notes"
                         name="notes"
