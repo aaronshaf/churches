@@ -11,6 +11,7 @@ import {
   parseFormBody,
   validateFormData,
 } from '../../utils/validation';
+import { getLogoUrl } from '../../utils/logo';
 import type { Bindings } from '../../types';
 
 type Variables = {
@@ -34,7 +35,7 @@ adminAffiliationsRoutes.get('/', async (c) => {
     .all();
 
   const content = (
-    <Layout title="Manage Affiliations" user={user}>
+    <Layout title="Manage Affiliations" currentPath="/admin/affiliations" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
@@ -113,9 +114,10 @@ adminAffiliationsRoutes.get('/', async (c) => {
 // New affiliation form
 adminAffiliationsRoutes.get('/new', async (c) => {
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
 
   const content = (
-    <Layout title="Add Affiliation" user={user}>
+    <Layout title="Add Affiliation" currentPath="/admin/affiliations" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Add Affiliation</h1>
@@ -136,6 +138,7 @@ adminAffiliationsRoutes.get('/new', async (c) => {
 adminAffiliationsRoutes.post('/', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
 
   try {
     const body = await c.req.parseBody();
@@ -154,7 +157,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
   } catch (error) {
     console.error('Error creating affiliation:', error);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" currentPath="/admin/affiliations" logoUrl={logoUrl} user={user}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error creating affiliation</h3>
@@ -173,6 +176,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
 adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
@@ -182,7 +186,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   }
 
   const content = (
-    <Layout title={`Edit ${affiliation.name}`} user={user}>
+    <Layout title={`Edit ${affiliation.name}`} currentPath="/admin/affiliations" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Edit Affiliation</h1>
@@ -203,6 +207,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
 adminAffiliationsRoutes.post('/:id', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   try {
@@ -221,7 +226,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
   } catch (error) {
     console.error('Error updating affiliation:', error);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" currentPath="/admin/affiliations" logoUrl={logoUrl} user={user}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error updating affiliation</h3>

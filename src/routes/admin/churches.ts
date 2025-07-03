@@ -15,6 +15,7 @@ import { Layout } from '../../components/Layout';
 import { ChurchForm } from '../../components/ChurchForm';
 import { NotFound } from '../../components/NotFound';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
+import { getLogoUrl } from '../../utils/logo';
 import {
   churchWithGatheringsSchema,
   parseFormBody,
@@ -105,7 +106,7 @@ adminChurchesRoutes.get('/', async (c) => {
   ]);
 
   const content = (
-    <Layout title="Manage Churches" user={user}>
+    <Layout title="Manage Churches" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
@@ -273,6 +274,7 @@ adminChurchesRoutes.get('/', async (c) => {
 adminChurchesRoutes.get('/new', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
 
   const [allCounties, allAffiliations] = await Promise.all([
     db.select().from(counties).orderBy(counties.name).all(),
@@ -280,7 +282,7 @@ adminChurchesRoutes.get('/new', async (c) => {
   ]);
 
   const content = (
-    <Layout title="Add Church" user={user}>
+    <Layout title="Add Church" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Add Church</h1>
@@ -306,6 +308,7 @@ adminChurchesRoutes.get('/new', async (c) => {
 adminChurchesRoutes.post('/', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
 
   try {
     const body = await c.req.parseBody();
@@ -368,7 +371,7 @@ adminChurchesRoutes.post('/', async (c) => {
   } catch (error) {
     console.error('Error creating church:', error);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error creating church</h3>
@@ -387,6 +390,7 @@ adminChurchesRoutes.post('/', async (c) => {
 adminChurchesRoutes.get('/:id/edit', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   const [church, gatherings, churchAffils, images, allCounties, allAffiliations] = await Promise.all([
@@ -403,7 +407,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   }
 
   const content = (
-    <Layout title={`Edit ${church.name}`} user={user}>
+    <Layout title={`Edit ${church.name}`} currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Edit Church</h1>
@@ -429,6 +433,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
 adminChurchesRoutes.post('/:id', async (c) => {
   const db = createDb(c.env);
   const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   try {
@@ -565,7 +570,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
   } catch (error) {
     console.error('Error updating church:', error);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error updating church</h3>

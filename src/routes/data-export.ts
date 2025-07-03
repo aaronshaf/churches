@@ -540,14 +540,7 @@ dataExportRoutes.get('/data', async (c) => {
     const navbarPages = await getNavbarPages(c.env);
 
     return c.html(
-      <Layout
-        title="Download Data"
-        currentPath="/data"
-        user={user}
-        faviconUrl={faviconUrl}
-        logoUrl={logoUrl}
-        pages={navbarPages}
-      >
+      <Layout title="Download Data" currentPath="/data" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
         <div class="bg-gray-50">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
