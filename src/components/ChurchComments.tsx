@@ -61,7 +61,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
       {/* Add Comment Form */}
       {user && (
         <div class="bg-white border border-gray-200 rounded-xl px-6 pt-6 pb-4 shadow-sm" data-testid="comment-form-container">
-          <form method="POST" action={`/churches/${churchPath}/comments`} class="" style="padding: 0; margin: 0;" data-testid="comment-form">
+          <form method="POST" action={`/churches/${churchPath}/comments`} class="p-0 m-0" data-testid="comment-form">
             <div>
               <label for="comment-content" class="sr-only">
                 Submit comment about {churchName}
