@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import { getGravatarUrl } from '../utils/crypto';
 
 type Comment = {
   id: number;
@@ -6,6 +7,7 @@ type Comment = {
   createdAt: Date;
   userName?: string;
   userEmail: string;
+  userImage?: string;
   userId: string;
   isOwn: boolean;
 };
@@ -35,12 +37,12 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
     : comments.filter(comment => comment.isOwn);
 
   return (
-    <div class="space-y-6">
+    <div class="space-y-6" data-testid="church-comments">
       {/* Header */}
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between" data-testid="comments-header">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">
-            {canSeeAllComments ? 'User Feedback' : 'My Notes'}
+          <h3 class="text-lg font-semibold text-gray-900" data-testid="comments-title">
+            {canSeeAllComments ? 'Feedback' : 'My Notes'}
           </h3>
           <p class="text-sm text-gray-600 mt-0.5">
             {canSeeAllComments 
@@ -50,7 +52,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           </p>
         </div>
         {visibleComments.length > 0 && (
-          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700" data-testid="comments-count">
             {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
           </span>
         )}
@@ -58,19 +60,20 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
 
       {/* Add Comment Form */}
       {user && (
-        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <form method="POST" action={`/churches/${churchPath}/comments`} class="space-y-4">
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm" data-testid="comment-form-container">
+          <form method="POST" action={`/churches/${churchPath}/comments`} class="space-y-4" data-testid="comment-form">
             <div>
               <label for="comment-content" class="sr-only">
-                Add your thoughts about {churchName}
+                Submit comment about {churchName}
               </label>
               <textarea
                 id="comment-content"
                 name="content"
                 rows="4"
                 required
-                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm placeholder-gray-400 resize-none"
-                placeholder={`Share your thoughts about ${churchName}...`}
+                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm placeholder-gray-400 resize-none px-4 py-3"
+                placeholder={`Submit comment about ${churchName}...`}
+                data-testid="comment-textarea"
               ></textarea>
             </div>
             <div class="flex items-center justify-between">
@@ -83,6 +86,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
               <button
                 type="submit"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-lg transition-colors"
+                data-testid="submit-comment-button"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -96,14 +100,29 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
 
       {/* Comments List */}
       {visibleComments.length > 0 ? (
-        <div class="space-y-3">
+        <div class="space-y-3" data-testid="comments-list">
           {visibleComments.map((comment, index) => (
-            <div key={comment.id} class="group">
-              <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
+            <div key={comment.id} class="group" data-testid={`comment-${index}`}>
+              <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow" data-testid={`comment-container-${index}`}>
                 <div class="flex items-start space-x-3">
                   {/* Avatar */}
                   <div class="flex-shrink-0">
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                    {comment.userImage ? (
+                      <img 
+                        src={comment.userImage}
+                        alt={comment.userName || comment.userEmail}
+                        class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                        onerror={`this.src='${getGravatarUrl(comment.userEmail, 36)}'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}`}
+                      />
+                    ) : (
+                      <img 
+                        src={getGravatarUrl(comment.userEmail, 36)}
+                        alt={comment.userName || comment.userEmail}
+                        class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                      />
+                    )}
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center" style="display: none;">
                       <span class="text-sm font-semibold text-white">
                         {comment.userName ? comment.userName.charAt(0).toUpperCase() : comment.userEmail.charAt(0).toUpperCase()}
                       </span>
@@ -114,7 +133,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center space-x-2">
-                        <p class="text-sm font-medium text-gray-900">
+                        <p class="text-sm font-medium text-gray-900" data-testid={`comment-author-${index}`}>
                           {comment.userName || comment.userEmail.split('@')[0]}
                         </p>
                         {comment.isOwn && (
@@ -128,16 +147,33 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                           </span>
                         )}
                       </div>
-                      <time class="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: new Date(comment.createdAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                        })}
-                      </time>
+                      <div class="flex items-center space-x-3">
+                        <time class="text-xs text-gray-500">
+                          {new Date(comment.createdAt).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: new Date(comment.createdAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                          })}
+                        </time>
+                        {user.role === 'admin' && (
+                          <div class="border-l border-gray-300 pl-3">
+                            <form method="POST" action={`/churches/${churchPath}/comments/${comment.id}/delete`} class="inline">
+                              <button
+                                type="submit"
+                                onclick="return confirm('Are you sure you want to delete this comment?')"
+                                class="text-xs text-red-600 hover:text-red-800 focus:outline-none transition-colors font-medium"
+                                title="Delete comment"
+                                data-testid={`delete-comment-${index}`}
+                              >
+                                Delete
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div class="prose prose-sm max-w-none">
-                      <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                      <p class="text-gray-700 leading-relaxed whitespace-pre-wrap" data-testid={`comment-content-${index}`}>{comment.content}</p>
                     </div>
                   </div>
                 </div>
@@ -146,13 +182,13 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           ))}
         </div>
       ) : (
-        <div class="text-center py-12">
+        <div class="text-center py-12" data-testid="empty-comments">
           <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <h4 class="text-sm font-medium text-gray-900 mb-1">
+          <h4 class="text-sm font-medium text-gray-900 mb-1" data-testid="empty-comments-title">
             {canSeeAllComments ? 'No community feedback yet' : 'No personal notes yet'}
           </h4>
           <p class="text-sm text-gray-500 mb-4">

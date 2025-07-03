@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import { getGravatarUrl } from '../utils/crypto';
 
 type BetterAuthUserMenuProps = {
   user?: any;
@@ -27,6 +28,7 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
             const email = '${user.email || ''}';
             const role = '${user.role || 'user'}';
             const image = '${user.image || ''}';
+            const gravatarUrl = '${getGravatarUrl(user.email || '', 32)}';
             const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
             
             // Create user menu HTML with Clerk-like styling
@@ -35,9 +37,10 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
                 <button id="user-menu-button" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all" aria-expanded="false" aria-haspopup="true">
                   <span class="sr-only">Open user menu</span>
                   \${image ? \`
-                    <img class="h-8 w-8 rounded-full object-cover shadow-sm hover:shadow-md transition-shadow" src="\${image}" alt="\${name}" />
+                    <img class="h-8 w-8 rounded-full object-cover shadow-sm hover:shadow-md transition-shadow" src="\${image}" alt="\${name}" onerror="this.src='\${gravatarUrl}'; this.onerror=null;" />
                   \` : \`
-                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium shadow-sm hover:shadow-md transition-shadow">
+                    <img class="h-8 w-8 rounded-full object-cover shadow-sm hover:shadow-md transition-shadow" src="\${gravatarUrl}" alt="\${name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center text-sm text-white font-medium shadow-sm hover:shadow-md transition-shadow" style="display: none;">
                       \${initials}
                     </div>
                   \`}
@@ -47,9 +50,10 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
                   <div class="px-4 py-3 border-b border-gray-100">
                     <div class="flex items-center space-x-3">
                       \${image ? \`
-                        <img class="h-10 w-10 rounded-full object-cover" src="\${image}" alt="\${name}" />
+                        <img class="h-10 w-10 rounded-full object-cover" src="\${image}" alt="\${name}" onerror="this.src='\${gravatarUrl}'; this.onerror=null;" />
                       \` : \`
-                        <div class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium">
+                        <img class="h-10 w-10 rounded-full object-cover" src="\${gravatarUrl}" alt="\${name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                        <div class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center text-sm text-white font-medium" style="display: none;">
                           \${initials}
                         </div>
                       \`}
