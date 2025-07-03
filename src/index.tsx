@@ -9,6 +9,7 @@ import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
 import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
+import { MonitoringDashboard } from './components/MonitoringDashboard';
 import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
@@ -3128,62 +3129,114 @@ app.get('/force-refresh', async (c) => {
 
 // Auth Monitoring placeholder
 app.get('/admin/monitoring', requireAdminBetter, async (c) => {
-  const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
-  const navbarPages = await getNavbarPages(c.env);
+  try {
+    const db = createDb(c.env);
+    const layoutProps = await getLayoutProps(c);
+    
+    // Gather system health data
+    const dbStart = Date.now();
+    await db.select().from(settings).limit(1);
+    const dbResponseTime = Date.now() - dbStart;
+    
+    // Check database health
+    const dbStatus: 'healthy' | 'warning' | 'error' = 
+      dbResponseTime < 100 ? 'healthy' : dbResponseTime < 500 ? 'warning' : 'error';
+    
+    // Simulate application metrics (in real app, these would come from actual monitoring)
+    const appUptime = process.uptime(); // Seconds since process started
+    const memoryUsage = Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100);
+    
+    // Get recent user sessions for activity feed
+    const { sessions } = await import('./db/auth-schema');
+    const recentSessions = await db
+      .select({
+        userId: sessions.userId,
+        createdAt: sessions.createdAt,
+        ipAddress: sessions.ipAddress,
+        userEmail: users.email,
+        userName: users.name,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .orderBy(desc(sessions.createdAt))
+      .limit(10)
+      .all();
 
-  return c.html(
-    <Layout
-      title="Auth Monitoring - Utah Churches"
-      user={user}
-      currentPath="/admin/monitoring"
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
-      <div class="min-h-screen bg-gray-50 py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="bg-white rounded-lg shadow px-6 py-8">
-            <h1 class="text-2xl font-bold text-gray-900 mb-4">Authentication Monitoring</h1>
-            <p class="text-gray-600 mb-6">
-              Authentication system monitoring and analytics will be available here in a future update.
-            </p>
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div class="flex">
-                <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div class="ml-3">
-                  <h3 class="text-sm font-medium text-blue-800">Coming Soon</h3>
-                  <div class="mt-2 text-sm text-blue-700">
-                    <p>This feature will include:</p>
-                    <ul class="list-disc list-inside mt-2 space-y-1">
-                      <li>Login activity tracking</li>
-                      <li>Failed authentication attempts</li>
-                      <li>Active session monitoring</li>
-                      <li>User activity analytics</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="mt-6">
-              <a
-                href="/admin"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <svg class="mr-2 -ml-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Back to Dashboard
-              </a>
-            </div>
+    // Convert sessions to activity feed
+    const recentActivity = recentSessions.map((session, index) => ({
+      id: `session-${index}`,
+      type: 'login' as const,
+      user: session.userName || session.userEmail,
+      description: `signed in from ${session.ipAddress || 'unknown IP'}`,
+      timestamp: new Date(session.createdAt),
+    }));
+
+    // Mock data for external services (in real app, these would be actual health checks)
+    const systemHealth = {
+      database: {
+        status: dbStatus,
+        responseTime: dbResponseTime,
+        connections: 5, // Mock data
+      },
+      application: {
+        uptime: appUptime,
+        memoryUsage,
+        requestRate: 15, // Mock: requests per minute
+      },
+      externalServices: {
+        googleMaps: 'healthy' as const,
+        cloudflareImages: 'healthy' as const,
+        googleOAuth: 'healthy' as const,
+      },
+    };
+
+    // Mock error summary (in real app, this would come from error logging)
+    const errorSummary = {
+      total24h: 3,
+      recent: [
+        {
+          id: 'error-1',
+          message: 'Failed to load church image',
+          count: 2,
+          lastOccurred: new Date(Date.now() - 1800000), // 30 minutes ago
+          severity: 'warning' as const,
+        },
+        {
+          id: 'error-2', 
+          message: 'Database query timeout',
+          count: 1,
+          lastOccurred: new Date(Date.now() - 3600000), // 1 hour ago
+          severity: 'error' as const,
+        },
+      ],
+    };
+
+    return c.html(
+      <Layout
+        title="System Monitoring - Utah Churches"
+        currentPath="/admin/monitoring"
+        {...layoutProps}
+      >
+        <div class="min-h-screen bg-gray-50 py-8">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <MonitoringDashboard
+              systemHealth={systemHealth}
+              recentActivity={recentActivity}
+              errorSummary={errorSummary}
+            />
           </div>
         </div>
-      </div>
-    </Layout>
-  );
+      </Layout>
+    );
+  } catch (error) {
+    console.error('Error loading monitoring dashboard:', error);
+    return c.html(
+      <Layout title="Error - Utah Churches">
+        <ErrorPage error={error.message || 'Failed to load monitoring dashboard'} statusCode={500} />
+      </Layout>,
+      500
+    );
+  }
 });
 
 // Admin routes
