@@ -3942,29 +3942,32 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
   const navbarPages = await getNavbarPages(c.env);
 
   // Get all church suggestions with user info
-  const suggestions = await db
-    .select({
-      id: churchSuggestions.id,
-      churchName: churchSuggestions.churchName,
-      denomination: churchSuggestions.denomination,
-      address: churchSuggestions.address,
-      website: churchSuggestions.website,
-      phone: churchSuggestions.phone,
-      email: churchSuggestions.email,
-      serviceTimes: churchSuggestions.serviceTimes,
-      statementOfFaith: churchSuggestions.statementOfFaith,
-      facebook: churchSuggestions.facebook,
-      instagram: churchSuggestions.instagram,
-      youtube: churchSuggestions.youtube,
-      spotify: churchSuggestions.spotify,
-      createdAt: churchSuggestions.createdAt,
-      submittedByEmail: users.email,
-      submittedByName: users.name,
-    })
+  const suggestionsRaw = await db
+    .select()
     .from(churchSuggestions)
     .leftJoin(users, eq(churchSuggestions.submittedBy, users.id))
     .orderBy(desc(churchSuggestions.createdAt))
     .all();
+    
+  // Transform the data to a cleaner format
+  const suggestions = suggestionsRaw.map(row => ({
+    id: row.church_suggestions.id,
+    churchName: row.church_suggestions.churchName,
+    denomination: row.church_suggestions.denomination,
+    address: row.church_suggestions.address,
+    website: row.church_suggestions.website,
+    phone: row.church_suggestions.phone,
+    email: row.church_suggestions.email,
+    serviceTimes: row.church_suggestions.serviceTimes,
+    statementOfFaith: row.church_suggestions.statementOfFaith,
+    facebook: row.church_suggestions.facebook,
+    instagram: row.church_suggestions.instagram,
+    youtube: row.church_suggestions.youtube,
+    spotify: row.church_suggestions.spotify,
+    createdAt: row.church_suggestions.createdAt,
+    submittedByEmail: row.users?.email || null,
+    submittedByName: row.users?.name || null,
+  }));
 
   return c.html(
     <Layout 

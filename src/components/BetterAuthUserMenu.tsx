@@ -46,7 +46,7 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
                   \`}
                 </button>
                 
-                <div id="user-menu-dropdown" class="hidden origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
+                <div id="user-menu-dropdown" class="hidden origin-top-right absolute right-0 mt-2 w-64 sm:w-72 rounded-xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
                   <div class="px-4 py-3 border-b border-gray-100">
                     <div class="flex items-center space-x-3">
                       \${image ? \`

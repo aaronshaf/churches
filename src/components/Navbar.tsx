@@ -99,7 +99,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
           </div>
 
           {/* Mobile menu button and user menu */}
-          <div class="flex items-center space-x-2 sm:hidden">
+          <div class="flex items-center space-x-3 sm:hidden">
             <BetterAuthUserMenu user={user} />
             <button
               type="button"
