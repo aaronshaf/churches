@@ -791,9 +791,6 @@ app.get('/suggest-church', async (c) => {
                         <p class="text-sm font-medium text-green-800">
                           Thank you! Your church suggestion has been submitted successfully.
                         </p>
-                        <p class="mt-1 text-sm text-green-700">
-                          We'll review your submission and add the church to our directory if it meets our criteria.
-                        </p>
                       </div>
                     </div>
                   </div>
