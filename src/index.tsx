@@ -1093,6 +1093,7 @@ app.post('/suggest-church', async (c) => {
   await db.insert(churchSuggestions).values({
     userId: user.id,
     churchName: String(body.churchName || ''),
+    denomination: String(body.denomination || ''),
     address: addressStr,
     city: city,
     state: 'UT',
@@ -1100,14 +1101,13 @@ app.post('/suggest-church', async (c) => {
     website: String(body.website || ''),
     phone: String(body.phone || ''),
     email: String(body.email || ''),
-    notes: `Denomination/Affiliation: ${body.denomination || 'Not provided'}
-Service Times: ${body.serviceTimes || 'Not provided'}
-Statement of Faith: ${body.statementOfFaith || 'Not provided'}
-Facebook: ${body.facebook || 'Not provided'}
-Instagram: ${body.instagram || 'Not provided'}
-YouTube: ${body.youtube || 'Not provided'}
-Spotify: ${body.spotify || 'Not provided'}
-Additional Notes: ${body.notes || 'None'}`,
+    serviceTimes: String(body.serviceTimes || ''),
+    statementOfFaith: String(body.statementOfFaith || ''),
+    facebook: String(body.facebook || ''),
+    instagram: String(body.instagram || ''),
+    youtube: String(body.youtube || ''),
+    spotify: String(body.spotify || ''),
+    notes: String(body.notes || ''),
     status: 'pending',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -3945,7 +3945,7 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
   const suggestionsRaw = await db
     .select()
     .from(churchSuggestions)
-    .leftJoin(users, eq(churchSuggestions.submittedBy, users.id))
+    .leftJoin(users, eq(churchSuggestions.userId, users.id))
     .orderBy(desc(churchSuggestions.createdAt))
     .all();
     

@@ -140,6 +140,7 @@ export const churchSuggestions = sqliteTable('church_suggestions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: text('user_id').notNull(),
   churchName: text('church_name').notNull(),
+  denomination: text('denomination'),
   address: text('address'),
   city: text('city'),
   state: text('state').default('UT'),
@@ -147,6 +148,12 @@ export const churchSuggestions = sqliteTable('church_suggestions', {
   website: text('website'),
   phone: text('phone'),
   email: text('email'),
+  serviceTimes: text('service_times'),
+  statementOfFaith: text('statement_of_faith'),
+  facebook: text('facebook'),
+  instagram: text('instagram'),
+  youtube: text('youtube'),
+  spotify: text('spotify'),
   notes: text('notes'),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] })
     .notNull()
