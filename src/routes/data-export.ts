@@ -1,11 +1,14 @@
 import { Hono } from 'hono';
-import { eq, ne, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
 import { createDb } from '../db';
 import { churches, churchGatherings, affiliations, churchAffiliations, counties } from '../db/schema';
 import { Layout } from '../components/Layout';
+import { ErrorPage } from '../components/ErrorPage';
 import { getUser } from '../middleware/better-auth';
+import { getFaviconUrl, getLogoUrl } from '../utils/settings';
+import { getNavbarPages } from '../utils/pages';
 import type { Bindings } from '../types';
 
 type Variables = {
@@ -18,72 +21,87 @@ export const dataExportRoutes = new Hono<{ Bindings: Bindings; Variables: Variab
 dataExportRoutes.get('/churches.json', async (c) => {
   const db = createDb(c.env);
 
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
-      church: churches,
-      county: counties,
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(ne(churches.status, 'Heretical'))
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
-  const churchesWithDetails = await Promise.all(
-    allChurches.map(async ({ church, county }) => {
-      const gatherings = await db
-        .select()
-        .from(churchGatherings)
-        .where(eq(churchGatherings.churchId, church.id))
-        .all();
+  // Get affiliations for each church
+  const churchIds = allChurches.map((c) => c.id);
+  let churchAffiliationData = [];
 
-      const churchAffils = await db
-        .select({
-          affiliation: affiliations,
-        })
-        .from(churchAffiliations)
-        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(eq(churchAffiliations.churchId, church.id))
-        .all();
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
+        order: churchAffiliations.order,
+      })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
 
-      return {
-        id: church.id,
-        name: church.name,
-        path: church.path,
-        status: church.status,
-        county: county ? { id: county.id, name: county.name, path: county.path } : null,
-        affiliations: churchAffils.map((ca) => ({
-          id: ca.affiliation.id,
-          name: ca.affiliation.name,
-          path: ca.affiliation.path,
-        })),
-        gatherings: gatherings.map((g) => ({
-          time: g.time,
-          notes: g.notes,
-        })),
-        address: church.gatheringAddress,
-        coordinates: church.latitude && church.longitude ? { lat: church.latitude, lng: church.longitude } : null,
-        contact: {
-          phone: church.phone,
-          email: church.email,
-          website: church.website,
-        },
-        social: {
-          facebook: church.facebook,
-          instagram: church.instagram,
-          youtube: church.youtube,
-          spotify: church.spotify,
-        },
-        statementOfFaith: church.statementOfFaith,
-        publicNotes: church.publicNotes,
-        createdAt: church.createdAt,
-        updatedAt: church.updatedAt,
-      };
-    })
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push({
+        id: item.affiliationId,
+        name: item.affiliationName,
+        website: item.affiliationWebsite,
+        notes: item.affiliationPublicNotes,
+      });
+      return acc;
+    },
+    {} as Record<number, any[]>
   );
 
-  return c.json(churchesWithDetails, 200, {
-    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+  // Combine church data with affiliations
+  const churchesWithAffiliations = allChurches.map((church) => ({
+    ...church,
+    affiliations: affiliationsByChurch[church.id] || [],
+  }));
+
+  return c.json({
+    total: churchesWithAffiliations.length,
+    churches: churchesWithAffiliations,
   });
 });
 
@@ -91,100 +109,104 @@ dataExportRoutes.get('/churches.json', async (c) => {
 dataExportRoutes.get('/churches.yaml', async (c) => {
   const db = createDb(c.env);
 
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
-      church: churches,
-      county: counties,
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(ne(churches.status, 'Heretical'))
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
-  const churchesWithDetails = await Promise.all(
-    allChurches.map(async ({ church, county }) => {
-      const gatherings = await db
-        .select()
-        .from(churchGatherings)
-        .where(eq(churchGatherings.churchId, church.id))
-        .all();
+  // Get affiliations for each church
+  const churchIds = allChurches.map((c) => c.id);
+  let churchAffiliationData = [];
 
-      const churchAffils = await db
-        .select({
-          affiliation: affiliations,
-        })
-        .from(churchAffiliations)
-        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(eq(churchAffiliations.churchId, church.id))
-        .all();
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
+        order: churchAffiliations.order,
+      })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
 
-      // Remove null values for cleaner YAML
-      const cleanObj: any = {
-        id: church.id,
-        name: church.name,
-        path: church.path,
-        status: church.status,
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      const affiliation: any = {
+        id: item.affiliationId,
+        name: item.affiliationName,
       };
-
-      if (county) {
-        cleanObj.county = { id: county.id, name: county.name, path: county.path };
-      }
-
-      if (churchAffils.length > 0) {
-        cleanObj.affiliations = churchAffils.map((ca) => ({
-          id: ca.affiliation.id,
-          name: ca.affiliation.name,
-          path: ca.affiliation.path,
-        }));
-      }
-
-      if (gatherings.length > 0) {
-        cleanObj.gatherings = gatherings
-          .map((g) => {
-            const gathering: any = { time: g.time };
-            if (g.notes) gathering.notes = g.notes;
-            return gathering;
-          })
-          .filter((g) => g.time); // Only include if time exists
-      }
-
-      if (church.gatheringAddress) cleanObj.address = church.gatheringAddress;
-      if (church.latitude && church.longitude) {
-        cleanObj.coordinates = { lat: church.latitude, lng: church.longitude };
-      }
-
-      const contact: any = {};
-      if (church.phone) contact.phone = church.phone;
-      if (church.email) contact.email = church.email;
-      if (church.website) contact.website = church.website;
-      if (Object.keys(contact).length > 0) cleanObj.contact = contact;
-
-      const social: any = {};
-      if (church.facebook) social.facebook = church.facebook;
-      if (church.instagram) social.instagram = church.instagram;
-      if (church.youtube) social.youtube = church.youtube;
-      if (church.spotify) social.spotify = church.spotify;
-      if (Object.keys(social).length > 0) cleanObj.social = social;
-
-      if (church.statementOfFaith) cleanObj.statementOfFaith = church.statementOfFaith;
-      if (church.publicNotes) cleanObj.publicNotes = church.publicNotes;
-      if (church.createdAt) cleanObj.createdAt = church.createdAt;
-      if (church.updatedAt) cleanObj.updatedAt = church.updatedAt;
-
-      return cleanObj;
-    })
+      if (item.affiliationWebsite) affiliation.website = item.affiliationWebsite;
+      if (item.affiliationPublicNotes) affiliation.notes = item.affiliationPublicNotes;
+      acc[item.churchId].push(affiliation);
+      return acc;
+    },
+    {} as Record<number, any[]>
   );
 
-  const yamlContent = yaml.dump(churchesWithDetails, {
-    sortKeys: false,
-    lineWidth: -1,
-    noRefs: true,
+  // Helper function to remove null values from objects
+  const removeNulls = (obj: any): any => {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== null && value !== undefined) {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  };
+
+  // Combine church data with affiliations and remove nulls
+  const churchesWithAffiliations = allChurches.map((church) => {
+    const cleanChurch = removeNulls(church);
+    cleanChurch.affiliations = affiliationsByChurch[church.id] || [];
+    return cleanChurch;
   });
 
-  return c.text(yamlContent, 200, {
+  const yamlData = yaml.dump({
+    total: churchesWithAffiliations.length,
+    churches: churchesWithAffiliations,
+  });
+
+  return c.text(yamlData, 200, {
     'Content-Type': 'text/yaml',
-    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
   });
 });
 
@@ -192,77 +214,117 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
 dataExportRoutes.get('/churches.csv', async (c) => {
   const db = createDb(c.env);
 
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
-      church: churches,
-      county: counties,
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
-  const churchesWithDetails = await Promise.all(
-    allChurches.map(async ({ church, county }) => {
-      const gatherings = await db
-        .select()
-        .from(churchGatherings)
-        .where(eq(churchGatherings.churchId, church.id))
-        .all();
+  // Get affiliations for each church
+  const churchIds = allChurches.map((c) => c.id);
+  let churchAffiliationData = [];
 
-      const churchAffils = await db
-        .select({
-          affiliation: affiliations,
-        })
-        .from(churchAffiliations)
-        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(eq(churchAffiliations.churchId, church.id))
-        .all();
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationName: affiliations.name,
+      })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
 
-      return {
-        Name: church.name,
-        Status: church.status,
-        County: county?.name || '',
-        Affiliations: churchAffils.map((ca) => ca.affiliation.name).join('; '),
-        'Gathering Times': gatherings.map((g) => `${g.time}${g.notes ? ` (${g.notes})` : ''}`).join('; '),
-        Address: church.gatheringAddress || '',
-        Latitude: church.latitude || '',
-        Longitude: church.longitude || '',
-        Phone: church.phone || '',
-        Email: church.email || '',
-        Website: church.website || '',
-        Facebook: church.facebook || '',
-        Instagram: church.instagram || '',
-        YouTube: church.youtube || '',
-        Spotify: church.spotify || '',
-        'Statement of Faith': church.statementOfFaith || '',
-        'Public Notes': church.publicNotes || '',
-      };
-    })
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push(item.affiliationName);
+      return acc;
+    },
+    {} as Record<number, string[]>
   );
 
-  // Create CSV content
-  const headers = Object.keys(churchesWithDetails[0] || {});
-  const csvRows = [
-    headers.join(','),
-    ...churchesWithDetails.map((church) =>
-      headers
-        .map((header) => {
-          const value = String(church[header as keyof typeof church] || '');
-          // Escape quotes and wrap in quotes if contains comma, newline, or quote
-          if (value.includes(',') || value.includes('\n') || value.includes('"')) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
-        })
-        .join(',')
-    ),
+  // Helper function to escape CSV values
+  const escapeCSV = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    // Escape quotes and wrap in quotes if contains comma, quote, or newline
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  // Create CSV header
+  const headers = [
+    'Name',
+    'Status',
+    'Address',
+    'County',
+    'Website',
+    'Phone',
+    'Email',
+    'Affiliations',
+    'Notes',
+    'Last Updated',
   ];
 
-  return c.text(csvRows.join('\n'), 200, {
+  // Create CSV rows
+  const rows = allChurches.map((church) => {
+    const affiliations = affiliationsByChurch[church.id]?.join('; ') || '';
+    return [
+      church.name,
+      church.status || '',
+      church.gatheringAddress || '',
+      church.county || '',
+      church.website || '',
+      church.phone || '',
+      church.email || '',
+      affiliations,
+      church.notes || '',
+      church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : '',
+    ].map(escapeCSV);
+  });
+
+  // Combine header and rows
+  const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+  return c.text(csvContent, 200, {
     'Content-Type': 'text/csv',
     'Content-Disposition': 'attachment; filename="churches.csv"',
-    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
   });
 });
 
@@ -270,200 +332,399 @@ dataExportRoutes.get('/churches.csv', async (c) => {
 dataExportRoutes.get('/churches.xlsx', async (c) => {
   const db = createDb(c.env);
 
+  // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
     .select({
-      church: churches,
-      county: counties,
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      lastUpdated: churches.lastUpdated,
+      gatheringAddress: churches.gatheringAddress,
+      latitude: churches.latitude,
+      longitude: churches.longitude,
+      county: counties.name,
+      website: churches.website,
+      statementOfFaith: churches.statementOfFaith,
+      phone: churches.phone,
+      email: churches.email,
+      facebook: churches.facebook,
+      instagram: churches.instagram,
+      youtube: churches.youtube,
+      spotify: churches.spotify,
+      language: churches.language,
+      notes: churches.publicNotes,
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
     .orderBy(churches.name)
     .all();
 
-  const churchesWithDetails = await Promise.all(
-    allChurches.map(async ({ church, county }) => {
-      const gatherings = await db
-        .select()
-        .from(churchGatherings)
-        .where(eq(churchGatherings.churchId, church.id))
-        .all();
-
-      const churchAffils = await db
-        .select({
-          affiliation: affiliations,
-        })
-        .from(churchAffiliations)
-        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(eq(churchAffiliations.churchId, church.id))
-        .all();
-
-      return {
-        Name: church.name,
-        Status: church.status,
-        County: county?.name || '',
-        Affiliations: churchAffils.map((ca) => ca.affiliation.name).join('; '),
-        'Gathering Times': gatherings.map((g) => `${g.time}${g.notes ? ` (${g.notes})` : ''}`).join('; '),
-        Address: church.gatheringAddress || '',
-        Latitude: church.latitude || '',
-        Longitude: church.longitude || '',
-        Phone: church.phone || '',
-        Email: church.email || '',
-        Website: church.website || '',
-        Facebook: church.facebook || '',
-        Instagram: church.instagram || '',
-        YouTube: church.youtube || '',
-        Spotify: church.spotify || '',
-        'Statement of Faith': church.statementOfFaith || '',
-        'Public Notes': church.publicNotes || '',
-      };
+  // Get all counties
+  const allCounties = await db
+    .select({
+      name: counties.name,
+      path: counties.path,
+      description: counties.description,
+      population: counties.population,
     })
+    .from(counties)
+    .orderBy(counties.name)
+    .all();
+
+  // Get all listed affiliations
+  const allAffiliations = await db
+    .select({
+      name: affiliations.name,
+      status: affiliations.status,
+      website: affiliations.website,
+      publicNotes: affiliations.publicNotes,
+    })
+    .from(affiliations)
+    .where(eq(affiliations.status, 'Listed'))
+    .orderBy(affiliations.name)
+    .all();
+
+  // Get affiliations for each church
+  const churchIds = allChurches.map((c) => c.id);
+  let churchAffiliationData = [];
+
+  if (churchIds.length > 0) {
+    churchAffiliationData = await db
+      .select({
+        churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
+        affiliationName: affiliations.name,
+        order: churchAffiliations.order,
+      })
+      .from(churchAffiliations)
+      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+      .where(
+        sql`${churchAffiliations.churchId} IN (${sql.join(
+          churchIds.map((id) => sql`${id}`),
+          sql`, `
+        )})`
+      )
+      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+      .all();
+  }
+
+  // Group affiliations by church
+  const affiliationsByChurch = churchAffiliationData.reduce(
+    (acc, item) => {
+      if (!acc[item.churchId]) {
+        acc[item.churchId] = [];
+      }
+      acc[item.churchId].push(item.affiliationName);
+      return acc;
+    },
+    {} as Record<number, string[]>
   );
 
-  // Create workbook and worksheet
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(churchesWithDetails);
+  // Prepare church data for Excel
+  const churchData = allChurches.map((church) => ({
+    Name: church.name,
+    Status: church.status || '',
+    Address: church.gatheringAddress || '',
+    County: church.county || '',
+    Website: church.website || '',
+    Phone: church.phone || '',
+    Email: church.email || '',
+    Affiliations: affiliationsByChurch[church.id]?.join('; ') || '',
+    Facebook: church.facebook || '',
+    Instagram: church.instagram || '',
+    YouTube: church.youtube || '',
+    Spotify: church.spotify || '',
+    Notes: church.notes || '',
+    'Last Updated': church.lastUpdated ? new Date(church.lastUpdated).toISOString().split('T')[0] : '',
+  }));
 
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(wb, ws, 'Churches');
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+
+  // Add Churches sheet
+  const churchesWs = XLSX.utils.json_to_sheet(churchData);
+
+  // Set column widths for Churches sheet
+  churchesWs['!cols'] = [
+    { wch: 40 }, // Name
+    { wch: 12 }, // Status
+    { wch: 50 }, // Address
+    { wch: 20 }, // County
+    { wch: 35 }, // Website
+    { wch: 15 }, // Phone
+    { wch: 30 }, // Email
+    { wch: 40 }, // Affiliations
+    { wch: 25 }, // Facebook
+    { wch: 25 }, // Instagram
+    { wch: 25 }, // YouTube
+    { wch: 25 }, // Spotify
+    { wch: 50 }, // Notes
+    { wch: 12 }, // Last Updated
+  ];
+
+  // Apply header styling
+  const range = XLSX.utils.decode_range(churchesWs['!ref'] || 'A1');
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = `${XLSX.utils.encode_col(C)}1`;
+    if (!churchesWs[address]) continue;
+    churchesWs[address].s = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: '2563EB' } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    };
+  }
+
+  XLSX.utils.book_append_sheet(wb, churchesWs, 'Churches');
+
+  // Add Counties sheet
+  const countiesWs = XLSX.utils.json_to_sheet(allCounties);
+
+  // Set column widths for Counties sheet
+  countiesWs['!cols'] = [
+    { wch: 20 }, // name
+    { wch: 20 }, // path
+    { wch: 50 }, // description
+    { wch: 12 }, // population
+  ];
+
+  XLSX.utils.book_append_sheet(wb, countiesWs, 'Counties');
+
+  // Add Affiliations sheet
+  const affiliationsWs = XLSX.utils.json_to_sheet(allAffiliations);
+
+  // Set column widths for Affiliations sheet
+  affiliationsWs['!cols'] = [
+    { wch: 40 }, // name
+    { wch: 12 }, // status
+    { wch: 35 }, // website
+    { wch: 50 }, // publicNotes
+  ];
+
+  XLSX.utils.book_append_sheet(wb, affiliationsWs, 'Affiliations');
 
   // Generate buffer
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
 
-  return c.body(buf, 200, {
+  return c.body(xlsxBuffer, 200, {
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'Content-Disposition': 'attachment; filename="churches.xlsx"',
-    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
   });
 });
 
 // Data Export Page
 dataExportRoutes.get('/data', async (c) => {
-  const user = await getUser(c);
+  try {
+    const db = createDb(c.env);
 
-  const content = (
-    <Layout title="Data Export" user={user}>
-      <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900">Data Export</h1>
-          <p class="mt-2 text-gray-600">
-            Download church data in various formats. Data is updated regularly and excludes churches marked as heretical.
-          </p>
+    // Check for admin user
+    const user = await getUser(c);
+
+    // Get count of churches with 'Listed' or 'Unlisted' status
+    const churchCount = await db
+      .select({
+        count: sql<number>`COUNT(*)`.as('count'),
+      })
+      .from(churches)
+      .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+      .get();
+
+    // Get favicon URL
+    const faviconUrl = await getFaviconUrl(c.env);
+
+    // Get logo URL
+    const logoUrl = await getLogoUrl(c.env);
+
+    // Get navbar pages
+    const navbarPages = await getNavbarPages(c.env);
+
+    return c.html(
+      <Layout
+        title="Download Data"
+        currentPath="/data"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
+        pages={navbarPages}
+      >
+        <div class="bg-gray-50">
+          <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div class="px-6 py-8 sm:p-10">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Download Church Data</h1>
+                <p class="text-lg text-gray-600 mb-8">
+                  Export data for {churchCount?.count || 0} evangelical churches in various formats
+                </p>
+
+                <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto">
+                  {/* XLSX Download */}
+                  <a
+                    href="/churches.xlsx"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 group-hover:bg-orange-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">Excel Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">
+                        Multi-sheet workbook with churches, counties, and affiliations
+                      </p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download XLSX
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* CSV Download */}
+                  <a
+                    href="/churches.csv"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">CSV Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Spreadsheet-compatible format with church details</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download CSV
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* JSON Download */}
+                  <a
+                    href="/churches.json"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">JSON Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Programmer-friendly format with complete data</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download JSON
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* YAML Download */}
+                  <a
+                    href="/churches.yaml"
+                    class="relative group bg-white p-5 rounded-lg border-2 border-gray-200 hover:border-primary-500 transition-colors"
+                  >
+                    <div class="flex flex-col items-center text-center">
+                      <div class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100 mb-3">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                          />
+                        </svg>
+                      </div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-1">YAML Format</h3>
+                      <p class="text-xs text-gray-600 mb-3">Readable format for documentation and LLMs</p>
+                      <span class="inline-flex items-center text-sm font-medium text-primary-600 group-hover:text-primary-500">
+                        Download YAML
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+                </div>
+
+                <div class="mt-10 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ml-3">
+                      <h3 class="text-sm font-medium text-blue-800">About the data</h3>
+                      <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                          <li>Data includes church details, locations, and affiliations</li>
+                          <li>Updated regularly as new churches are added</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {/* JSON Export */}
-          <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div class="mb-4">
-              <svg class="h-12 w-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900">JSON Format</h3>
-            <p class="mb-4 text-sm text-gray-600">
-              Machine-readable format with complete data structure. Ideal for developers and data analysis.
-            </p>
-            <a
-              href="/churches.json"
-              class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-              download
-            >
-              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-              </svg>
-              Download JSON
-            </a>
-          </div>
-
-          {/* YAML Export */}
-          <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div class="mb-4">
-              <svg class="h-12 w-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900">YAML Format</h3>
-            <p class="mb-4 text-sm text-gray-600">
-              Human-readable format with clean structure. Perfect for configuration and documentation.
-            </p>
-            <a
-              href="/churches.yaml"
-              class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-              download
-            >
-              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-              </svg>
-              Download YAML
-            </a>
-          </div>
-
-          {/* CSV Export */}
-          <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div class="mb-4">
-              <svg class="h-12 w-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900">CSV Format</h3>
-            <p class="mb-4 text-sm text-gray-600">
-              Spreadsheet-compatible format. Opens directly in Excel, Google Sheets, and other applications.
-            </p>
-            <a
-              href="/churches.csv"
-              class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-              download
-            >
-              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-              </svg>
-              Download CSV
-            </a>
-          </div>
-
-          {/* Excel Export */}
-          <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div class="mb-4">
-              <svg class="h-12 w-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 class="mb-2 text-lg font-semibold text-gray-900">Excel Format</h3>
-            <p class="mb-4 text-sm text-gray-600">
-              Native Excel format with formatting preserved. Best for detailed spreadsheet analysis.
-            </p>
-            <a
-              href="/churches.xlsx"
-              class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-              download
-            >
-              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-              </svg>
-              Download Excel
-            </a>
-          </div>
-        </div>
-
-        <div class="mt-12 rounded-lg bg-gray-50 p-6">
-          <h2 class="mb-4 text-xl font-semibold text-gray-900">About the Data</h2>
-          <div class="space-y-3 text-sm text-gray-600">
-            <p>
-              <strong>Update Frequency:</strong> Data is cached for 1 hour to ensure good performance while maintaining freshness.
-            </p>
-            <p>
-              <strong>Data Quality:</strong> All church information is community-maintained and regularly reviewed by our team.
-            </p>
-            <p>
-              <strong>Exclusions:</strong> Churches marked as heretical are excluded from all public data exports.
-            </p>
-            <p>
-              <strong>Usage:</strong> This data is free to use for non-commercial purposes. Please attribute when sharing.
-            </p>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
-
-  return c.html(content);
+      </Layout>
+    );
+  } catch (error) {
+    console.error('Error loading data page:', error);
+    return c.html(
+      <Layout title="Error">
+        <ErrorPage error={error.message || 'Failed to load data'} statusCode={500} />
+      </Layout>,
+      500
+    );
+  }
 });

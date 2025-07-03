@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { createDb } from '../db';
 import { settings } from '../db/schema';
-import type { Bindings } from '../index';
+import type { Bindings } from '../types';
 
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   try {
@@ -11,6 +11,18 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
     return faviconUrlSetting?.value || undefined;
   } catch (error) {
     console.error('Error fetching favicon URL:', error);
+    return undefined;
+  }
+}
+
+export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
+  try {
+    const db = createDb(env);
+    const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
+
+    return logoUrlSetting?.value || undefined;
+  } catch (error) {
+    console.error('Error fetching logo URL:', error);
     return undefined;
   }
 }
