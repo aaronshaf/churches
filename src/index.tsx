@@ -231,28 +231,47 @@ app.get('/', async (c) => {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Setup Alert for Admins */}
             {layoutProps.user?.role === 'admin' && missingSettings.length > 0 && (
-              <div class="mb-6 rounded-md bg-yellow-50 border border-yellow-200 p-4">
-                <div class="flex">
+              <div class="mb-6 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4">
+                <div class="flex items-start gap-3">
                   <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                  </div>
-                  <div class="ml-3">
-                    <h3 class="text-sm font-medium text-yellow-800">Setup Incomplete</h3>
-                    <div class="mt-2 text-sm text-yellow-700">
-                      <p>The following site settings need to be configured:</p>
-                      <ul class="list-disc list-inside mt-1">
-                        {missingSettings.map(setting => (
-                          <li>{setting}</li>
-                        ))}
-                      </ul>
-                      <p class="mt-2">
-                        <a href="/admin/settings" class="font-medium underline text-yellow-700 hover:text-yellow-600">
-                          Go to Settings →
-                        </a>
-                      </p>
+                    <div class="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
+                      <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
                     </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900">
+                      Complete your site setup
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500">
+                      {missingSettings.length} setting{missingSettings.length !== 1 ? 's' : ''} need{missingSettings.length === 1 ? 's' : ''} configuration: {missingSettings.map((setting, index) => (
+                        <>
+                          {index > 0 && ', '}
+                          <span class="font-medium text-gray-700">{setting}</span>
+                        </>
+                      ))}
+                    </p>
+                    <div class="mt-3">
+                      <a 
+                        href="/admin/settings" 
+                        class="text-sm font-medium text-amber-600 hover:text-amber-500"
+                      >
+                        Configure now →
+                      </a>
+                    </div>
+                  </div>
+                  <div class="flex-shrink-0 ml-4">
+                    <button 
+                      type="button"
+                      onclick="this.closest('.bg-white').remove()" 
+                      class="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                    >
+                      <span class="sr-only">Dismiss</span>
+                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -6372,23 +6391,21 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
   const layoutProps = await getLayoutProps(c);
 
   // Get current settings
-  const siteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
-
-  const tagline = await db.select().from(settings).where(eq(settings.key, 'tagline')).get();
-
-  const frontPageTitle = await db.select().from(settings).where(eq(settings.key, 'front_page_title')).get();
-
-  const faviconUrl = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
-
-  const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
+  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, faviconUrl, logoUrlSetting] = await Promise.all([
+    db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
+    db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
+    db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
+    db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
+    db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+    db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
+    db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
+  ]);
 
   return c.html(
     <Layout 
-      title="Settings - Utah Churches" 
+      title="Settings" 
       user={user}
-      faviconUrl={layoutProps.faviconUrl}
-      logoUrl={layoutProps.logoUrl}
-      pages={layoutProps.pages}
+      {...layoutProps}
     >
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -6412,6 +6429,8 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
             siteTitle={siteTitle?.value || undefined}
             tagline={tagline?.value || undefined}
             frontPageTitle={frontPageTitle?.value || undefined}
+            siteDomain={siteDomain?.value || undefined}
+            siteRegion={siteRegion?.value || undefined}
             faviconUrl={faviconUrl?.value || undefined}
             logoUrl={logoUrlSetting?.value || undefined}
           />
@@ -6428,6 +6447,8 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const siteTitle = (body.siteTitle as string)?.trim();
   const tagline = (body.tagline as string)?.trim();
   const frontPageTitle = (body.frontPageTitle as string)?.trim();
+  const siteDomain = (body.siteDomain as string)?.trim();
+  const siteRegion = (body.siteRegion as string)?.trim().toUpperCase();
 
   // Update or insert site title
   const existingSiteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
@@ -6469,6 +6490,40 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
     await db.insert(settings).values({
       key: 'front_page_title',
       value: frontPageTitle,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Update or insert site domain
+  const existingSiteDomain = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+
+  if (existingSiteDomain) {
+    await db
+      .update(settings)
+      .set({ value: siteDomain, updatedAt: new Date() })
+      .where(eq(settings.key, 'site_domain'));
+  } else {
+    await db.insert(settings).values({
+      key: 'site_domain',
+      value: siteDomain,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Update or insert site region
+  const existingSiteRegion = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
+
+  if (existingSiteRegion) {
+    await db
+      .update(settings)
+      .set({ value: siteRegion, updatedAt: new Date() })
+      .where(eq(settings.key, 'site_region'));
+  } else {
+    await db.insert(settings).values({
+      key: 'site_region',
+      value: siteRegion,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
