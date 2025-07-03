@@ -239,6 +239,7 @@ betterAuthApp.get('/callback/google', async (c) => {
         id: crypto.randomUUID(),
         email: googleUser.email,
         name: googleUser.name || null,
+        image: googleUser.picture || null,
         emailVerified: true,
         role: isFirstUser ? 'admin' : 'user',
         createdAt: new Date(),
@@ -247,6 +248,17 @@ betterAuthApp.get('/callback/google', async (c) => {
       
       await db.insert(users).values(newUser);
       user = newUser;
+    } else {
+      // Update existing user's image if they don't have one
+      if (!user.image && googleUser.picture) {
+        await db.update(users)
+          .set({ 
+            image: googleUser.picture,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, user.id));
+        user.image = googleUser.picture;
+      }
     }
 
     // Create session

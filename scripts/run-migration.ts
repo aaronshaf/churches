@@ -23,7 +23,18 @@ const client = createClient({
 
 async function runMigration() {
   try {
-    console.log('Running pages table migration...');
+    console.log('Running database migration...');
+    
+    // Add image column to users table if it doesn't exist
+    try {
+      await client.execute(`
+        ALTER TABLE users ADD COLUMN image TEXT;
+      `);
+      console.log('Added image column to users table');
+    } catch (error) {
+      // Column might already exist, which is fine
+      console.log('Image column already exists or error adding it:', error.message);
+    }
     
     // Create pages table
     await client.execute(`
@@ -32,6 +43,47 @@ async function runMigration() {
         title TEXT NOT NULL,
         path TEXT NOT NULL UNIQUE,
         content TEXT,
+        featured_image_id TEXT,
+        featured_image_url TEXT,
+        navbar_order INTEGER,
+        created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
+        updated_at INTEGER DEFAULT (unixepoch()) NOT NULL
+      )
+    `);
+    
+    // Create comments table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        church_id INTEGER REFERENCES churches(id),
+        content TEXT NOT NULL,
+        is_public INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        reviewed_by TEXT,
+        reviewed_at INTEGER,
+        created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
+        updated_at INTEGER DEFAULT (unixepoch()) NOT NULL
+      )
+    `);
+    
+    // Create church_suggestions table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS church_suggestions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        church_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        state TEXT DEFAULT 'UT',
+        zip TEXT,
+        website TEXT,
+        phone TEXT,
+        email TEXT,
+        notes TEXT,
+        status TEXT DEFAULT 'pending',
+        reviewed_by TEXT,
+        reviewed_at INTEGER,
         created_at INTEGER DEFAULT (unixepoch()) NOT NULL,
         updated_at INTEGER DEFAULT (unixepoch()) NOT NULL
       )

@@ -51,6 +51,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
     expiresAt: sessions.expiresAt,
     userEmail: users.email,
     userName: users.name,
+    userImage: users.image,
     userRole: users.role,
   })
   .from(sessions)
@@ -73,6 +74,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
     id: session.userId,
     email: session.userEmail, 
     name: session.userName,
+    image: session.userImage,
     role: session.userRole 
   });
 
@@ -126,6 +128,7 @@ export const getUser = async (c: Context): Promise<any | null> => {
       expiresAt: sessions.expiresAt,
       userEmail: users.email,
       userName: users.name,
+      userImage: users.image,
       userRole: users.role,
     })
     .from(sessions)
@@ -141,6 +144,7 @@ export const getUser = async (c: Context): Promise<any | null> => {
       id: session.userId,
       email: session.userEmail, 
       name: session.userName,
+      image: session.userImage,
       role: session.userRole 
     };
   } catch (error) {

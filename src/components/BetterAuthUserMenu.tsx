@@ -22,10 +22,11 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
             const container = document.getElementById('better-auth-user-menu');
             if (!container) return;
             
-            // User initials for avatar
+            // User data for avatar
             const name = '${user.name || user.email || 'User'}';
             const email = '${user.email || ''}';
             const role = '${user.role || 'user'}';
+            const image = '${user.image || ''}';
             const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
             
             // Create user menu HTML with Clerk-like styling
@@ -33,17 +34,25 @@ export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {
               <div class="relative">
                 <button id="user-menu-button" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all" aria-expanded="false" aria-haspopup="true">
                   <span class="sr-only">Open user menu</span>
-                  <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium shadow-sm hover:shadow-md transition-shadow">
-                    \${initials}
-                  </div>
+                  \${image ? \`
+                    <img class="h-8 w-8 rounded-full object-cover shadow-sm hover:shadow-md transition-shadow" src="\${image}" alt="\${name}" />
+                  \` : \`
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium shadow-sm hover:shadow-md transition-shadow">
+                      \${initials}
+                    </div>
+                  \`}
                 </button>
                 
                 <div id="user-menu-dropdown" class="hidden origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
                   <div class="px-4 py-3 border-b border-gray-100">
                     <div class="flex items-center space-x-3">
-                      <div class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium">
-                        \${initials}
-                      </div>
+                      \${image ? \`
+                        <img class="h-10 w-10 rounded-full object-cover" src="\${image}" alt="\${name}" />
+                      \` : \`
+                        <div class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-sm text-white font-medium">
+                          \${initials}
+                        </div>
+                      \`}
                       <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate">${user.name || 'User'}</p>
                         <p class="text-sm text-gray-500 truncate">\${email}</p>
