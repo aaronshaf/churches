@@ -5,6 +5,7 @@ import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
 import { AffiliationForm } from './components/AffiliationForm';
 import { ChurchCard } from './components/ChurchCard';
+import { ChurchComments } from './components/ChurchComments';
 import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
 import { ErrorPage } from './components/ErrorPage';
@@ -20,6 +21,7 @@ import {
   churches,
   churchGatherings,
   churchImages,
+  comments,
   counties,
   pages,
   settings,
@@ -948,6 +950,33 @@ app.get('/churches/:path', async (c) => {
     .orderBy(churchImages.displayOrder)
     .all();
 
+  // Get church comments
+  const allComments = await db
+    .select({
+      id: comments.id,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      userId: comments.userId,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(comments)
+    .leftJoin(users, eq(comments.userId, users.id))
+    .where(eq(comments.churchId, church.id))
+    .orderBy(desc(comments.createdAt))
+    .all();
+
+  // Process comments with visibility rules
+  const processedComments = allComments.map(comment => ({
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt,
+    userName: comment.userName,
+    userEmail: comment.userEmail || '',
+    userId: comment.userId,
+    isOwn: user ? comment.userId === user.id : false,
+  }));
+
   // Get favicon URL
   const faviconUrl = await getFaviconUrl(c.env);
 
@@ -1360,6 +1389,17 @@ app.get('/churches/:path', async (c) => {
                     </div>
                   </div>
                 )}
+
+                {/* Comments Section */}
+                <div id="comments" class="mt-6 pt-6 border-t border-gray-200">
+                  <ChurchComments
+                    churchId={church.id}
+                    churchName={church.name}
+                    churchPath={church.path}
+                    comments={processedComments}
+                    user={user}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -3133,28 +3173,31 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
     const db = createDb(c.env);
     const layoutProps = await getLayoutProps(c);
     
-    // Gather system health data
-    const dbStart = Date.now();
-    await db.select().from(settings).limit(1);
-    const dbResponseTime = Date.now() - dbStart;
+    // Get total user count
+    const totalUsersResult = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
+    const totalUsers = totalUsersResult?.count || 0;
     
-    // Check database health
-    const dbStatus: 'healthy' | 'warning' | 'error' = 
-      dbResponseTime < 100 ? 'healthy' : dbResponseTime < 500 ? 'warning' : 'error';
-    
-    // Simulate application metrics (in real app, these would come from actual monitoring)
-    const appUptime = process.uptime(); // Seconds since process started
-    const memoryUsage = Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100);
-    
-    // Get recent user sessions for activity feed
+    // Get users who logged in within last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const { sessions } = await import('./db/auth-schema');
+    
+    const activeUsersResult = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${sessions.userId})` })
+      .from(sessions)
+      .where(sql`${sessions.createdAt} > ${twentyFourHoursAgo}`)
+      .get();
+    const activeUsers24h = activeUsersResult?.count || 0;
+
+    // Get recent login sessions
     const recentSessions = await db
       .select({
+        id: sessions.id,
         userId: sessions.userId,
         createdAt: sessions.createdAt,
         ipAddress: sessions.ipAddress,
         userEmail: users.email,
         userName: users.name,
+        userRole: users.role,
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
@@ -3162,67 +3205,92 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
       .limit(10)
       .all();
 
-    // Convert sessions to activity feed
-    const recentActivity = recentSessions.map((session, index) => ({
-      id: `session-${index}`,
+    // Convert to login stats format
+    const recentLogins = recentSessions.map((session) => ({
+      id: session.id,
+      user: session.userName || 'Unknown User',
+      email: session.userEmail,
+      role: session.userRole as 'admin' | 'contributor' | 'user',
+      loginTime: new Date(session.createdAt),
+      ipAddress: session.ipAddress,
+    }));
+
+    // Get comment statistics
+    const { comments } = await import('./db/schema');
+    const totalCommentsResult = await db.select({ count: sql<number>`COUNT(*)` }).from(comments).get();
+    const totalComments = totalCommentsResult?.count || 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const commentsTodayResult = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(comments)
+      .where(sql`${comments.createdAt} >= ${today}`)
+      .get();
+    const commentsToday = commentsTodayResult?.count || 0;
+
+    // Create activity feed combining logins and comments
+    const loginActivity = recentSessions.slice(0, 5).map((session) => ({
+      id: `login-${session.id}`,
       type: 'login' as const,
       user: session.userName || session.userEmail,
-      description: `signed in from ${session.ipAddress || 'unknown IP'}`,
+      description: `signed in`,
       timestamp: new Date(session.createdAt),
     }));
 
-    // Mock data for external services (in real app, these would be actual health checks)
-    const systemHealth = {
-      database: {
-        status: dbStatus,
-        responseTime: dbResponseTime,
-        connections: 5, // Mock data
-      },
-      application: {
-        uptime: appUptime,
-        memoryUsage,
-        requestRate: 15, // Mock: requests per minute
-      },
-      externalServices: {
-        googleMaps: 'healthy' as const,
-        cloudflareImages: 'healthy' as const,
-        googleOAuth: 'healthy' as const,
-      },
+    // Get recent comments for activity feed
+    const recentComments = await db
+      .select({
+        id: comments.id,
+        content: comments.content,
+        createdAt: comments.createdAt,
+        userName: users.name,
+        userEmail: users.email,
+        churchName: churches.name,
+      })
+      .from(comments)
+      .innerJoin(users, eq(comments.userId, users.id))
+      .leftJoin(churches, eq(comments.churchId, churches.id))
+      .orderBy(desc(comments.createdAt))
+      .limit(5)
+      .all();
+
+    const commentActivity = recentComments.map((comment) => ({
+      id: `comment-${comment.id}`,
+      type: 'comment' as const,
+      user: comment.userName || comment.userEmail,
+      description: `commented on ${comment.churchName || 'a church'}`,
+      timestamp: new Date(comment.createdAt),
+    }));
+
+    // Combine and sort activities
+    const recentActivity = [...loginActivity, ...commentActivity]
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 10);
+
+    const loginStats = {
+      totalUsers,
+      activeUsers24h,
+      recentLogins,
     };
 
-    // Mock error summary (in real app, this would come from error logging)
-    const errorSummary = {
-      total24h: 3,
-      recent: [
-        {
-          id: 'error-1',
-          message: 'Failed to load church image',
-          count: 2,
-          lastOccurred: new Date(Date.now() - 1800000), // 30 minutes ago
-          severity: 'warning' as const,
-        },
-        {
-          id: 'error-2', 
-          message: 'Database query timeout',
-          count: 1,
-          lastOccurred: new Date(Date.now() - 3600000), // 1 hour ago
-          severity: 'error' as const,
-        },
-      ],
+    const activityStats = {
+      totalComments,
+      commentsToday,
+      recentActivity,
     };
 
     return c.html(
       <Layout
-        title="System Monitoring - Utah Churches"
+        title="Activity Monitoring - Utah Churches"
         currentPath="/admin/monitoring"
         {...layoutProps}
       >
         <div class="min-h-screen bg-gray-50 py-8">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <MonitoringDashboard
-              systemHealth={systemHealth}
-              recentActivity={recentActivity}
-              errorSummary={errorSummary}
+              loginStats={loginStats}
+              activityStats={activityStats}
             />
           </div>
         </div>
@@ -5127,6 +5195,49 @@ app.get('/admin/counties', requireAdminBetter, async (c) => {
       </div>
     </Layout>
   );
+});
+
+// Create comment on church
+app.post('/churches/:path/comments', async (c) => {
+  const user = await getUser(c);
+  
+  if (!user) {
+    return c.redirect('/auth/signin');
+  }
+
+  const db = createDb(c.env);
+  const path = c.req.param('path');
+  
+  // Get church by path
+  const church = await db
+    .select()
+    .from(churches)
+    .where(eq(churches.path, path))
+    .get();
+
+  if (!church) {
+    return c.json({ error: 'Church not found' }, 404);
+  }
+
+  const body = await c.req.parseBody();
+  const content = String(body.content || '').trim();
+
+  if (!content) {
+    return c.redirect(`/churches/${path}?error=empty`);
+  }
+
+  // Create comment
+  await db.insert(comments).values({
+    userId: user.id,
+    churchId: church.id,
+    content,
+    isPublic: false, // Comments are private by default
+    status: 'approved', // Auto-approve comments
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  return c.redirect(`/churches/${path}#comments`);
 });
 
 // Create new county
