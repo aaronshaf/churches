@@ -746,6 +746,41 @@ app.get('/suggest-church', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
   const showSuccess = c.req.query('success') === 'true';
 
+  // Show login prompt if not logged in
+  if (!user) {
+    return c.html(
+      <Layout
+        title="Suggest a Church - Utah Churches"
+        user={user}
+        logoUrl={logoUrl}
+        pages={navbarPages}
+        currentPath="/suggest-church"
+      >
+        <div class="mx-auto max-w-lg px-4 py-16 sm:px-6 lg:px-8">
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-2">Sign In Required</h2>
+            <p class="text-gray-600 mb-6">
+              You need to sign in before you can suggest a church. This helps us maintain the quality of our directory and contact you if we have questions about your suggestion.
+            </p>
+            <a
+              href={`/auth/signin?redirect=${encodeURIComponent('/suggest-church')}`}
+              class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              data-testid="signin-button"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              Sign In to Continue
+            </a>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return c.html(
     <Layout
       title="Suggest a Church - Utah Churches"
@@ -754,143 +789,305 @@ app.get('/suggest-church', async (c) => {
       pages={navbarPages}
       currentPath="/suggest-church"
     >
-      <div class="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-6 sm:p-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Suggest a Church</h1>
-          <p class="text-lg text-gray-600 mb-8">
-            Know of a church that's not in our directory? Help us grow our database by suggesting it below.
-          </p>
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <form method="POST" action="/suggest-church" onsubmit="handleSuggestSubmit(event)" class="space-y-8" data-testid="suggest-church-form">
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <div class="px-4 py-6 sm:p-8">
+              <div class="max-w-2xl">
+                <h2 class="text-xl font-semibold leading-7 text-gray-900 mb-8">Suggest a Church</h2>
 
-          {showSuccess && (
-            <div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4" data-testid="success-message">
-              <div class="flex">
-                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <div class="ml-3">
-                  <p class="text-sm font-medium text-green-800">
-                    Thank you! Your church suggestion has been submitted successfully.
-                  </p>
-                  <p class="mt-1 text-sm text-green-700">
-                    We'll review your submission and add the church to our directory if it meets our criteria.
-                  </p>
+                {showSuccess && (
+                  <div class="rounded-md bg-green-50 p-4 mb-6" data-testid="success-message">
+                    <div class="flex">
+                      <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                      </div>
+                      <div class="ml-3">
+                        <p class="text-sm font-medium text-green-800">
+                          Thank you! Your church suggestion has been submitted successfully.
+                        </p>
+                        <p class="mt-1 text-sm text-green-700">
+                          We'll review your submission and add the church to our directory if it meets our criteria.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                  {/* Basic Information */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Basic Information</h3>
+                  </div>
+                  
+                  <div class="sm:col-span-4">
+                    <label for="church-name" class="block text-sm font-medium leading-6 text-gray-900">
+                      Church Name <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="church-name"
+                        name="churchName"
+                        required
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="Grace Community Church"
+                        data-testid="church-name-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-6">
+                    <label for="denomination" class="block text-sm font-medium leading-6 text-gray-900">
+                      Affiliations
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="denomination"
+                        name="denomination"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="Baptist, Presbyterian, Non-denominational, etc."
+                        data-testid="denomination-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Location Information */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Location Information</h3>
+                  </div>
+                  
+                  <div class="sm:col-span-6">
+                    <label for="address" class="block text-sm font-medium leading-6 text-gray-900">
+                      Address
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="text"
+                        id="address"
+                        name="address"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="123 Main St, Salt Lake City, UT 84101"
+                        data-testid="address-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Service Information */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Service Information</h3>
+                  </div>
+
+                  <div class="sm:col-span-6">
+                    <label for="service-times" class="block text-sm font-medium leading-6 text-gray-900">
+                      Service Times
+                    </label>
+                    <div class="mt-2">
+                      <textarea
+                        id="service-times"
+                        name="serviceTimes"
+                        rows="3"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="Sunday 9:00 AM - Traditional Service&#10;Sunday 11:00 AM - Contemporary Service&#10;Wednesday 7:00 PM - Bible Study"
+                        data-testid="service-times-textarea"
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Contact Information</h3>
+                  </div>
+                  
+                  <div class="sm:col-span-6">
+                    <label for="website" class="block text-sm font-medium leading-6 text-gray-900">
+                      Website
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="website"
+                        name="website"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://example.church"
+                        data-testid="website-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label for="phone" class="block text-sm font-medium leading-6 text-gray-900">
+                      Phone Number
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="(801) 555-0123"
+                        data-testid="phone-input"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div class="sm:col-span-3">
+                    <label for="email" class="block text-sm font-medium leading-6 text-gray-900">
+                      Email
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="info@example.church"
+                        data-testid="email-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Social Media */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Social Media</h3>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label for="facebook" class="block text-sm font-medium leading-6 text-gray-900">
+                      Facebook
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="facebook"
+                        name="facebook"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://facebook.com/churchname"
+                        data-testid="facebook-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label for="instagram" class="block text-sm font-medium leading-6 text-gray-900">
+                      Instagram
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="instagram"
+                        name="instagram"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://instagram.com/churchname"
+                        data-testid="instagram-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label for="youtube" class="block text-sm font-medium leading-6 text-gray-900">
+                      YouTube
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="youtube"
+                        name="youtube"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://youtube.com/@churchname"
+                        data-testid="youtube-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-3">
+                    <label for="spotify" class="block text-sm font-medium leading-6 text-gray-900">
+                      Spotify
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="spotify"
+                        name="spotify"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://open.spotify.com/artist/..."
+                        data-testid="spotify-input"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Additional Information */}
+                  <div class="sm:col-span-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Additional Information</h3>
+                  </div>
+
+                  <div class="sm:col-span-6">
+                    <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
+                      Statement of Faith URL
+                    </label>
+                    <div class="mt-2">
+                      <input
+                        type="url"
+                        id="statement-of-faith"
+                        name="statementOfFaith"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="https://example.church/beliefs"
+                        data-testid="statement-of-faith-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="sm:col-span-6">
+                    <label for="notes" class="block text-sm font-medium leading-6 text-gray-900">
+                      Additional Notes
+                    </label>
+                    <div class="mt-2">
+                      <textarea
+                        id="notes"
+                        name="notes"
+                        rows="4"
+                        class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        placeholder="Any additional information about this church..."
+                        data-testid="notes-textarea"
+                      ></textarea>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
-          )}
+          </div>
 
-          <form method="POST" action="/suggest-church" class="space-y-6" data-testid="suggest-church-form">
-            <div>
-              <label for="church-name" class="block text-sm font-medium text-gray-700 mb-1">
-                Church Name <span class="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="church-name"
-                name="churchName"
-                required
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="Grace Community Church"
-                data-testid="church-name-input"
-              />
-            </div>
-
-            <div>
-              <label for="denomination" class="block text-sm font-medium text-gray-700 mb-1">
-                Denomination or Affiliation
-              </label>
-              <input
-                type="text"
-                id="denomination"
-                name="denomination"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="Baptist, Presbyterian, Non-denominational, etc."
-                data-testid="denomination-input"
-              />
-            </div>
-
-            <div>
-              <label for="address" class="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="123 Main St, Salt Lake City, UT 84101"
-                data-testid="address-input"
-              />
-            </div>
-
-            <div>
-              <label for="website" class="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
-              <input
-                type="url"
-                id="website"
-                name="website"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="https://example.church"
-                data-testid="website-input"
-              />
-            </div>
-
-            <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="info@example.church"
-                data-testid="email-input"
-              />
-            </div>
-
-            <div>
-              <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="(801) 555-0123"
-                data-testid="phone-input"
-              />
-            </div>
-
-            <div>
-              <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
-                Additional Notes
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows="4"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="Any additional information about this church..."
-                data-testid="notes-textarea"
-              ></textarea>
-            </div>
-
-            <div class="pt-4">
-              <button
-                type="submit"
-                class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                data-testid="submit-suggestion-button"
-              >
-                Submit Suggestion
-              </button>
-            </div>
-          </form>
-        </div>
+          <div class="flex items-center justify-end gap-x-6 px-4 py-4 sm:px-8">
+            <a
+              href="/"
+              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+            >
+              Cancel
+            </a>
+            <button
+              type="submit"
+              id="submit-button"
+              class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              data-testid="submit-suggestion-button"
+            >
+              Submit Suggestion
+            </button>
+          </div>
+        </form>
       </div>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+        function handleSuggestSubmit(event) {
+          const submitButton = document.getElementById('submit-button');
+          const originalText = submitButton.textContent;
+          
+          submitButton.disabled = true;
+          submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Submitting...';
+        }
+      ` }} />
     </Layout>
   );
 });
@@ -898,8 +1095,13 @@ app.get('/suggest-church', async (c) => {
 // Handle church suggestion submission
 app.post('/suggest-church', async (c) => {
   const user = await getUser(c);
-  const db = createDb(c.env);
   
+  // Require login
+  if (!user) {
+    return c.redirect(`/auth/signin?redirect=${encodeURIComponent('/suggest-church')}`);
+  }
+  
+  const db = createDb(c.env);
   const body = await c.req.parseBody();
   
   // Extract city and state from address if provided
@@ -917,7 +1119,7 @@ app.post('/suggest-church', async (c) => {
   
   // Store the suggestion in the dedicated church_suggestions table
   await db.insert(churchSuggestions).values({
-    userId: user?.id || 'anonymous',
+    userId: user.id,
     churchName: String(body.churchName || ''),
     address: addressStr,
     city: city,
@@ -926,7 +1128,14 @@ app.post('/suggest-church', async (c) => {
     website: String(body.website || ''),
     phone: String(body.phone || ''),
     email: String(body.email || ''),
-    notes: `Denomination/Affiliation: ${body.denomination || 'Not provided'}\nAdditional Notes: ${body.notes || 'None'}`,
+    notes: `Denomination/Affiliation: ${body.denomination || 'Not provided'}
+Service Times: ${body.serviceTimes || 'Not provided'}
+Statement of Faith: ${body.statementOfFaith || 'Not provided'}
+Facebook: ${body.facebook || 'Not provided'}
+Instagram: ${body.instagram || 'Not provided'}
+YouTube: ${body.youtube || 'Not provided'}
+Spotify: ${body.spotify || 'Not provided'}
+Additional Notes: ${body.notes || 'None'}`,
     status: 'pending',
     createdAt: new Date(),
     updatedAt: new Date(),
