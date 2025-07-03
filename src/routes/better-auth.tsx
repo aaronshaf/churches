@@ -136,14 +136,7 @@ betterAuthApp.get('/signin', async (c) => {
             {/* Footer */}
             <div class="px-8 py-6 bg-gray-50 border-t border-gray-100">
               <p class="text-center text-xs text-gray-500 leading-relaxed">
-                By signing in, you agree to our{' '}
-                <a href="/terms" class="font-medium text-primary-600 hover:text-primary-500 underline underline-offset-2">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="/privacy" class="font-medium text-primary-600 hover:text-primary-500 underline underline-offset-2">
-                  Privacy Policy
-                </a>
+                Secure authentication provided by Google OAuth
               </p>
             </div>
           </div>
