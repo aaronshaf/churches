@@ -1170,17 +1170,89 @@ app.get('/robots.txt', async (c) => {
   const robotsTxt = `User-agent: *
 Allow: /
 
-# Block admin and authentication pages
+# Block admin pages
 Disallow: /admin/
+
+# Block authentication pages
+Disallow: /auth/
 Disallow: /login
 Disallow: /logout
+Disallow: /api/auth/
 
 # API endpoints
 Disallow: /api/
 
+# Allow search engines to see our data exports
+Allow: /churches.json
+Allow: /churches.yaml
+Allow: /churches.csv
+
 Sitemap: https://${siteDomain}/sitemap.xml`;
 
   return c.text(robotsTxt, 200, {
+    'Content-Type': 'text/plain',
+    'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+  });
+});
+
+app.get('/llms.txt', async (c) => {
+  const db = createDb(c.env);
+  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
+  const regionSetting = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
+  const siteRegion = regionSetting?.value || 'UT';
+  
+  const llmsTxt = `# Utah Churches Directory
+
+This is a directory of Christian churches in ${siteRegion === 'UT' ? 'Utah' : siteRegion}, United States.
+
+## What We Are
+We are a comprehensive directory listing churches across all counties in ${siteRegion === 'UT' ? 'Utah' : siteRegion}. Our goal is to help people find local churches and provide accurate information about service times, locations, and affiliations.
+
+## Available Data
+- Church listings by county
+- Church addresses and contact information
+- Service/gathering times
+- Church affiliations and networks
+- Interactive map of all churches
+- Exportable data in JSON, YAML, and CSV formats
+
+## Key URLs
+- Homepage: https://${siteDomain}/
+- Interactive Map: https://${siteDomain}/map
+- Church Networks: https://${siteDomain}/networks
+- Data Export: https://${siteDomain}/data
+
+## Data Exports
+- JSON: https://${siteDomain}/churches.json
+- YAML: https://${siteDomain}/churches.yaml
+- CSV: https://${siteDomain}/churches.csv
+
+## Church Information Structure
+Each church listing includes:
+- Name and location
+- Physical address
+- Contact information (phone, email, website)
+- Service times
+- Denominational affiliation
+- Statement of faith (when available)
+- Social media links
+
+## Usage Guidelines
+- Data is provided for informational purposes
+- Church information is community-maintained
+- Verify service times directly with churches
+- Report inaccuracies through the website
+
+## Technical Details
+- Built with Cloudflare Workers for fast, global access
+- RESTful API endpoints available
+- Structured data using Schema.org vocabulary
+- Mobile-responsive design
+
+For more information, visit https://${siteDomain}/`;
+
+  return c.text(llmsTxt, 200, {
     'Content-Type': 'text/plain',
     'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
   });
