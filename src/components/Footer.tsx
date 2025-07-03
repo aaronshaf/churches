@@ -5,9 +5,10 @@ type FooterProps = {
   churchId?: string;
   countyId?: string;
   affiliationId?: string;
+  currentPath?: string;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, currentPath }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -20,7 +21,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
           <div class="mt-4 sm:mt-0 flex items-center space-x-3">
             {!user && churchId && (
               <a
-                href="/auth/signin"
+                href={`/auth/signin${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ''}`}
                 class="inline-flex items-center text-sm text-gray-500 hover:text-primary-600 hover:underline transition-colors"
                 data-testid="feedback-link"
               >

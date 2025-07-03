@@ -1120,6 +1120,7 @@ app.get('/churches/:path', async (c) => {
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
       pages={navbarPages}
+      currentPath={`/churches/${church.path}`}
     >
       <div>
         {/* Header */}
