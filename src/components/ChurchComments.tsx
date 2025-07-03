@@ -29,6 +29,24 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
     ? comments 
     : comments.filter(comment => comment.isOwn);
 
+  // Minimal UI for non-logged-in users
+  if (!user) {
+    return (
+      <div class="border-t border-gray-200 pt-6">
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-3">
+            <a 
+              href="/auth/signin" 
+              class="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+            >
+              Sign in
+            </a> to submit feedback on this church
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div class="space-y-6">
       {/* Header */}
@@ -153,22 +171,9 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           <p class="text-sm text-gray-500 mb-4">
             {canSeeAllComments 
               ? 'Be the first to share feedback about this church'
-              : user 
-                ? 'Add your first note about this church above'
-                : 'Sign in to add your personal notes about this church'
+              : 'Add your first note about this church above'
             }
           </p>
-          {!user && (
-            <a 
-              href="/auth/signin" 
-              class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-              Sign in to add notes
-            </a>
-          )}
         </div>
       )}
     </div>
