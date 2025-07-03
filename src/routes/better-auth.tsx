@@ -67,9 +67,6 @@ betterAuthApp.get('/signin', async (c) => {
               </svg>
             </div>
             <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Sign In</h2>
-            <p class="mt-2 text-sm text-gray-600">
-              Sign in to access your Utah Churches dashboard
-            </p>
           </div>
 
           {/* Error Alert */}
