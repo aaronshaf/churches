@@ -1,6 +1,8 @@
 # Churches Directory
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/aaronshaf/churches/actions/workflows/ci.yml/badge.svg)](https://github.com/aaronshaf/churches/actions/workflows/ci.yml)
+[![Deploy](https://github.com/aaronshaf/churches/actions/workflows/deploy.yml/badge.svg)](https://github.com/aaronshaf/churches/actions/workflows/deploy.yml)
 
 A directory of evangelical churches, built with Cloudflare Workers, Hono, and Turso.
 
@@ -33,6 +35,8 @@ This application provides a comprehensive directory of evangelical churches orga
 - **Image Storage**: Cloudflare Images
 
 ## Development Setup
+
+For detailed setup instructions including all third-party services, see [SETUP.md](SETUP.md).
 
 ### Prerequisites
 

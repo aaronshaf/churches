@@ -4444,7 +4444,7 @@ app.get('/admin/affiliations/new', requireAdminBetter, async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   return c.html(
-    <Layout title="Create Affiliation" user={user} logoUrl={logoUrl>
+    <Layout title="Create Affiliation" user={user} logoUrl={logoUrl}>
       <div class="bg-gray-50 py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white shadow sm:rounded-lg p-6">

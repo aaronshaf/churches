@@ -1,0 +1,68 @@
+name: Dependency Check
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    name: Check for Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Check for outdated dependencies
+        run: |
+          echo "## Dependency Update Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Production Dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          pnpm outdated --prod >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Development Dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          pnpm outdated --dev >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Security audit
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          pnpm audit >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Check for Wrangler updates
+        run: |
+          CURRENT_VERSION=$(pnpm list wrangler --json | jq -r '.[0].devDependencies.wrangler.version')
+          LATEST_VERSION=$(npm view wrangler version)
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Wrangler Version" >> $GITHUB_STEP_SUMMARY
+          echo "- Current: $CURRENT_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- Latest: $LATEST_VERSION" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+            echo "- **Update available!**" >> $GITHUB_STEP_SUMMARY
+          fi

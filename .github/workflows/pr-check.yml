@@ -1,0 +1,56 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-pr:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check PR title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+          
+          # Check if PR title is not empty and has reasonable length
+          if [ -z "$PR_TITLE" ] || [ ${#PR_TITLE} -lt 5 ]; then
+            echo "❌ PR title is too short. Please provide a descriptive title."
+            exit 1
+          fi
+          
+          echo "✅ PR title looks good"
+          
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if ! git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} > /dev/null 2>&1; then
+            echo "❌ This PR has merge conflicts. Please resolve them."
+            exit 1
+          fi
+          echo "✅ No merge conflicts detected"
+          
+      - name: Check file sizes
+        run: |
+          # Check for large files (> 1MB)
+          LARGE_FILES=$(find . -type f -size +1M | grep -v -E "(node_modules|.git|pnpm-lock.yaml)" || true)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "⚠️  Large files detected (>1MB):"
+            echo "$LARGE_FILES"
+            echo "Consider using Cloudflare Images for image storage instead of committing large files."
+          fi
+          
+      - name: Validate CLAUDE.md updates
+        run: |
+          # Check if significant code changes were made without updating CLAUDE.md
+          CODE_CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "\.(ts|tsx|js|jsx)$" | wc -l)
+          CLAUDE_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "CLAUDE.md" | wc -l)
+          
+          if [ "$CODE_CHANGES" -gt 10 ] && [ "$CLAUDE_CHANGED" -eq 0 ]; then
+            echo "⚠️  Significant code changes detected. Consider updating CLAUDE.md if needed."
+          fi
