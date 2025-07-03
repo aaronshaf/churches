@@ -24,28 +24,15 @@ type ChurchCommentsProps = {
 };
 
 export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, churchPath, comments, user }) => {
+  // Only show comments section for logged-in users
+  if (!user) {
+    return null;
+  }
+
   const canSeeAllComments = user && (user.role === 'admin' || user.role === 'contributor');
   const visibleComments = canSeeAllComments 
     ? comments 
     : comments.filter(comment => comment.isOwn);
-
-  // Minimal UI for non-logged-in users
-  if (!user) {
-    return (
-      <div class="border-t border-gray-200 pt-6">
-        <div class="text-center">
-          <p class="text-sm text-gray-600 mb-3">
-            <a 
-              href="/auth/signin" 
-              class="font-medium text-primary-600 hover:text-primary-500 transition-colors"
-            >
-              Sign in
-            </a> to submit feedback on this church
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div class="space-y-6">
