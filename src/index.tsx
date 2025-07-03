@@ -567,23 +567,6 @@ app.get('/counties/:path', async (c) => {
             </div>
           )}
 
-          {/* Suggest a Church Prompt */}
-          <div class="mt-12 bg-gray-50 rounded-lg p-6 text-center" data-testid="suggest-church-prompt">
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Don't see your church?</h3>
-            <p class="text-gray-600 mb-4">
-              Help us grow our directory by suggesting churches in {county.name} that we might have missed.
-            </p>
-            <a
-              href="/suggest-church"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              data-testid="suggest-church-link"
-            >
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Suggest a Church
-            </a>
-          </div>
         </div>
       </div>
 
