@@ -4,6 +4,8 @@ import { getGravatarUrl } from '../utils/crypto';
 type Comment = {
   id: number;
   content: string;
+  type?: 'user' | 'system';
+  metadata?: string;
   createdAt: Date;
   userName?: string;
   userEmail: string;
@@ -141,7 +143,15 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                             You
                           </span>
                         )}
-                        {canSeeAllComments && !comment.isOwn && (
+                        {comment.type === 'system' && (
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Change Log
+                          </span>
+                        )}
+                        {canSeeAllComments && !comment.isOwn && comment.type !== 'system' && (
                           <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                             Member
                           </span>
@@ -173,7 +183,17 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                       </div>
                     </div>
                     <div class="prose prose-sm max-w-none">
-                      <p class="text-gray-700 leading-relaxed whitespace-pre-wrap" data-testid={`comment-content-${index}`}>{comment.content}</p>
+                      {comment.type === 'system' ? (
+                        <div class="text-gray-700 text-sm" data-testid={`comment-content-${index}`}>
+                          <div dangerouslySetInnerHTML={{ 
+                            __html: comment.content
+                              .replace(/```yaml\n([\s\S]*?)```/g, '<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">$1</pre>')
+                              .replace(/\n/g, '<br>')
+                          }} />
+                        </div>
+                      ) : (
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-wrap" data-testid={`comment-content-${index}`}>{comment.content}</p>
+                      )}
                     </div>
                   </div>
                 </div>

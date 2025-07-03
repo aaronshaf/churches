@@ -52,6 +52,7 @@ import {
 } from './utils/validation';
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { getSiteTitle } from './utils/settings';
+import { compareChurchData, createAuditComment } from './utils/audit-trail';
 
 type Variables = {
   user: any;
@@ -1404,6 +1405,8 @@ app.get('/churches/:path', async (c) => {
     .select({
       id: comments.id,
       content: comments.content,
+      type: comments.type,
+      metadata: comments.metadata,
       createdAt: comments.createdAt,
       userId: comments.userId,
       userName: users.name,
@@ -1420,6 +1423,8 @@ app.get('/churches/:path', async (c) => {
   const processedComments = allComments.map(comment => ({
     id: comment.id,
     content: comment.content,
+    type: comment.type || 'user',
+    metadata: comment.metadata,
     createdAt: comment.createdAt,
     userName: comment.userName,
     userEmail: comment.userEmail || '',
@@ -5363,6 +5368,23 @@ app.post('/admin/churches/:id', requireAdminBetter, async (c) => {
   try {
     const db = createDb(c.env);
     const id = c.req.param('id');
+    const user = c.get('betterUser');
+    
+    // Get current church data for audit trail
+    const [oldChurch, oldGatherings, oldAffiliations] = await Promise.all([
+      db.select().from(churches).where(eq(churches.id, Number(id))).get(),
+      db.select().from(churchGatherings).where(eq(churchGatherings.churchId, Number(id))).all(),
+      db
+        .select({
+          id: affiliations.id,
+          name: affiliations.name,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(eq(churchAffiliations.churchId, Number(id)))
+        .all(),
+    ]);
+    
     // Get form data directly to handle multiple checkbox values
     const formData = await c.req.formData();
 
@@ -5529,6 +5551,54 @@ app.post('/admin/churches/:id', requireAdminBetter, async (c) => {
         affiliationId: selectedAffiliations[i],
         order: i + 1,
       });
+    }
+    
+    // Create audit trail comment
+    try {
+      // Get the new data for comparison
+      const newAffiliations = await db
+        .select({
+          id: affiliations.id,
+          name: affiliations.name,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(eq(churchAffiliations.churchId, Number(id)))
+        .all();
+      
+      // Compare changes
+      const changes = compareChurchData(
+        oldChurch,
+        validatedChurchData,
+        oldGatherings,
+        validatedGatherings,
+        oldAffiliations,
+        newAffiliations
+      );
+      
+      // Only create audit comment if there were actual changes
+      if (changes.length > 0) {
+        const auditComment = createAuditComment(
+          user.name || user.email,
+          'updated church data',
+          changes
+        );
+        
+        await db.insert(comments).values({
+          userId: user.id,
+          churchId: Number(id),
+          content: auditComment,
+          type: 'system',
+          metadata: JSON.stringify({ changes }),
+          isPublic: false,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create audit trail:', error);
+      // Don't fail the update if audit trail fails
     }
 
     // Check if "Save and continue" was clicked
