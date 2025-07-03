@@ -61,7 +61,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
       {/* Add Comment Form */}
       {user && (
         <div class="bg-white border border-gray-200 rounded-xl px-6 pt-6 pb-4 shadow-sm" data-testid="comment-form-container">
-          <form method="POST" action={`/churches/${churchPath}/comments`} class="space-y-4" data-testid="comment-form">
+          <form method="POST" action={`/churches/${churchPath}/comments`} class="" data-testid="comment-form">
             <div>
               <label for="comment-content" class="sr-only">
                 Submit comment about {churchName}
@@ -76,7 +76,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                 data-testid="comment-textarea"
               ></textarea>
             </div>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mt-4">
               <div class="flex items-center space-x-1 text-xs text-gray-500">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
