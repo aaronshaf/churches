@@ -107,8 +107,9 @@ export function clearTimingStats() {
  * Enhanced database wrapper with automatic timing
  */
 export function createTimedDb(db: LibSQLDatabase<any>) {
-  return {
-    ...db,
+  try {
+    return {
+      ...db,
     
     // Override select operations
     select: (...args: any[]) => {
@@ -119,7 +120,7 @@ export function createTimedDb(db: LibSQLDatabase<any>) {
         // Wrap common query methods
         from: (...fromArgs: any[]) => {
           const fromQuery = query.from(...fromArgs);
-          const tableName = fromArgs[0]?.['_']['name'] || 'unknown';
+          const tableName = fromArgs[0]?.name || fromArgs[0]?.['_']?.['name'] || 'unknown';
           
           // Create a proxy to handle all chained methods
           return new Proxy(fromQuery, {
@@ -170,7 +171,7 @@ export function createTimedDb(db: LibSQLDatabase<any>) {
             
             run: () => timedDbCall(
               () => valuesQuery.run(),
-              `INSERT INTO ${args[0]?.['_']['name'] || 'unknown'}`
+              `INSERT INTO ${args[0]?.name || args[0]?.['_']?.['name'] || 'unknown'}`
             )
           };
         }
@@ -190,7 +191,7 @@ export function createTimedDb(db: LibSQLDatabase<any>) {
             
             run: () => timedDbCall(
               () => setQuery.run(),
-              `UPDATE ${args[0]?.['_']['name'] || 'unknown'}`
+              `UPDATE ${args[0]?.name || args[0]?.['_']?.['name'] || 'unknown'}`
             )
           };
         }
@@ -205,9 +206,14 @@ export function createTimedDb(db: LibSQLDatabase<any>) {
         
         run: () => timedDbCall(
           () => query.run(),
-          `DELETE FROM ${args[0]?.['_']['name'] || 'unknown'}`
+          `DELETE FROM ${args[0]?.name || args[0]?.['_']?.['name'] || 'unknown'}`
         )
       };
     }
   };
+  } catch (error) {
+    console.error('Error creating timed database:', error);
+    // Return original db if wrapping fails
+    return db;
+  }
 }
