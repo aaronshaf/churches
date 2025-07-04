@@ -3,6 +3,10 @@ main = "src/index.tsx"
 compatibility_date = "2025-01-19"
 assets = { directory = "./public" }
 
+# Enable Workers Logs
+[observability]
+enabled = true
+
 [vars]
 # Add your non-sensitive configuration here
 # For production, set the following secrets using wrangler:
