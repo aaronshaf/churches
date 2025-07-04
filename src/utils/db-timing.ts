@@ -119,19 +119,40 @@ export function createTimedDb(db: LibSQLDatabase<any>) {
         // Wrap common query methods
         from: (...fromArgs: any[]) => {
           const fromQuery = query.from(...fromArgs);
-          return {
-            ...fromQuery,
-            
-            all: () => timedDbCall(
-              () => fromQuery.all(),
-              `SELECT FROM ${fromArgs[0]?.['_']['name'] || 'unknown'}`
-            ),
-            
-            get: () => timedDbCall(
-              () => fromQuery.get(),
-              `SELECT FROM ${fromArgs[0]?.['_']['name'] || 'unknown'} (single)`
-            )
-          };
+          const tableName = fromArgs[0]?.['_']['name'] || 'unknown';
+          
+          // Create a proxy to handle all chained methods
+          return new Proxy(fromQuery, {
+            get(target, prop) {
+              const originalMethod = Reflect.get(target, prop);
+              
+              // For terminal methods (all, get), wrap with timing
+              if (prop === 'all') {
+                return () => timedDbCall(
+                  () => originalMethod.apply(target),
+                  `SELECT FROM ${tableName}`
+                );
+              }
+              
+              if (prop === 'get') {
+                return () => timedDbCall(
+                  () => originalMethod.apply(target),
+                  `SELECT FROM ${tableName} (single)`
+                );
+              }
+              
+              // For chaining methods (where, orderBy, etc.), return a proxy
+              if (typeof originalMethod === 'function') {
+                return (...args: any[]) => {
+                  const result = originalMethod.apply(target, args);
+                  // Continue proxying the chain
+                  return new Proxy(result, this);
+                };
+              }
+              
+              return originalMethod;
+            }
+          });
         }
       };
     },
