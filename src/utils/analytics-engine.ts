@@ -92,6 +92,168 @@ export async function trackDbOperation<T>(
 }
 
 /**
+ * Query Analytics Engine for database performance metrics
+ */
+export async function queryDbMetrics(
+  analytics: AnalyticsEngineDataset | undefined,
+  options: {
+    since?: Date;
+    until?: Date;
+    limit?: number;
+    operation?: string;
+    route?: string;
+  } = {}
+) {
+  if (!analytics) {
+    return { data: [], success: false, error: 'Analytics Engine not configured' };
+  }
+
+  try {
+    const {
+      since = new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+      until = new Date(),
+      limit = 1000,
+      operation,
+      route
+    } = options;
+
+    // Build the SQL query
+    let query = `
+      SELECT 
+        blob1 as operation,
+        blob2 as table_name,
+        blob3 as route,
+        blob4 as status,
+        double1 as duration,
+        timestamp
+      FROM utahchurches_events
+      WHERE timestamp >= ? AND timestamp <= ?
+    `;
+    
+    const params = [since.toISOString(), until.toISOString()];
+    
+    if (operation) {
+      query += ` AND blob1 = ?`;
+      params.push(operation);
+    }
+    
+    if (route) {
+      query += ` AND blob3 = ?`;
+      params.push(route);
+    }
+    
+    query += ` ORDER BY timestamp DESC LIMIT ?`;
+    params.push(limit.toString());
+
+    // Execute the query
+    const result = await analytics.query(query, params);
+    
+    return {
+      data: result,
+      success: true,
+      error: null
+    };
+  } catch (error) {
+    console.error('Failed to query Analytics Engine:', error);
+    return {
+      data: [],
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get analytics summary for the dashboard
+ */
+export async function getAnalyticsSummary(analytics: AnalyticsEngineDataset | undefined, hours = 24) {
+  if (!analytics) {
+    return null;
+  }
+
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const until = new Date();
+
+    // Get summary statistics
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as total_queries,
+        AVG(double1) as avg_duration,
+        MIN(double1) as min_duration,
+        MAX(double1) as max_duration,
+        SUM(CASE WHEN blob4 = 'error' THEN 1 ELSE 0 END) as error_count,
+        SUM(CASE WHEN blob4 = 'success' THEN 1 ELSE 0 END) as success_count
+      FROM utahchurches_events
+      WHERE timestamp >= ? AND timestamp <= ?
+    `;
+
+    const summaryResult = await analytics.query(summaryQuery, [since.toISOString(), until.toISOString()]);
+    
+    // Get per-route statistics
+    const routeQuery = `
+      SELECT 
+        blob3 as route,
+        COUNT(*) as count,
+        AVG(double1) as avg_duration,
+        MIN(double1) as min_duration,
+        MAX(double1) as max_duration,
+        SUM(CASE WHEN blob4 = 'error' THEN 1 ELSE 0 END) as errors
+      FROM utahchurches_events
+      WHERE timestamp >= ? AND timestamp <= ?
+      GROUP BY blob3
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    const routeResult = await analytics.query(routeQuery, [since.toISOString(), until.toISOString()]);
+
+    // Get per-operation statistics
+    const operationQuery = `
+      SELECT 
+        blob1 as operation,
+        COUNT(*) as count,
+        AVG(double1) as avg_duration
+      FROM utahchurches_events
+      WHERE timestamp >= ? AND timestamp <= ?
+      GROUP BY blob1
+      ORDER BY count DESC
+    `;
+
+    const operationResult = await analytics.query(operationQuery, [since.toISOString(), until.toISOString()]);
+
+    const summary = summaryResult[0] || {};
+    
+    // Calculate P95
+    const p95Query = `
+      SELECT double1 as duration
+      FROM utahchurches_events
+      WHERE timestamp >= ? AND timestamp <= ? AND blob4 = 'success'
+      ORDER BY double1 DESC
+      LIMIT 1 OFFSET ?
+    `;
+    
+    const totalSuccess = summary.success_count || 0;
+    const p95Offset = Math.floor(totalSuccess * 0.05);
+    const p95Result = await analytics.query(p95Query, [since.toISOString(), until.toISOString(), p95Offset.toString()]);
+    const p95Duration = p95Result[0]?.duration || 0;
+
+    return {
+      summary: {
+        ...summary,
+        p95_duration: p95Duration
+      },
+      byRoute: routeResult,
+      byOperation: operationResult,
+      timeRange: { since, until, hours }
+    };
+  } catch (error) {
+    console.error('Failed to get analytics summary:', error);
+    return null;
+  }
+}
+
+/**
  * Helper function to extract route from URL
  */
 function extractRouteFromUrl(url?: string): string | undefined {

@@ -3,6 +3,7 @@ import { Layout } from '../../components/Layout';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import { getLogoUrl } from '../../utils/settings';
 import { getTimingStats, getTimingSummary, clearTimingStats } from '../../utils/db-timing';
+import { getAnalyticsSummary } from '../../utils/analytics-engine';
 import type { Bindings } from '../../types';
 
 type Variables = {
@@ -19,10 +20,18 @@ adminDbPerformanceRoutes.get('/', async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   
+  // Get time range from query params
+  const hoursParam = c.req.query('hours');
+  const hours = hoursParam ? parseInt(hoursParam, 10) : 24;
+  
+  // Get in-memory stats (current session)
   const stats = getTimingStats();
   const summary = getTimingSummary();
   
-  // Group stats by route
+  // Get Analytics Engine data (historical)
+  const analyticsSummary = await getAnalyticsSummary(c.env.utahchurches_analytics, hours);
+  
+  // Group in-memory stats by route
   const statsByRoute = stats.reduce((acc, stat) => {
     const route = stat.route || 'unknown';
     if (!acc[route]) acc[route] = [];
@@ -37,11 +46,24 @@ adminDbPerformanceRoutes.get('/', async (c) => {
         <div class="mb-8 flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Database Performance</h1>
-            <p class="mt-2 text-sm text-gray-700">Turso database call timing and performance metrics</p>
+            <p class="mt-2 text-sm text-gray-700">
+              Turso database call timing and performance metrics
+              {analyticsSummary && ` (Historical: Last ${hours} hours)`}
+            </p>
           </div>
           <div class="flex gap-2">
+            {/* Time range selector */}
+            <select 
+              onchange="window.location.href = '/admin/db-performance?hours=' + this.value"
+              class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="1" selected={hours === 1}>Last 1 hour</option>
+              <option value="6" selected={hours === 6}>Last 6 hours</option>
+              <option value="24" selected={hours === 24}>Last 24 hours</option>
+              <option value="168" selected={hours === 168}>Last 7 days</option>
+            </select>
             <a
-              href="/admin/db-performance?refresh=1"
+              href={`/admin/db-performance?hours=${hours}&refresh=1`}
               class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               🔄 Refresh
@@ -49,92 +71,232 @@ adminDbPerformanceRoutes.get('/', async (c) => {
             <form method="POST" action="/admin/db-performance/clear" class="inline">
               <button
                 type="submit"
-                onclick="return confirm('Clear all timing data?')"
+                onclick="return confirm('Clear current session timing data?')"
                 class="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
               >
-                🗑️ Clear Data
+                🗑️ Clear Session Data
               </button>
             </form>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="text-2xl">📊</div>
+        {analyticsSummary ? (
+          <>
+            {/* Historical Data from Analytics Engine */}
+            <div class="mb-4">
+              <h2 class="text-lg font-medium text-gray-900 mb-4">Historical Performance (Last {hours} hours)</h2>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg border border-blue-200">
+                  <div class="p-5">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <div class="text-2xl">📊</div>
+                      </div>
+                      <div class="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt class="text-sm font-medium text-blue-600 truncate">Total Queries</dt>
+                          <dd class="text-lg font-medium text-blue-900">{analyticsSummary.summary.total_queries || 0}</dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Total Queries</dt>
-                    <dd class="text-lg font-medium text-gray-900">{summary.count}</dd>
-                  </dl>
+
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg border border-blue-200">
+                  <div class="p-5">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <div class="text-2xl">⚡</div>
+                      </div>
+                      <div class="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt class="text-sm font-medium text-blue-600 truncate">Avg Response Time</dt>
+                          <dd class="text-lg font-medium text-blue-900">
+                            {analyticsSummary.summary.avg_duration ? `${Number(analyticsSummary.summary.avg_duration).toFixed(1)}ms` : 'N/A'}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg border border-blue-200">
+                  <div class="p-5">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <div class="text-2xl">🚀</div>
+                      </div>
+                      <div class="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt class="text-sm font-medium text-blue-600 truncate">P95 Response Time</dt>
+                          <dd class="text-lg font-medium text-blue-900">
+                            {analyticsSummary.summary.p95_duration ? `${Number(analyticsSummary.summary.p95_duration).toFixed(1)}ms` : 'N/A'}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-blue-50 overflow-hidden shadow rounded-lg border border-blue-200">
+                  <div class="p-5">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                        <div class="text-2xl">{Number(analyticsSummary.summary.error_count || 0) > 0 ? '❌' : '✅'}</div>
+                      </div>
+                      <div class="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt class="text-sm font-medium text-blue-600 truncate">Error Rate</dt>
+                          <dd class="text-lg font-medium text-blue-900">
+                            {analyticsSummary.summary.total_queries > 0 ? 
+                              `${((Number(analyticsSummary.summary.error_count || 0) / Number(analyticsSummary.summary.total_queries)) * 100).toFixed(1)}%` : 
+                              '0%'
+                            }
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </>
+        ) : (
+          <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p class="text-sm text-yellow-800">
+              📊 Historical data from Analytics Engine is not available yet. Data appears 5-10 minutes after first database operations.
+            </p>
           </div>
+        )}
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="text-2xl">⚡</div>
-                </div>
-                <div class="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Avg Response Time</dt>
-                    <dd class="text-lg font-medium text-gray-900">
-                      {summary.avgDuration ? `${summary.avgDuration.toFixed(1)}ms` : 'N/A'}
-                    </dd>
-                  </dl>
+        {/* Current Session Data */}
+        <div class="mb-4">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Current Session Performance</h2>
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <div class="text-2xl">📊</div>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Total Queries</dt>
+                      <dd class="text-lg font-medium text-gray-900">{summary.count}</dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="text-2xl">🚀</div>
-                </div>
-                <div class="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">P95 Response Time</dt>
-                    <dd class="text-lg font-medium text-gray-900">
-                      {summary.p95Duration ? `${summary.p95Duration.toFixed(1)}ms` : 'N/A'}
-                    </dd>
-                  </dl>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <div class="text-2xl">⚡</div>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Avg Response Time</dt>
+                      <dd class="text-lg font-medium text-gray-900">
+                        {summary.avgDuration ? `${summary.avgDuration.toFixed(1)}ms` : 'N/A'}
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="text-2xl">{summary.errorCount > 0 ? '❌' : '✅'}</div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <div class="text-2xl">🚀</div>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">P95 Response Time</dt>
+                      <dd class="text-lg font-medium text-gray-900">
+                        {summary.p95Duration ? `${summary.p95Duration.toFixed(1)}ms` : 'N/A'}
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Error Rate</dt>
-                    <dd class="text-lg font-medium text-gray-900">
-                      {summary.count > 0 ? `${((summary.errorCount / summary.count) * 100).toFixed(1)}%` : '0%'}
-                    </dd>
-                  </dl>
+              </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <div class="text-2xl">{summary.errorCount > 0 ? '❌' : '✅'}</div>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Error Rate</dt>
+                      <dd class="text-lg font-medium text-gray-900">
+                        {summary.count > 0 ? `${((summary.errorCount / summary.count) * 100).toFixed(1)}%` : '0%'}
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Performance by Route */}
+        {/* Historical Performance by Route */}
+        {analyticsSummary && analyticsSummary.byRoute && analyticsSummary.byRoute.length > 0 && (
+          <div class="bg-blue-50 shadow rounded-lg mb-8 border border-blue-200">
+            <div class="px-4 py-5 sm:p-6">
+              <h3 class="text-lg font-medium text-blue-900 mb-4">Historical Performance by Route (Last {hours} hours)</h3>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-blue-200">
+                  <thead class="bg-blue-100">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Route</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Queries</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Avg Time</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Min/Max</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Errors</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-blue-200">
+                    {analyticsSummary.byRoute.map((routeData) => (
+                      <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-900">
+                          {routeData.route || 'unknown'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
+                          {routeData.count}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
+                          {Number(routeData.avg_duration).toFixed(1)}ms
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
+                          {Number(routeData.min_duration).toFixed(1)}ms / {Number(routeData.max_duration).toFixed(1)}ms
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            Number(routeData.errors) > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {routeData.errors} errors
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Current Session Performance by Route */}
         <div class="bg-white shadow rounded-lg mb-8">
           <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Performance by Route</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Current Session Performance by Route</h3>
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -266,17 +428,42 @@ adminDbPerformanceRoutes.get('/', async (c) => {
         <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 class="text-lg font-medium text-blue-900 mb-2">Performance Analysis</h3>
           <div class="text-sm text-blue-800 space-y-2">
-            {summary.avgDuration > 500 && (
-              <p>⚠️ Average response time is high ({summary.avgDuration.toFixed(1)}ms). Consider switching to D1 for better performance.</p>
-            )}
-            {summary.p95Duration > 1000 && (
-              <p>🐌 95th percentile is very slow ({summary.p95Duration.toFixed(1)}ms). This could impact user experience.</p>
-            )}
-            {summary.errorCount > 0 && (
-              <p>❌ You have {summary.errorCount} database errors. Check the logs for details.</p>
-            )}
-            {summary.avgDuration <= 200 && summary.errorCount === 0 && (
-              <p>✅ Your database performance looks good! Average response time: {summary.avgDuration.toFixed(1)}ms</p>
+            {analyticsSummary ? (
+              <>
+                {/* Historical recommendations */}
+                {Number(analyticsSummary.summary.avg_duration || 0) > 500 && (
+                  <p>⚠️ Historical average response time is high ({Number(analyticsSummary.summary.avg_duration).toFixed(1)}ms over {hours} hours). Consider switching to D1 for better performance.</p>
+                )}
+                {Number(analyticsSummary.summary.p95_duration || 0) > 1000 && (
+                  <p>🐌 Historical 95th percentile is very slow ({Number(analyticsSummary.summary.p95_duration).toFixed(1)}ms). This could impact user experience.</p>
+                )}
+                {Number(analyticsSummary.summary.error_count || 0) > 0 && (
+                  <p>❌ You have {analyticsSummary.summary.error_count} database errors over {hours} hours. Check the logs for details.</p>
+                )}
+                {Number(analyticsSummary.summary.avg_duration || 0) <= 200 && Number(analyticsSummary.summary.error_count || 0) === 0 && (
+                  <p>✅ Your historical database performance looks good! Average response time: {Number(analyticsSummary.summary.avg_duration).toFixed(1)}ms over {hours} hours</p>
+                )}
+                {Number(analyticsSummary.summary.total_queries || 0) > 1000 && (
+                  <p>📊 You have substantial data ({analyticsSummary.summary.total_queries} queries over {hours} hours) for making Turso vs D1 performance decisions.</p>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Current session recommendations */}
+                {summary.avgDuration > 500 && (
+                  <p>⚠️ Current session average response time is high ({summary.avgDuration.toFixed(1)}ms). Consider switching to D1 for better performance.</p>
+                )}
+                {summary.p95Duration > 1000 && (
+                  <p>🐌 Current session 95th percentile is very slow ({summary.p95Duration.toFixed(1)}ms). This could impact user experience.</p>
+                )}
+                {summary.errorCount > 0 && (
+                  <p>❌ You have {summary.errorCount} database errors in current session. Check the logs for details.</p>
+                )}
+                {summary.avgDuration <= 200 && summary.errorCount === 0 && summary.count > 0 && (
+                  <p>✅ Your current session database performance looks good! Average response time: {summary.avgDuration.toFixed(1)}ms</p>
+                )}
+                <p>📊 Historical analytics will be available 5-10 minutes after deployment for more comprehensive analysis.</p>
+              </>
             )}
           </div>
         </div>
