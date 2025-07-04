@@ -740,7 +740,7 @@ app.get('/counties/:path', async (c) => {
                 onclick="showUnlistedChurches()"
                 disabled={listedChurches.length + unlistedChurches.length === 1}
               >
-                Show unlisted churches ({unlistedChurches.length})
+                Show more churches ({unlistedChurches.length})
               </button>
             </div>
           )}
@@ -2066,7 +2066,7 @@ app.get('/networks/:id', async (c) => {
             <p class="text-gray-600">No churches found for this network.</p>
           )}
 
-          {/* Show unlisted churches button only if there are listed churches AND unlisted churches */}
+          {/* Show more churches button only if there are listed churches AND unlisted churches */}
           {listedChurches.length > 0 && unlistedChurches.length > 0 && (
             <div class="mt-8">
               <button
@@ -2075,7 +2075,7 @@ app.get('/networks/:id', async (c) => {
                 class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 onclick="showUnlistedChurches()"
               >
-                Show unlisted churches ({unlistedChurches.length})
+                Show more churches ({unlistedChurches.length})
               </button>
 
               <div id="unlisted-churches" class="hidden mt-6">
@@ -2233,7 +2233,7 @@ app.get('/map', async (c) => {
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <span class="ml-2 text-sm text-gray-700">
-                  Show unlisted churches ({unlistedChurches.length} unlisted)
+                  Show more churches ({unlistedChurches.length} unlisted)
                 </span>
               </label>
             </div>
