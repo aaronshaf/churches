@@ -9,7 +9,8 @@ enabled = true
 
 # Analytics Engine for database performance tracking
 [[analytics_engine_datasets]]
-binding = "DB_ANALYTICS"
+binding = "utahchurches_analytics"
+dataset = "utahchurches_events"
 
 [vars]
 # Add your non-sensitive configuration here

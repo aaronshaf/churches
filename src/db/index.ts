@@ -5,7 +5,7 @@ import { validateDatabaseEnvVars } from '../utils/env-validation';
 import { createTimedDb } from '../utils/db-timing';
 import { createAnalyticsTrackedDb } from '../utils/analytics-engine';
 
-export function createDb(env: { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: string; DB_ANALYTICS?: AnalyticsEngineDataset }, enableTiming = true, context?: { route?: string; url?: string }) {
+export function createDb(env: { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: string; utahchurches_analytics?: AnalyticsEngineDataset }, enableTiming = true, context?: { route?: string; url?: string }) {
   // Validate required environment variables
   validateDatabaseEnvVars(env);
   
@@ -18,8 +18,8 @@ export function createDb(env: { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: st
   
   // Use Analytics Engine tracking if available, otherwise fall back to console timing
   if (enableTiming) {
-    if (env.DB_ANALYTICS) {
-      return createAnalyticsTrackedDb(db, env.DB_ANALYTICS, context);
+    if (env.utahchurches_analytics) {
+      return createAnalyticsTrackedDb(db, env.utahchurches_analytics, context);
     } else if (process.env.NODE_ENV !== 'production' || env.ENABLE_DB_TIMING === 'true') {
       return createTimedDb(db);
     }

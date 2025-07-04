@@ -244,7 +244,7 @@ adminDbPerformanceRoutes.get('/', async (c) => {
         <div class="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
           <h3 class="text-lg font-medium text-purple-900 mb-2">Analytics Engine Status</h3>
           <div class="text-sm text-purple-800">
-            {c.env.DB_ANALYTICS ? (
+            {c.env.utahchurches_analytics ? (
               <div class="flex items-center space-x-2">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                   ✅ Enabled
