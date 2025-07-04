@@ -144,7 +144,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
   try {
     const body = await c.req.parseBody();
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(parsedBody, affiliationSchema);
+    const validatedData = await validateFormData(affiliationSchema, parsedBody);
 
     await db.insert(affiliations).values({
       name: validatedData.name,
@@ -214,7 +214,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
   try {
     const body = await c.req.parseBody();
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(parsedBody, affiliationSchema);
+    const validatedData = await validateFormData(affiliationSchema, parsedBody);
 
     await db.update(affiliations).set({
       name: validatedData.name,

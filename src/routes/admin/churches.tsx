@@ -315,7 +315,7 @@ adminChurchesRoutes.post('/', async (c) => {
     const parsedBody = parseFormBody(body);
 
     // Validate church data
-    const validatedData = await validateFormData(parsedBody, churchWithGatheringsSchema);
+    const validatedData = await validateFormData(churchWithGatheringsSchema, parsedBody);
     const { gatherings: validatedGatherings, affiliations: validatedAffiliations, ...validatedChurchData } = validatedData;
 
     // Prepare church data for insertion
@@ -525,7 +525,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     // Parse and validate form data
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(parsedBody, churchWithGatheringsSchema);
+    const validatedData = await validateFormData(churchWithGatheringsSchema, parsedBody);
     const { gatherings: validatedGatherings, affiliations: validatedAffiliations, ...validatedChurchData } = validatedData;
 
     // Prepare church data for update
