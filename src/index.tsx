@@ -37,6 +37,7 @@ import { seoRoutes } from './routes/seo';
 import { dataExportRoutes } from './routes/data-export';
 import { apiRoutes } from './routes/api';
 import { adminChurchesRoutes } from './routes/admin/churches';
+import { adminDbPerformanceRoutes } from './routes/admin/db-performance';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
 import type { Bindings } from './types';
 import {
@@ -292,6 +293,7 @@ app.route('/', dataExportRoutes);
 
 // Mount admin routes
 app.route('/admin/churches', adminChurchesRoutes);
+app.route('/admin/db-performance', adminDbPerformanceRoutes);
 app.route('/admin/affiliations', adminAffiliationsRoutes);
 
 app.get('/', async (c) => {
