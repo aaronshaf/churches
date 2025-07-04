@@ -19,12 +19,15 @@ export function createDb(env: { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: st
   // Use Analytics Engine tracking if available, otherwise fall back to console timing
   if (enableTiming) {
     if (env.utahchurches_analytics) {
+      console.log('🚀 Using Analytics Engine tracked database');
       return createAnalyticsTrackedDb(db, env.utahchurches_analytics, context);
-    } else if (process.env.NODE_ENV !== 'production' || env.ENABLE_DB_TIMING === 'true') {
+    } else {
+      console.log('⏱️ Using timed database (no Analytics Engine)');
       return createTimedDb(db);
     }
   }
   
+  console.log('⚠️ Database timing disabled');
   return db;
 }
 

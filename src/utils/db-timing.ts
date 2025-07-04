@@ -39,10 +39,8 @@ export async function timedDbCall<T>(
     
     timingStats.push(stat);
     
-    // Log to console in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`🕐 DB: ${queryDescription} - ${duration.toFixed(2)}ms`);
-    }
+    // Always log to console for debugging
+    console.log(`🕐 DB: ${queryDescription} - ${duration.toFixed(2)}ms`);
     
     // Keep only last 1000 entries to prevent memory bloat
     if (timingStats.length > 1000) {

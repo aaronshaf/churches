@@ -17,11 +17,13 @@ export async function trackDbMetrics(
   analytics: AnalyticsEngineDataset | undefined,
   metrics: DbMetric[]
 ) {
+  // Always log to console for debugging
+  metrics.forEach(metric => {
+    console.log(`📊 Analytics: ${metric.operation} ${metric.table ? `(${metric.table})` : ''} - ${metric.duration.toFixed(2)}ms - Route: ${metric.route || 'unknown'} - ${metric.success ? 'SUCCESS' : 'FAILED'}`);
+  });
+
   if (!analytics) {
-    // Fallback to console logging if Analytics Engine not configured
-    metrics.forEach(metric => {
-      console.log(`🕐 DB: ${metric.operation} ${metric.table ? `(${metric.table})` : ''} - ${metric.duration.toFixed(2)}ms - ${metric.success ? 'SUCCESS' : 'FAILED'}`);
-    });
+    console.log('⚠️ Analytics Engine not configured - data only logged to console');
     return;
   }
 
