@@ -182,12 +182,21 @@ adminDbPerformanceRoutes.get('/', async (c) => {
 
         {/* Debug Info */}
         <div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <h3 class="text-sm font-medium text-gray-900 mb-2">Debug Info</h3>
+          <h3 class="text-sm font-medium text-gray-900 mb-2">System Status</h3>
           <div class="text-xs text-gray-600 space-y-1">
-            <p>Current session stats count: {stats.length}</p>
-            <p>Analytics Engine available: {c.env.utahchurches_analytics ? 'Yes' : 'No'}</p>
-            <p>Analytics summary: {analyticsSummary ? 'Available' : 'Not available'}</p>
-            {analyticsSummary && <p>Historical queries: {analyticsSummary.summary.total_queries || 0}</p>}
+            <p>🔄 Current session stats: <span class="font-medium">{stats.length} queries tracked</span></p>
+            <p>📊 Analytics Engine binding: <span class="font-medium">{c.env.utahchurches_analytics ? 'Configured' : 'Not configured'}</span></p>
+            {c.env.utahchurches_analytics && (
+              <p>📍 Environment: <span class="font-medium">
+                {typeof c.env.utahchurches_analytics.query === 'function' ? 'Production' : 'Local Development'}
+              </span></p>
+            )}
+            {!analyticsSummary && c.env.utahchurches_analytics && (
+              <p class="text-amber-600">⚠️ Analytics Engine queries only work in production. Deploy to see historical data.</p>
+            )}
+            {stats.length > 0 && (
+              <p class="text-green-600">✅ Database tracking is working! Current session data is being collected.</p>
+            )}
           </div>
         </div>
 

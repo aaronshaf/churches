@@ -172,6 +172,12 @@ export async function getAnalyticsSummary(analytics: AnalyticsEngineDataset | un
   }
 
   try {
+    // Check if query method exists (only available in production)
+    if (typeof analytics.query !== 'function') {
+      console.log('Analytics Engine queries not available in local development');
+      return null;
+    }
+
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     const until = new Date();
 
