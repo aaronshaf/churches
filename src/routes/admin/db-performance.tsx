@@ -4,6 +4,9 @@ import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import { getLogoUrl } from '../../utils/settings';
 import { getTimingStats, getTimingSummary, clearTimingStats } from '../../utils/db-timing';
 import { getAnalyticsSummary } from '../../utils/analytics-engine';
+import { createDbWithContext } from '../../db';
+import { settings } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 import type { Bindings } from '../../types';
 
 type Variables = {
@@ -20,10 +23,6 @@ adminDbPerformanceRoutes.get('/', async (c) => {
   const user = c.get('betterUser');
   
   // Use tracked database for this route's own calls
-  const { createDbWithContext } = await import('../../db');
-  const { settings } = await import('../../db/schema');
-  const { eq } = await import('drizzle-orm');
-  
   const db = createDbWithContext(c);
   
   // Get logo URL using tracked database (this will generate timing data)
