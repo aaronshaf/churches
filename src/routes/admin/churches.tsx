@@ -106,7 +106,7 @@ adminChurchesRoutes.get('/', async (c) => {
   ]);
 
   const content = (
-    <Layout title="Manage Churches" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
+    <Layout title="Manage Churches" user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
