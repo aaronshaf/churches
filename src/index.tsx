@@ -30,6 +30,7 @@ import {
 import { users } from './db/auth-schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
+import { envCheckMiddleware } from './middleware/env-check';
 import { adminUsersApp } from './routes/admin-users';
 import { betterAuthApp } from './routes/better-auth';
 import { seoRoutes } from './routes/seo';
@@ -58,6 +59,7 @@ import {
 import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { getSiteTitle } from './utils/settings';
 import { compareChurchData, createAuditComment } from './utils/audit-trail';
+import { EnvironmentError } from './utils/env-validation';
 
 type Variables = {
   user: any;
@@ -65,29 +67,86 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+// Apply environment check middleware globally
+app.use('*', envCheckMiddleware);
+
+// Global error handler
+app.onError((err, c) => {
+  console.error('Application error:', err);
+  
+  // Handle environment variable errors
+  if (err instanceof EnvironmentError) {
+    return c.html(
+      <Layout currentPath="/error" hideFooter={true}>
+        <ErrorPage 
+          error={`Configuration Error: ${err.message}. Please ensure all required environment variables are set in your .dev.vars file (local) or Cloudflare Workers secrets (production).`}
+          statusCode={500}
+        />
+      </Layout>,
+      500
+    );
+  }
+  
+  // Handle other errors
+  return c.html(
+    <Layout currentPath="/error" hideFooter={true}>
+      <ErrorPage error={err.message} statusCode={500} />
+    </Layout>,
+    500
+  );
+});
+
 // Test route to verify pattern matching
 app.get('/api/auth/test', async (c) => {
   return c.json({ message: 'Test route works!' });
 });
 
+// Environment variables diagnostic route (only in development)
+app.get('/api/env-check', async (c) => {
+  // Only allow in development for security
+  if (c.env.NODE_ENV === 'production') {
+    return c.json({ error: 'Not available in production' }, 403);
+  }
+  
+  const { getEnvVarStatus } = await import('./utils/env-validation');
+  const status = getEnvVarStatus(c.env);
+  
+  return c.json({
+    status: status.allRequired ? 'OK' : 'ERROR',
+    missing: status.missing,
+    present: status.present.map(v => v.replace(/_/g, '_')), // Just list the names
+    allRequired: status.allRequired,
+  });
+});
+
 
 // Debug route to see what better-auth provides
 app.get('/api/auth/debug', async (c) => {
-  const auth = createAuth(c.env);
-  return c.json({ 
-    message: 'Better-auth debug',
-    config: {
-      baseURL: auth.options.baseURL,
-      socialProviders: Object.keys(auth.options.socialProviders || {}),
+  try {
+    const auth = createAuth(c.env);
+    return c.json({ 
+      message: 'Better-auth debug',
+      config: {
+        baseURL: auth.options.baseURL,
+        socialProviders: Object.keys(auth.options.socialProviders || {}),
+      }
+    });
+  } catch (error) {
+    if (error instanceof EnvironmentError) {
+      return c.json({ 
+        error: 'Missing required environment variables',
+        missing: error.missingVars
+      }, 500);
     }
-  });
+    throw error;
+  }
 });
 
 // Mount better-auth API routes BEFORE middleware - try different pattern
 app.all('/api/auth/*', async (c) => {
   console.log('Better-auth route called:', c.req.method, c.req.url);
-  const auth = createAuth(c.env);
   try {
+    const auth = createAuth(c.env);
     const result = await auth.handler(c.req.raw);
     console.log('Better-auth handler result status:', result?.status);
     console.log('Better-auth handler result type:', typeof result);
@@ -97,6 +156,12 @@ app.all('/api/auth/*', async (c) => {
     return result;
   } catch (error) {
     console.error('Better-auth handler error:', error);
+    if (error instanceof EnvironmentError) {
+      return c.json({ 
+        error: 'Authentication service configuration error', 
+        details: `Missing required environment variables: ${error.missingVars.join(', ')}`
+      }, 500);
+    }
     return c.json({ error: 'Auth handler failed' }, 500);
   }
 });
@@ -2020,6 +2085,11 @@ app.get('/networks/:id', async (c) => {
 });
 
 app.get('/map', async (c) => {
+  // Validate Google Maps API key is present
+  if (!c.env.GOOGLE_MAPS_API_KEY) {
+    throw new EnvironmentError(['GOOGLE_MAPS_API_KEY']);
+  }
+  
   const db = createDb(c.env);
 
   // Check for heretical query param
