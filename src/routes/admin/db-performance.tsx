@@ -18,7 +18,17 @@ adminDbPerformanceRoutes.use('*', requireAdminWithRedirect);
 // Database Performance Dashboard
 adminDbPerformanceRoutes.get('/', async (c) => {
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  
+  // Use tracked database for this route's own calls
+  const { createDbWithContext } = await import('../../db');
+  const { settings } = await import('../../db/schema');
+  const { eq } = await import('drizzle-orm');
+  
+  const db = createDbWithContext(c);
+  
+  // Get logo URL using tracked database (this will generate timing data)
+  const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
+  const logoUrl = logoUrlSetting?.value || undefined;
   
   // Get time range from query params
   const hoursParam = c.req.query('hours');
@@ -169,6 +179,17 @@ adminDbPerformanceRoutes.get('/', async (c) => {
             </p>
           </div>
         )}
+
+        {/* Debug Info */}
+        <div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <h3 class="text-sm font-medium text-gray-900 mb-2">Debug Info</h3>
+          <div class="text-xs text-gray-600 space-y-1">
+            <p>Current session stats count: {stats.length}</p>
+            <p>Analytics Engine available: {c.env.utahchurches_analytics ? 'Yes' : 'No'}</p>
+            <p>Analytics summary: {analyticsSummary ? 'Available' : 'Not available'}</p>
+            {analyticsSummary && <p>Historical queries: {analyticsSummary.summary.total_queries || 0}</p>}
+          </div>
+        </div>
 
         {/* Current Session Data */}
         <div class="mb-4">
