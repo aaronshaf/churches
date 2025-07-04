@@ -6,9 +6,10 @@ type NavbarProps = {
   currentPath?: string;
   logoUrl?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+  showMap?: boolean;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [] }) => {
+export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [], showMap = true }) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" aria-label="Main navigation" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,20 +49,22 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               >
                 Churches
               </a>
-              <a
-                href="/map"
-                class={`${
-                  currentPath === '/map'
-                    ? 'border-primary-500 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
-                aria-current={currentPath === '/map' ? 'page' : undefined}
-                data-testid="nav-map"
-                onmouseover="prefetchAfterDelay('/map', 200)"
-                onmouseout="cancelPrefetch()"
-              >
-                Map
-              </a>
+              {showMap && (
+                <a
+                  href="/map"
+                  class={`${
+                    currentPath === '/map'
+                      ? 'border-primary-500 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
+                  aria-current={currentPath === '/map' ? 'page' : undefined}
+                  data-testid="nav-map"
+                  onmouseover="prefetchAfterDelay('/map', 200)"
+                  onmouseout="cancelPrefetch()"
+                >
+                  Map
+                </a>
+              )}
               <a
                 href="/networks"
                 class={`${
@@ -142,16 +145,18 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
           >
             Churches
           </a>
-          <a
-            href="/map"
-            class={`${
-              currentPath === '/map'
-                ? 'bg-primary-50 border-primary-500 text-primary-700'
-                : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-            } block pl-3 pr-4 py-2 border-l text-base font-medium`}
-          >
-            Map
-          </a>
+          {showMap && (
+            <a
+              href="/map"
+              class={`${
+                currentPath === '/map'
+                  ? 'bg-primary-50 border-primary-500 text-primary-700'
+                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+              } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+            >
+              Map
+            </a>
+          )}
           <a
             href="/networks"
             class={`${

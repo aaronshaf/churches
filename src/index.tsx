@@ -2115,9 +2115,65 @@ app.get('/networks/:id', async (c) => {
 });
 
 app.get('/map', async (c) => {
-  // Validate Google Maps API key is present
-  if (!c.env.GOOGLE_MAPS_API_KEY) {
-    throw new EnvironmentError(['GOOGLE_MAPS_API_KEY']);
+  // Check if Google Maps API key is present
+  const { hasGoogleMapsApiKey } = await import('./utils/env-validation');
+  if (!hasGoogleMapsApiKey(c.env)) {
+    const faviconUrl = await getFaviconUrl(c.env);
+    const logoUrl = await getLogoUrl(c.env);
+    const navbarPages = await getNavbarPages(c.env);
+    const user = await getUser(c);
+    
+    return c.html(
+      <Layout
+        title="Map Unavailable"
+        currentPath="/map"
+        user={user}
+        faviconUrl={faviconUrl}
+        logoUrl={logoUrl}
+        pages={navbarPages}
+      >
+        <div class="max-w-4xl mx-auto px-6 py-12">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-12 w-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div class="ml-4">
+                <h1 class="text-2xl font-bold text-yellow-800 mb-2">Map Feature Unavailable</h1>
+                <p class="text-yellow-700">
+                  The interactive map feature is currently unavailable because the Google Maps API key has not been configured.
+                </p>
+                <p class="mt-4 text-sm text-yellow-600">
+                  <strong>For administrators:</strong> Please set the <code class="font-mono bg-yellow-100 px-1 py-0.5 rounded">GOOGLE_MAPS_API_KEY</code> environment variable to enable this feature.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Alternative Options</h2>
+            <div class="space-y-4">
+              <a
+                href="/"
+                class="block p-4 bg-white rounded-lg border border-gray-200 hover:border-primary-500 hover:shadow-md transition-all"
+              >
+                <h3 class="font-medium text-gray-900">Browse Churches by County</h3>
+                <p class="text-gray-600 text-sm mt-1">View churches organized by Utah counties</p>
+              </a>
+              <a
+                href="/networks"
+                class="block p-4 bg-white rounded-lg border border-gray-200 hover:border-primary-500 hover:shadow-md transition-all"
+              >
+                <h3 class="font-medium text-gray-900">Browse by Network</h3>
+                <p class="text-gray-600 text-sm mt-1">Find churches by their affiliation or denomination</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
   
   const db = createDb(c.env);

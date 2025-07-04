@@ -17,6 +17,8 @@ type LayoutProps = {
   description?: string;
   ogImage?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+  showMap?: boolean;
+  hideFooter?: boolean;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -34,6 +36,8 @@ export const Layout: FC<LayoutProps> = ({
   description = 'Discover Christian churches. Find church locations, service times, and contact information.',
   ogImage,
   pages = [],
+  showMap = true,
+  hideFooter = false,
 }) => {
   const pageTitle = title ? `${title} - ${siteTitle}` : siteTitle;
   return (
@@ -256,11 +260,13 @@ export const Layout: FC<LayoutProps> = ({
         >
           Skip to main content
         </a>
-        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} />
+        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} showMap={showMap} />
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
-        <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} currentPath={currentPath} />
+        {!hideFooter && (
+          <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} currentPath={currentPath} />
+        )}
       </body>
     </html>
   );

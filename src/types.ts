@@ -2,15 +2,16 @@
 export interface Bindings {
   TURSO_DATABASE_URL: string;
   TURSO_AUTH_TOKEN: string;
-  GOOGLE_MAPS_API_KEY: string;
-  CLOUDFLARE_ACCOUNT_ID: string;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
   CLOUDFLARE_ACCOUNT_HASH: string;
-  CLOUDFLARE_IMAGES_API_TOKEN: string;
-  OPENROUTER_API_KEY: string;
-  BETTER_AUTH_SECRET?: string;
-  BETTER_AUTH_URL?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
+  // Optional environment variables
+  GOOGLE_MAPS_API_KEY?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_IMAGES_API_TOKEN?: string;
+  OPENROUTER_API_KEY?: string;
 }
 
 // User role types

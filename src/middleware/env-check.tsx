@@ -5,15 +5,19 @@ import { Layout } from '../components/Layout';
 const REQUIRED_ENV_VARS = [
   'TURSO_DATABASE_URL',
   'TURSO_AUTH_TOKEN',
-  'GOOGLE_MAPS_API_KEY',
   'BETTER_AUTH_SECRET',
   'BETTER_AUTH_URL',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
-  'CLOUDFLARE_ACCOUNT_ID',
   'CLOUDFLARE_ACCOUNT_HASH',
-  'CLOUDFLARE_IMAGES_API_TOKEN',
-  'OPENROUTER_API_KEY',
+] as const;
+
+// Optional environment variables that enable specific features
+const OPTIONAL_ENV_VARS = [
+  'GOOGLE_MAPS_API_KEY', // Required for maps feature
+  'CLOUDFLARE_ACCOUNT_ID', // Required for image uploads
+  'CLOUDFLARE_IMAGES_API_TOKEN', // Required for image uploads
+  'OPENROUTER_API_KEY', // Required for AI features
 ] as const;
 
 export async function envCheckMiddleware(c: Context, next: Next) {

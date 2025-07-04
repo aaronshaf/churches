@@ -460,6 +460,30 @@ adminChurchesRoutes.post('/:id', async (c) => {
     
     // Handle image upload if present
     if (body.image && body.image instanceof File && body.image.size > 0) {
+      // Check if Cloudflare image API is configured
+      const { hasCloudflareImageEnvVars } = await import('../../utils/env-validation');
+      if (!hasCloudflareImageEnvVars(c.env)) {
+        return c.html(
+          <Layout title="Image Upload Unavailable" currentPath="/admin/churches">
+            <div class="max-w-4xl mx-auto px-6 py-12">
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <h2 class="text-lg font-semibold text-yellow-800 mb-2">Image Upload Not Available</h2>
+                <p class="text-yellow-700">
+                  Image uploads are currently disabled because Cloudflare Images has not been configured.
+                </p>
+                <p class="mt-3 text-sm text-yellow-600">
+                  Please configure <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> and <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_IMAGES_API_TOKEN</code> to enable this feature.
+                </p>
+                <a href="/admin/churches" class="mt-4 inline-block text-yellow-800 hover:text-yellow-900 underline">
+                  ← Back to churches
+                </a>
+              </div>
+            </div>
+          </Layout>,
+          400
+        );
+      }
+      
       try {
         const uploadResult = await uploadToCloudflareImages(
           body.image,
@@ -629,7 +653,16 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
   }
 
   try {
-    const extractedData = await extractChurchDataFromWebsite(c.env, website);
+    // Check if OpenRouter API key is available
+    const { hasOpenRouterApiKey } = await import('../../utils/env-validation');
+    if (!hasOpenRouterApiKey(c.env)) {
+      return c.json({ 
+        error: 'AI extraction is not available',
+        message: 'The AI-powered website extraction feature requires an OpenRouter API key. Please configure OPENROUTER_API_KEY to enable this feature.'
+      }, 503);
+    }
+    
+    const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY);
     return c.json(extractedData);
   } catch (error) {
     console.error('Error extracting website data:', error);
