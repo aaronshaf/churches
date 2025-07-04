@@ -185,14 +185,47 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                     <div class="prose prose-sm max-w-none">
                       {comment.type === 'system' ? (
                         <div class="text-gray-700 text-sm" data-testid={`comment-content-${index}`}>
-                          <div dangerouslySetInnerHTML={{ 
-                            __html: comment.content
-                              .replace(/```yaml\n([\s\S]*?)```/g, '<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">$1</pre>')
-                              .replace(/\n/g, '<br>')
-                          }} />
+                          <div 
+                            class={`comment-content ${comment.content.length > 500 ? 'comment-truncate' : ''}`}
+                            data-comment-id={comment.id}
+                            dangerouslySetInnerHTML={{ 
+                              __html: comment.content
+                                .replace(/```yaml\n([\s\S]*?)```/g, '<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">$1</pre>')
+                                .replace(/\n/g, '<br>')
+                            }} 
+                          />
+                          {comment.content.length > 500 && (
+                            <button
+                              type="button"
+                              class="mt-2 text-sm font-medium text-primary-600 hover:text-primary-500 focus:outline-none focus:underline"
+                              onclick={`toggleComment(${comment.id})`}
+                              data-testid={`toggle-comment-${comment.id}`}
+                            >
+                              <span class="expand-text">Show more</span>
+                              <span class="collapse-text hidden">Show less</span>
+                            </button>
+                          )}
                         </div>
                       ) : (
-                        <p class="text-gray-700 leading-relaxed whitespace-pre-wrap" data-testid={`comment-content-${index}`}>{comment.content}</p>
+                        <div class="text-gray-700" data-testid={`comment-content-${index}`}>
+                          <p 
+                            class={`leading-relaxed whitespace-pre-wrap comment-content ${comment.content.length > 500 ? 'comment-truncate' : ''}`}
+                            data-comment-id={comment.id}
+                          >
+                            {comment.content}
+                          </p>
+                          {comment.content.length > 500 && (
+                            <button
+                              type="button"
+                              class="mt-2 text-sm font-medium text-primary-600 hover:text-primary-500 focus:outline-none focus:underline"
+                              onclick={`toggleComment(${comment.id})`}
+                              data-testid={`toggle-comment-${comment.id}`}
+                            >
+                              <span class="expand-text">Show more</span>
+                              <span class="collapse-text hidden">Show less</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -202,6 +235,55 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           ))}
         </div>
       )}
+      
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .comment-truncate {
+            max-height: 150px;
+            overflow: hidden;
+            position: relative;
+          }
+          
+          .comment-truncate::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom, transparent, white);
+          }
+          
+          .comment-content.expanded {
+            max-height: none;
+          }
+          
+          .comment-content.expanded::after {
+            display: none;
+          }
+        `
+      }} />
+      
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          function toggleComment(commentId) {
+            const content = document.querySelector('[data-comment-id="' + commentId + '"]');
+            const button = event.target.closest('button');
+            const expandText = button.querySelector('.expand-text');
+            const collapseText = button.querySelector('.collapse-text');
+            
+            if (content.classList.contains('expanded')) {
+              content.classList.remove('expanded');
+              expandText.classList.remove('hidden');
+              collapseText.classList.add('hidden');
+            } else {
+              content.classList.add('expanded');
+              expandText.classList.add('hidden');
+              collapseText.classList.remove('hidden');
+            }
+          }
+        `
+      }} />
     </div>
   );
 };

@@ -246,12 +246,16 @@ export function parseGatheringsFromForm(body: Record<string, any>) {
 export function parseAffiliationsFromForm(body: Record<string, any>) {
   if (!body.affiliations) return [];
 
+  // When using parseBody({ all: true }), multiple values come as an array
   if (Array.isArray(body.affiliations)) {
-    return body.affiliations.map(Number).filter((id) => !Number.isNaN(id));
+    return body.affiliations
+      .map(v => Number(v))
+      .filter(id => !Number.isNaN(id) && id > 0);
   }
 
+  // Single value case
   const id = Number(body.affiliations);
-  return Number.isNaN(id) ? [] : [id];
+  return Number.isNaN(id) || id <= 0 ? [] : [id];
 }
 
 // Helper to create validation error response
@@ -261,6 +265,23 @@ export function createValidationErrorResponse(errors: Record<string, string[]>, 
     errors,
     message,
   };
+}
+
+// Helper to format phone numbers from XXX-XXX-XXXX to (XXX) XXX-XXXX
+export function formatPhoneNumber(phone: string | undefined): string | undefined {
+  if (!phone) return undefined;
+  
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+  
+  // Check if it's a 10-digit phone number
+  if (digits.length === 10) {
+    // Format as (XXX) XXX-XXXX
+    return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
+  }
+  
+  // Return original if not a 10-digit number
+  return phone;
 }
 
 // Helper to sanitize and prepare church data from form
@@ -275,7 +296,7 @@ export function prepareChurchDataFromForm(body: Record<string, any>) {
     countyId: body.countyId ? Number(body.countyId) : undefined,
     website: body.website || undefined,
     statementOfFaith: body.statementOfFaith || undefined,
-    phone: body.phone || undefined,
+    phone: formatPhoneNumber(body.phone) || undefined,
     email: body.email || undefined,
     facebook: body.facebook || undefined,
     instagram: body.instagram || undefined,

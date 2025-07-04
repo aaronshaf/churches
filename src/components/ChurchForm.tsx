@@ -32,7 +32,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
         method="POST"
         action={action}
         class="space-y-8"
-        onsubmit="handleFormSubmit(event)"
         data-testid="church-form"
         enctype="multipart/form-data"
       >
@@ -1193,6 +1192,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             addServiceContainer.appendChild(addServiceBtn);
           }
           
+          // Setup form submit handler
+          const form = document.querySelector('form[data-testid="church-form"]');
+          if (form) {
+            form.addEventListener('submit', handleFormSubmit);
+          }
+          
           // Setup save and continue button handlers
           const saveButton = document.getElementById('submit-button');
           const continueButton = document.getElementById('submit-continue-button');
@@ -1398,6 +1403,24 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             resetButtonStates();
           }
         });
+        
+        // Phone number formatting
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput) {
+          phoneInput.addEventListener('blur', function() {
+            const phone = this.value;
+            if (phone) {
+              // Remove all non-digit characters
+              const digits = phone.replace(/\\D/g, '');
+              
+              // Check if it's a 10-digit phone number
+              if (digits.length === 10) {
+                // Format as (XXX) XXX-XXXX
+                this.value = '(' + digits.substring(0, 3) + ') ' + digits.substring(3, 6) + '-' + digits.substring(6);
+              }
+            }
+          });
+        }
       `,
         }}
       />

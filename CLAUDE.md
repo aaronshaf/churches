@@ -73,13 +73,14 @@ pnpm deploy
 
 # Database commands
 pnpm db:generate  # Generate Drizzle migrations
-pnpm db:push      # Push schema to Turso
+pnpm db:migrate   # Apply pending migrations (STANDARD WAY)
+pnpm db:push      # Push schema to Turso (development only)
 pnpm db:studio    # Open Drizzle Studio
 pnpm db:seed      # Seed admin user
 pnpm db:reset-admin  # Reset admin password
 
-# Run custom migrations (when db:push doesn't work)
-pnpm tsx scripts/run-migration.ts
+# Initialize standard migrations (one-time setup)
+pnpm tsx scripts/setup-standard-migrations.ts
 
 # Better-Auth setup (self-hosted authentication)
 pnpm better-auth:setup    # Configure environment variables for better-auth
@@ -217,6 +218,31 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - Hover states and transitions for interactivity
 
 ## Development Best Practices
+
+### Database Migrations (Standard Drizzle Workflow)
+
+**Initial Setup (One-time):**
+1. Run `pnpm tsx scripts/setup-standard-migrations.ts` to initialize migration tracking
+2. This marks your current schema as the baseline without affecting data
+
+**Standard Workflow for Schema Changes:**
+1. **Edit Schema**: Modify `src/db/schema.ts` with your changes
+2. **Generate Migration**: Run `pnpm db:generate`
+   - Creates numbered SQL files in `/drizzle/` folder
+   - Drizzle auto-detects changes and generates appropriate SQL
+3. **Review Migration**: Check the generated SQL file before applying
+4. **Apply Migration**: Run `pnpm db:migrate`
+   - Applies pending migrations to database
+   - Updates tracking table automatically
+
+**Development vs Production:**
+- **Development**: Can use `pnpm db:push` for rapid prototyping (bypasses migrations)
+- **Production**: ALWAYS use `pnpm db:migrate` for proper versioning and safety
+
+**Migration Files Location:**
+- Generated migrations: `/drizzle/0004_xxx.sql`, `/drizzle/0005_xxx.sql`, etc.
+- Tracking metadata: `/drizzle/meta/` folder
+- Old custom scripts: Can be removed after transition
 
 ### Code Search and Navigation
 - **Use ast-grep for structural code search** - it's faster and more accurate than regex

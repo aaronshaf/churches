@@ -14,6 +14,7 @@ import { users } from '../../db/auth-schema';
 import { Layout } from '../../components/Layout';
 import { ChurchForm } from '../../components/ChurchForm';
 import { NotFound } from '../../components/NotFound';
+import { Toast } from '../../components/Toast';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import { getLogoUrl } from '../../utils/settings';
 import {
@@ -52,6 +53,11 @@ adminChurchesRoutes.get('/', async (c) => {
   const countyId = c.req.query('county');
   const affiliationId = c.req.query('affiliation');
   const status = c.req.query('status');
+  
+  // Check for success message parameters
+  const success = c.req.query('success');
+  const churchName = c.req.query('churchName');
+  const churchPath = c.req.query('churchPath');
 
   // Build query
   let query = db
@@ -85,17 +91,25 @@ adminChurchesRoutes.get('/', async (c) => {
 
   const results = await query.orderBy(desc(churches.updatedAt)).all();
 
-  // Get affiliations for each church if filtering by affiliation
+  // Get all church affiliations for the filtered churches
+  const churchIds = results.map(r => r.church.id);
+  const allChurchAffils = churchIds.length > 0 ? await db
+    .select({ 
+      churchId: churchAffiliations.churchId,
+      affiliationId: churchAffiliations.affiliationId 
+    })
+    .from(churchAffiliations)
+    .where(sql`${churchAffiliations.churchId} IN (${churchIds.map(() => '?').join(',')})`, ...churchIds)
+    .all() : [];
+
+  // Filter by affiliation if needed
   let filteredResults = results;
   if (affiliationId) {
-    const churchIds = results.map(r => r.church.id);
-    const churchAffils = await db
-      .select({ churchId: churchAffiliations.churchId })
-      .from(churchAffiliations)
-      .where(sql`${churchAffiliations.churchId} IN ${churchIds} AND ${churchAffiliations.affiliationId} = ${Number(affiliationId)}`)
-      .all();
-    
-    const affiliatedChurchIds = new Set(churchAffils.map(ca => ca.churchId));
+    const affiliatedChurchIds = new Set(
+      allChurchAffils
+        .filter(ca => ca.affiliationId === Number(affiliationId))
+        .map(ca => ca.churchId)
+    );
     filteredResults = results.filter(r => affiliatedChurchIds.has(r.church.id));
   }
 
@@ -105,8 +119,37 @@ adminChurchesRoutes.get('/', async (c) => {
     db.select().from(affiliations).orderBy(affiliations.name).all(),
   ]);
 
+  // Prepare church data for client-side filtering
+  const churchesData = filteredResults.map(({ church, county }) => ({
+    id: church.id,
+    name: church.name,
+    path: church.path,
+    status: church.status,
+    countyId: church.countyId,
+    countyName: county?.name || '',
+    address: church.gatheringAddress || '',
+    // For affiliation filtering, we need the affiliation IDs
+    affiliationIds: allChurchAffils
+      .filter(ca => ca.churchId === church.id)
+      .map(ca => ca.affiliationId)
+  }));
+
   const content = (
-    <Layout title="Manage Churches" user={user}>
+    <Layout title="Manage Churches" user={user} currentPath="/admin/churches">
+      {success && (
+        <Toast 
+          message={success === 'created' ? 'Church created successfully!' : 'Church updated successfully!'}
+          churchName={churchName}
+          churchPath={churchPath}
+          type="success"
+        />
+      )}
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          window.churchesData = ${JSON.stringify(churchesData)};
+          window.allChurchAffiliations = ${JSON.stringify(allChurchAffils)};
+        `
+      }} />
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
@@ -126,74 +169,142 @@ adminChurchesRoutes.get('/', async (c) => {
         </div>
 
         {/* Filters */}
-        <div class="mt-6 bg-white shadow sm:rounded-lg">
-          <div class="px-4 py-5 sm:p-6">
-            <form method="GET" action="/admin/churches" class="space-y-4 sm:flex sm:space-x-4 sm:space-y-0">
-              <div class="flex-1">
-                <label for="search" class="sr-only">Search</label>
-                <input
-                  type="text"
-                  name="search"
-                  id="search"
-                  value={search}
-                  placeholder="Search churches..."
-                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                />
+        <div class="mt-6">
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <div class="px-4 py-6 sm:p-8">
+              <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Filters</h3>
+                <div id="filter-loading" class="hidden">
+                  <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
               </div>
-              <div>
-                <label for="county" class="sr-only">County</label>
-                <select
-                  name="county"
-                  id="county"
-                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                >
-                  <option value="">All Counties</option>
-                  {allCounties.map(county => (
-                    <option value={county.id} selected={countyId === String(county.id)}>
-                      {county.name}
-                    </option>
-                  ))}
-                </select>
+              <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                <form method="GET" action="/admin/churches" id="church-filters-form" class="col-span-full grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
+                  {/* Search field - spans 2 columns on desktop */}
+                  <div class="sm:col-span-2">
+                    <label for="search" class="block text-sm font-medium leading-6 text-gray-900">
+                      Search
+                    </label>
+                    <div class="mt-2">
+                      <div class="relative rounded-md shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                          <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          name="search"
+                          id="search"
+                          value={search}
+                          placeholder="Search by name or address..."
+                          class="block w-full rounded-md border-0 py-2 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* County select */}
+                  <div class="sm:col-span-1">
+                    <label for="county" class="block text-sm font-medium leading-6 text-gray-900">
+                      County
+                    </label>
+                    <div class="mt-2">
+                      <select
+                        name="county"
+                        id="county"
+                        class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      >
+                        <option value="">All Counties</option>
+                        {allCounties.map(county => (
+                          <option value={county.id} selected={countyId === String(county.id)}>
+                            {county.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Affiliation select */}
+                  <div class="sm:col-span-1">
+                    <label for="affiliation" class="block text-sm font-medium leading-6 text-gray-900">
+                      Affiliation
+                    </label>
+                    <div class="mt-2">
+                      <select
+                        name="affiliation"
+                        id="affiliation"
+                        class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      >
+                        <option value="">All Affiliations</option>
+                        {allAffiliations.map(affiliation => (
+                          <option value={affiliation.id} selected={affiliationId === String(affiliation.id)}>
+                            {affiliation.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Status select */}
+                  <div class="sm:col-span-1">
+                    <label for="status" class="block text-sm font-medium leading-6 text-gray-900">
+                      Status
+                    </label>
+                    <div class="mt-2">
+                      <select
+                        name="status"
+                        id="status"
+                        class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="Listed" selected={status === 'Listed'}>Listed</option>
+                        <option value="Ready to list" selected={status === 'Ready to list'}>Ready to list</option>
+                        <option value="Assess" selected={status === 'Assess'}>Assess</option>
+                        <option value="Needs data" selected={status === 'Needs data'}>Needs data</option>
+                        <option value="Unlisted" selected={status === 'Unlisted'}>Unlisted</option>
+                        <option value="Heretical" selected={status === 'Heretical'}>Heretical</option>
+                        <option value="Closed" selected={status === 'Closed'}>Closed</option>
+                      </select>
+                    </div>
+                  </div>
+
+
+                  {/* Clear filters link - only show if filters are active */}
+                  {(search || countyId || affiliationId || status) && (
+                    <div id="clear-filters-section" class="sm:col-span-6 mt-4 pt-4 border-t border-gray-200">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center text-sm text-gray-600">
+                          <svg class="mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                          </svg>
+                          <span>
+                            Filters active: {[
+                              search && 'Search',
+                              countyId && 'County', 
+                              affiliationId && 'Affiliation',
+                              status && 'Status'
+                            ].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                        <a 
+                          href="/admin/churches" 
+                          class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        >
+                          <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Clear filters
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </form>
               </div>
-              <div>
-                <label for="affiliation" class="sr-only">Affiliation</label>
-                <select
-                  name="affiliation"
-                  id="affiliation"
-                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                >
-                  <option value="">All Affiliations</option>
-                  {allAffiliations.map(affiliation => (
-                    <option value={affiliation.id} selected={affiliationId === String(affiliation.id)}>
-                      {affiliation.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label for="status" class="sr-only">Status</label>
-                <select
-                  name="status"
-                  id="status"
-                  class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="Listed" selected={status === 'Listed'}>Listed</option>
-                  <option value="Ready to list" selected={status === 'Ready to list'}>Ready to list</option>
-                  <option value="Assess" selected={status === 'Assess'}>Assess</option>
-                  <option value="Needs data" selected={status === 'Needs data'}>Needs data</option>
-                  <option value="Unlisted" selected={status === 'Unlisted'}>Unlisted</option>
-                  <option value="Heretical" selected={status === 'Heretical'}>Heretical</option>
-                  <option value="Closed" selected={status === 'Closed'}>Closed</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
-              >
-                Filter
-              </button>
-            </form>
+            </div>
           </div>
         </div>
 
@@ -222,9 +333,19 @@ adminChurchesRoutes.get('/', async (c) => {
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                   {filteredResults.map(({ church, county }) => (
-                    <tr key={church.id}>
-                      <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                        {church.name}
+                    <tr 
+                      key={church.id}
+                      data-church-id={church.id}
+                      data-church-name={church.name.toLowerCase()}
+                      data-church-address={(church.gatheringAddress || '').toLowerCase()}
+                      data-church-status={church.status || ''}
+                      data-church-county={county?.name || ''}
+                      data-church-county-id={church.countyId || ''}
+                    >
+                      <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium sm:pl-0">
+                        <a href={`/churches/${church.path}`} class="text-primary-600 hover:text-primary-800 hover:underline">
+                          {church.name}
+                        </a>
                       </td>
                       <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
@@ -264,6 +385,123 @@ adminChurchesRoutes.get('/', async (c) => {
           </div>
         </div>
       </div>
+      
+      <script dangerouslySetInnerHTML={{
+        __html: `
+        (function() {
+          const searchInput = document.getElementById('search');
+          const countySelect = document.getElementById('county');
+          const affiliationSelect = document.getElementById('affiliation');
+          const statusSelect = document.getElementById('status');
+          const filterForm = document.getElementById('church-filters-form');
+          const clearFiltersSection = document.getElementById('clear-filters-section');
+          const tableBody = document.querySelector('tbody');
+          const filterLoading = document.getElementById('filter-loading');
+          
+          if (!filterForm || !tableBody) return;
+
+          // Store all church rows for filtering
+          const allRows = Array.from(tableBody.querySelectorAll('tr[data-church-id]'));
+          
+          // Function to filter rows
+          function filterRows() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedCounty = countySelect.value;
+            const selectedStatus = statusSelect.value;
+            
+            let visibleCount = 0;
+            
+            allRows.forEach(row => {
+              let visible = true;
+              
+              // Search filter (name or address)
+              if (searchTerm) {
+                const name = row.getAttribute('data-church-name') || '';
+                const address = row.getAttribute('data-church-address') || '';
+                if (!name.includes(searchTerm) && !address.includes(searchTerm)) {
+                  visible = false;
+                }
+              }
+              
+              // County filter
+              if (selectedCounty && row.getAttribute('data-church-county-id') !== selectedCounty) {
+                visible = false;
+              }
+              
+              // Status filter
+              if (selectedStatus && row.getAttribute('data-church-status') !== selectedStatus) {
+                visible = false;
+              }
+              
+              // Show/hide row
+              row.style.display = visible ? '' : 'none';
+              if (visible) visibleCount++;
+            });
+            
+            // Show/hide "no results" message
+            let noResultsRow = tableBody.querySelector('.no-results');
+            if (visibleCount === 0 && allRows.length > 0) {
+              if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.className = 'no-results';
+                noResultsRow.innerHTML = '<td colspan="5" class="text-center py-12 text-sm text-gray-500">No churches found matching your criteria.</td>';
+                tableBody.appendChild(noResultsRow);
+              }
+              noResultsRow.style.display = '';
+            } else if (noResultsRow) {
+              noResultsRow.style.display = 'none';
+            }
+            
+            // Update URL without page reload
+            updateURL();
+            
+            // Update clear filters visibility
+            updateClearFiltersVisibility();
+          }
+
+          // Function to update URL
+          function updateURL() {
+            const params = new URLSearchParams();
+            
+            if (searchInput.value) params.append('search', searchInput.value);
+            if (countySelect.value) params.append('county', countySelect.value);
+            if (affiliationSelect.value) params.append('affiliation', affiliationSelect.value);
+            if (statusSelect.value) params.append('status', statusSelect.value);
+            
+            const newUrl = params.toString() ? window.location.pathname + '?' + params.toString() : window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+          }
+
+          // Function to update clear filters visibility
+          function updateClearFiltersVisibility() {
+            const hasFilters = searchInput.value || countySelect.value || affiliationSelect.value || statusSelect.value;
+            if (clearFiltersSection) {
+              clearFiltersSection.style.display = hasFilters ? 'block' : 'none';
+            }
+          }
+
+          // Add event listeners for instant filtering
+          searchInput.addEventListener('input', filterRows);
+          countySelect.addEventListener('change', filterRows);
+          statusSelect.addEventListener('change', filterRows);
+
+          // Prevent form submission
+          filterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+          });
+          
+          // Note: Affiliation filtering requires server-side logic due to many-to-many relationship
+          // For now, affiliation filter will trigger a page reload
+          affiliationSelect.addEventListener('change', function() {
+            if (filterLoading) filterLoading.classList.remove('hidden');
+            filterForm.submit();
+          });
+          
+          // Initialize on page load
+          updateClearFiltersVisibility();
+        })();
+        `
+      }} />
     </Layout>
   );
 
@@ -311,12 +549,28 @@ adminChurchesRoutes.post('/', async (c) => {
   const logoUrl = await getLogoUrl(c.env);
 
   try {
-    const body = await c.req.parseBody();
+    const body = await c.req.parseBody({ all: true });
     const parsedBody = parseFormBody(body);
-
-    // Validate church data
-    const validatedData = await validateFormData(churchWithGatheringsSchema, parsedBody);
-    const { gatherings: validatedGatherings, affiliations: validatedAffiliations, ...validatedChurchData } = validatedData;
+    
+    // Parse gatherings and affiliations from form
+    const gatherings = parseGatheringsFromForm(parsedBody);
+    const formAffiliations = parseAffiliationsFromForm(parsedBody);
+    
+    // Structure data for validation
+    const dataToValidate = {
+      church: parsedBody,
+      gatherings,
+      affiliations: formAffiliations
+    };
+    
+    const validationResult = validateFormData(churchWithGatheringsSchema, dataToValidate);
+    
+    if (!validationResult.success) {
+      console.error('Validation errors:', validationResult.errors);
+      throw new Error(validationResult.message);
+    }
+    
+    const { church: validatedChurchData, gatherings: validatedGatherings, affiliations: validatedAffiliations } = validationResult.data;
 
     // Prepare church data for insertion
     const churchData = prepareChurchDataFromForm(validatedChurchData);
@@ -337,9 +591,10 @@ adminChurchesRoutes.post('/', async (c) => {
 
     // Insert affiliations
     if (validatedAffiliations && validatedAffiliations.length > 0) {
-      const affiliationsToInsert = validatedAffiliations.map((affiliationId) => ({
+      const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
         churchId: church.id,
         affiliationId: Number(affiliationId),
+        order: index
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
@@ -367,7 +622,13 @@ adminChurchesRoutes.post('/', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
-    return c.redirect('/admin/churches');
+    // Redirect with success message
+    const params = new URLSearchParams({
+      success: 'created',
+      churchName: church.name,
+      churchPath: church.path
+    });
+    return c.redirect(`/admin/churches?${params.toString()}`);
   } catch (error) {
     console.error('Error creating church:', error);
     return c.html(
@@ -392,6 +653,11 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
+  
+  // Check for success message parameters
+  const success = c.req.query('success');
+  const churchName = c.req.query('churchName');
+  const churchPath = c.req.query('churchPath');
 
   const [church, gatherings, churchAffils, images, allCounties, allAffiliations] = await Promise.all([
     db.select().from(churches).where(eq(churches.id, id)).get(),
@@ -408,6 +674,14 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
 
   const content = (
     <Layout title={`Edit ${church.name}`} currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
+      {success && (
+        <Toast 
+          message="Church updated successfully!"
+          churchName={churchName}
+          churchPath={churchPath}
+          type="success"
+        />
+      )}
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Edit Church</h1>
@@ -456,7 +730,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
       return c.html(<NotFound />, 404);
     }
 
-    const body = await c.req.parseBody();
+    const body = await c.req.parseBody({ all: true });
     
     // Handle image upload if present
     if (body.image && body.image instanceof File && body.image.size > 0) {
@@ -485,10 +759,14 @@ adminChurchesRoutes.post('/:id', async (c) => {
       }
       
       try {
+        const { getImagePrefix } = await import('../../utils/settings');
+        const imagePrefix = await getImagePrefix(c.env);
+        
         const uploadResult = await uploadToCloudflareImages(
           body.image,
           c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN,
+          imagePrefix
         );
         
         if (!uploadResult.success || !uploadResult.result) {
@@ -518,15 +796,37 @@ adminChurchesRoutes.post('/:id', async (c) => {
         .get();
       
       if (imageToDelete) {
-        await deleteFromCloudflareImages(c.env, imageToDelete.cloudflareId);
+        await deleteFromCloudflareImages(
+          imageToDelete.cloudflareId,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
         await db.delete(churchImages).where(eq(churchImages.id, Number(deleteImageId)));
       }
     }
 
     // Parse and validate form data
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(churchWithGatheringsSchema, parsedBody);
-    const { gatherings: validatedGatherings, affiliations: validatedAffiliations, ...validatedChurchData } = validatedData;
+    
+    // Parse gatherings and affiliations from form
+    const gatherings = parseGatheringsFromForm(parsedBody);
+    const formAffiliations = parseAffiliationsFromForm(parsedBody);
+    
+    // Structure data for validation
+    const dataToValidate = {
+      church: parsedBody,
+      gatherings,
+      affiliations: formAffiliations
+    };
+    
+    const validationResult = validateFormData(churchWithGatheringsSchema, dataToValidate);
+    
+    if (!validationResult.success) {
+      console.error('Validation errors:', validationResult.errors);
+      throw new Error(validationResult.message);
+    }
+    
+    const { church: validatedChurchData, gatherings: validatedGatherings, affiliations: validatedAffiliations } = validationResult.data;
 
     // Prepare church data for update
     const churchData = prepareChurchDataFromForm(validatedChurchData);
@@ -548,9 +848,10 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Update affiliations
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, id));
     if (validatedAffiliations && validatedAffiliations.length > 0) {
-      const affiliationsToInsert = validatedAffiliations.map((affiliationId) => ({
+      const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
         churchId: id,
         affiliationId: Number(affiliationId),
+        order: index
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
@@ -600,7 +901,27 @@ adminChurchesRoutes.post('/:id', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
-    return c.redirect('/admin/churches');
+    // Get the church name for the success message
+    const updatedChurch = await db.select().from(churches).where(eq(churches.id, id)).get();
+    
+    // Check if this was a "save and continue" action
+    if (body.continue === 'true') {
+      // Redirect back to edit page with success message
+      const params = new URLSearchParams({
+        success: 'updated',
+        churchName: updatedChurch?.name || 'Church',
+        churchPath: updatedChurch?.path || ''
+      });
+      return c.redirect(`/admin/churches/${id}/edit?${params.toString()}`);
+    }
+    
+    // Redirect with success message
+    const params = new URLSearchParams({
+      success: 'updated',
+      churchName: updatedChurch?.name || 'Church',
+      churchPath: updatedChurch?.path || ''
+    });
+    return c.redirect(`/admin/churches?${params.toString()}`);
   } catch (error) {
     console.error('Error updating church:', error);
     return c.html(
@@ -632,7 +953,11 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   // Delete images
   const images = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
   for (const image of images) {
-    await deleteFromCloudflareImages(c.env, image.cloudflareId);
+    await deleteFromCloudflareImages(
+      image.cloudflareId,
+      c.env.CLOUDFLARE_ACCOUNT_ID,
+      c.env.CLOUDFLARE_IMAGES_API_TOKEN
+    );
   }
   await db.delete(churchImages).where(eq(churchImages.churchId, id));
 

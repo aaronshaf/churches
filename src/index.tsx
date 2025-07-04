@@ -3416,21 +3416,21 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                           <p class="text-sm text-gray-600 mt-0.5">{suggestion.denomination}</p>
                         )}
                       </div>
-                      <div class="flex items-center gap-2 ml-4">
+                      <div class="flex items-center gap-3 ml-4">
                         <a
                           href={`/admin/churches/new?from_suggestion=${suggestion.id}`}
-                          class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                          class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors border border-transparent min-h-[36px]"
                         >
                           <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                           </svg>
                           Create Church
                         </a>
-                        <form method="POST" action={`/admin/submissions/${suggestion.id}/delete`} class="inline">
+                        <form method="POST" action={`/admin/submissions/${suggestion.id}/delete`} class="inline m-0">
                           <button
                             type="submit"
                             onclick="return confirm('Are you sure you want to delete this submission?')"
-                            class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                            class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors border border-gray-300 min-h-[36px]"
                           >
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -4338,12 +4338,13 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
   const layoutProps = await getLayoutProps(c);
 
   // Get current settings
-  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, faviconUrl, logoUrlSetting] = await Promise.all([
+  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, imagePrefix, faviconUrl, logoUrlSetting] = await Promise.all([
     db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
     db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
     db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
     db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
     db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+    db.select().from(settings).where(eq(settings.key, 'image_prefix')).get(),
     db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
     db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
   ]);
@@ -4378,6 +4379,7 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
             frontPageTitle={frontPageTitle?.value || undefined}
             siteDomain={siteDomain?.value || undefined}
             siteRegion={siteRegion?.value || undefined}
+            imagePrefix={imagePrefix?.value || undefined}
             faviconUrl={faviconUrl?.value || undefined}
             logoUrl={logoUrlSetting?.value || undefined}
           />
@@ -4396,6 +4398,7 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const frontPageTitle = (body.frontPageTitle as string)?.trim();
   const siteDomain = (body.siteDomain as string)?.trim();
   const siteRegion = (body.siteRegion as string)?.trim().toUpperCase();
+  const imagePrefix = (body.imagePrefix as string)?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
 
   // Update or insert site title
   const existingSiteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
@@ -4474,6 +4477,25 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+  }
+
+  // Update or insert image prefix (only if explicitly provided)
+  if (imagePrefix) {
+    const existingImagePrefix = await db.select().from(settings).where(eq(settings.key, 'image_prefix')).get();
+
+    if (existingImagePrefix) {
+      await db
+        .update(settings)
+        .set({ value: imagePrefix, updatedAt: new Date() })
+        .where(eq(settings.key, 'image_prefix'));
+    } else {
+      await db.insert(settings).values({
+        key: 'image_prefix',
+        value: imagePrefix,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
   }
 
   // Handle favicon upload

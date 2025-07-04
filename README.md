@@ -12,15 +12,15 @@ This application provides a comprehensive directory of evangelical churches orga
 
 ## Features
 
-- 📍 **Interactive Map** - Find churches near you with Google Maps integration
-- 🏛️ **County Organization** - Browse churches organized by counties
-- 🔍 **Church Details** - View gathering times, contact info, and affiliations
-- 📊 **Data Export** - Download church data in JSON, YAML, CSV, or XLSX formats
-- 🌐 **Multi-language Support** - Track churches serving in different languages
-- 🔐 **Admin Dashboard** - Manage churches, affiliations, and users
-- 🤖 **AI-Powered Data Extraction** - Automatically extract church information from websites
-- 🖼️ **Image Management** - Upload and reorder multiple church images via Cloudflare Images
-- ⚡ **Save and Continue** - Efficiently review churches with one-click navigation to next church
+- **Interactive Map** - Find churches near you with Google Maps integration
+- **County Organization** - Browse churches organized by counties
+- **Church Details** - View gathering times, contact info, and affiliations
+- **Data Export** - Download church data in JSON, YAML, CSV, or XLSX formats
+- **Multi-language Support** - Track churches serving in different languages
+- **Admin Dashboard** - Manage churches, affiliations, and users
+- **AI-Powered Data Extraction** - Automatically extract church information from websites
+- **Image Management** - Upload and reorder multiple church images via Cloudflare Images
+- **Save and Continue** - Efficiently review churches with one-click navigation to next church
 
 ## Technology Stack
 

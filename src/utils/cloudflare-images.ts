@@ -18,20 +18,30 @@ export interface CloudflareImageUploadResponse {
 export async function uploadToCloudflareImages(
   file: File,
   accountId: string,
-  apiToken: string
+  apiToken: string,
+  appPrefix: string
 ): Promise<CloudflareImageUploadResponse> {
   // Validate that we have the required environment variables
   if (!accountId || !apiToken) {
     throw new Error('Cloudflare Images configuration is missing. Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_IMAGES_API_TOKEN environment variables.');
   }
+  
+  // Generate a prefixed image ID
+  const timestamp = Date.now();
+  const randomId = crypto.randomUUID().split('-')[0]; // Use first part of UUID for brevity
+  const imageId = `${appPrefix}-${timestamp}-${randomId}`;
+  
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('id', imageId);
 
-  // Optional: Add metadata
+  // Add metadata including app name
   formData.append(
     'metadata',
     JSON.stringify({
+      app: appPrefix,
       uploadedAt: new Date().toISOString(),
+      originalFilename: file.name,
     })
   );
 

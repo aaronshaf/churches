@@ -66,3 +66,25 @@ export async function getSiteSettings(env: Bindings) {
     };
   }
 }
+
+export async function getImagePrefix(env: Bindings): Promise<string> {
+  try {
+    const db = createDb(env);
+    const imagePrefixSetting = await db.select().from(settings).where(eq(settings.key, 'image_prefix')).get();
+    
+    // If no setting exists, derive from site domain or use default
+    if (!imagePrefixSetting?.value) {
+      const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+      if (domainSetting?.value) {
+        // Extract domain name without TLD (e.g., "utahchurches" from "utahchurches.org")
+        const domainParts = domainSetting.value.split('.');
+        return domainParts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+    }
+    
+    return imagePrefixSetting?.value || 'churches';
+  } catch (error) {
+    console.error('Error fetching image prefix:', error);
+    return 'churches';
+  }
+}

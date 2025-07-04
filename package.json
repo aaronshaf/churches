@@ -10,6 +10,7 @@
     "build": "pnpm run build:css && wrangler deploy --dry-run",
     "deploy": "pnpm run build:css && wrangler deploy",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/run-drizzle-migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed-affiliations": "tsx scripts/seed-affiliations.ts",
