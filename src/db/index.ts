@@ -16,13 +16,16 @@ export function createDb(env: { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: st
 
   const db = drizzle(client, { schema });
   
-  // Use Analytics Engine tracking if available, otherwise fall back to console timing
+  // Use Analytics Engine tracking if available, WITH in-memory timing for current session
   if (enableTiming) {
     if (env.utahchurches_analytics) {
-      console.log('🚀 Using Analytics Engine tracked database');
-      return createAnalyticsTrackedDb(db, env.utahchurches_analytics, context);
+      console.log('🚀 Using Analytics Engine + in-memory tracked database');
+      // First wrap with timing (for current session stats)
+      const timedDb = createTimedDb(db);
+      // Then wrap with Analytics Engine (for long-term storage)
+      return createAnalyticsTrackedDb(timedDb, env.utahchurches_analytics, context);
     } else {
-      console.log('⏱️ Using timed database (no Analytics Engine)');
+      console.log('⏱️ Using timed database only (no Analytics Engine)');
       return createTimedDb(db);
     }
   }
