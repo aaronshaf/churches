@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { createDb } from '../../db';
+import { createDb, createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations } from '../../db/schema';
 import { Layout } from '../../components/Layout';
 import { AffiliationForm } from '../../components/AffiliationForm';
@@ -25,7 +25,7 @@ adminAffiliationsRoutes.use('*', requireAdminWithRedirect);
 
 // List affiliations
 adminAffiliationsRoutes.get('/', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
@@ -137,7 +137,7 @@ adminAffiliationsRoutes.get('/new', async (c) => {
 
 // Create affiliation
 adminAffiliationsRoutes.post('/', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
@@ -175,7 +175,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
 
 // Edit affiliation form
 adminAffiliationsRoutes.get('/:id/edit', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
@@ -206,7 +206,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
 
 // Update affiliation
 adminAffiliationsRoutes.post('/:id', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
@@ -244,7 +244,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
 
 // Delete affiliation
 adminAffiliationsRoutes.post('/:id/delete', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
   // First delete all church affiliations

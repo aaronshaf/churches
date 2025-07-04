@@ -14,7 +14,7 @@ import { MonitoringDashboard } from './components/MonitoringDashboard';
 import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
-import { createDb } from './db';
+import { createDb, createDbWithContext } from './db';
 import {
   affiliations,
   churchAffiliations,
@@ -298,7 +298,7 @@ app.route('/admin/affiliations', adminAffiliationsRoutes);
 
 app.get('/', async (c) => {
   try {
-    const db = createDb(c.env);
+    const db = createDbWithContext(c);
 
     // Get all layout props
     const layoutProps = await getLayoutProps(c);
@@ -578,7 +578,7 @@ app.get('/', async (c) => {
 });
 
 app.get('/counties/:path', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const countyPath = c.req.param('path');
 
   // Check if user is logged in
@@ -775,7 +775,7 @@ app.get('/counties/:path', async (c) => {
 
 
 app.get('/networks', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Check for user session
   const user = await getUser(c);
@@ -1203,7 +1203,7 @@ app.post('/suggest-church', async (c) => {
     return c.redirect(`/auth/signin?redirect=${encodeURIComponent('/suggest-church')}`);
   }
   
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const body = await c.req.parseBody();
   
   // Extract city and state from address if provided
@@ -1251,7 +1251,7 @@ app.post('/suggest-church', async (c) => {
 
 
 app.get('/churches/:path', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const churchPath = c.req.param('path');
 
   // Check for admin user (optional)
@@ -1922,7 +1922,7 @@ app.get('/churches/:path', async (c) => {
 });
 
 app.get('/networks/:id', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const affiliationIdOrPath = c.req.param('id');
 
   // Check for user session
@@ -2178,7 +2178,7 @@ app.get('/map', async (c) => {
     );
   }
   
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Check for heretical query param
   const showHereticalOption = c.req.query('heretical') !== undefined;
@@ -2758,7 +2758,7 @@ app.get('/force-refresh', async (c) => {
 // Auth Monitoring placeholder
 app.get('/admin/monitoring', requireAdminBetter, async (c) => {
   try {
-    const db = createDb(c.env);
+    const db = createDbWithContext(c);
     const layoutProps = await getLayoutProps(c);
     
     // Get total user count
@@ -2898,7 +2898,7 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
 // Admin routes
 app.get('/admin', requireAdminBetter, async (c) => {
   const user = c.get('betterUser');
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
@@ -3329,7 +3329,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
 // Church suggestions management
 app.get('/admin/submissions', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const navbarPages = await getNavbarPages(c.env);
@@ -3580,7 +3580,7 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
 
 // County management routes
 app.get('/admin/counties', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const allCounties = await db.select().from(counties).orderBy(counties.name).all();
@@ -3715,7 +3715,7 @@ app.post('/churches/:path/comments', async (c) => {
     return c.redirect('/auth/signin');
   }
 
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const path = c.req.param('path');
   
   // Get church by path
@@ -3758,7 +3758,7 @@ app.post('/churches/:path/comments/:commentId/delete', async (c) => {
     return c.json({ error: 'Unauthorized' }, 403);
   }
 
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const path = c.req.param('path');
   const commentId = parseInt(c.req.param('commentId'));
   
@@ -3788,7 +3788,7 @@ app.post('/churches/:path/comments/:commentId/delete', async (c) => {
 
 // Delete church submission
 app.post('/admin/submissions/:id/delete', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const suggestionId = parseInt(c.req.param('id'));
   
   // Delete the submission
@@ -3818,7 +3818,7 @@ app.get('/admin/counties/new', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/counties', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const body = await c.req.parseBody();
   const user = c.get('betterUser');
   const parsedBody = parseFormBody(body);
@@ -3871,7 +3871,7 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
 
 // Edit county
 app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = c.req.param('id');
   const user = c.get('betterUser');
 
@@ -3898,7 +3898,7 @@ app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
 
@@ -3922,7 +3922,7 @@ app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
 
 // Delete county
 app.post('/admin/counties/:id/delete', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = c.req.param('id');
 
   // TODO: Check if any churches are using this county before deleting
@@ -3933,7 +3933,7 @@ app.post('/admin/counties/:id/delete', requireAdminBetter, async (c) => {
 
 // Pages routes
 app.get('/admin/pages', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const allPages = await db.select().from(pages).orderBy(pages.title).all();
@@ -4118,7 +4118,7 @@ app.get('/admin/pages/new', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/pages', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const body = await c.req.parseBody();
 
   const title = (body.title as string)?.trim();
@@ -4177,7 +4177,7 @@ app.post('/admin/pages', requireAdminBetter, async (c) => {
 });
 
 app.get('/admin/pages/:id/edit', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = c.req.param('id');
@@ -4228,7 +4228,7 @@ app.get('/admin/pages/:id/edit', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = c.req.param('id');
   const body = await c.req.parseBody();
 
@@ -4303,7 +4303,7 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = c.req.param('id');
 
   // Get page to check for image
@@ -4333,7 +4333,7 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
 
 // Settings routes
 app.get('/admin/settings', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
 
   // Get layout props
@@ -4392,7 +4392,7 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
 });
 
 app.post('/admin/settings', requireAdminBetter, async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const body = await c.req.parseBody();
 
   const siteTitle = (body.siteTitle as string)?.trim();
@@ -4634,7 +4634,7 @@ app.get('*', async (c) => {
   // Check if this might be a bare slug (no slashes except at start)
   if (path.startsWith('/') && !path.includes('/', 1) && path.length > 1) {
     const slug = path.substring(1);
-    const db = createDb(c.env);
+    const db = createDbWithContext(c);
 
     // Check for user session
     const user = await getUser(c);

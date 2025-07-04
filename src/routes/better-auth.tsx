@@ -7,7 +7,7 @@ import { Layout } from '../components/Layout';
 import { users } from '../db/auth-schema';
 import { settings } from '../db/schema';
 import { createAuth } from '../lib/auth';
-import { createDb } from '../db';
+import { createDb, createDbWithContext } from '../db';
 import { validateAuthEnvVars } from '../utils/env-validation';
 import type { Bindings } from '../types';
 
@@ -19,7 +19,7 @@ betterAuthApp.get('/signin', async (c) => {
   const redirectUrl = c.req.query('redirect') || '/admin';
   
   // Get all required data for Layout component
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   
   // Check for user session
   const { getUser } = await import('../middleware/better-auth');

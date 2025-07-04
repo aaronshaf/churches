@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { desc, eq, like, or, sql } from 'drizzle-orm';
-import { createDb } from '../../db';
+import { createDb, createDbWithContext } from '../../db';
 import {
   churches,
   churchGatherings,
@@ -46,7 +46,7 @@ adminChurchesRoutes.use('*', requireAdminWithRedirect);
 
 // List churches with search and filters
 adminChurchesRoutes.get('/', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
 
   const search = c.req.query('search') || '';
@@ -510,7 +510,7 @@ adminChurchesRoutes.get('/', async (c) => {
 
 // New church form
 adminChurchesRoutes.get('/new', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
@@ -544,7 +544,7 @@ adminChurchesRoutes.get('/new', async (c) => {
 
 // Create church
 adminChurchesRoutes.post('/', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
@@ -649,7 +649,7 @@ adminChurchesRoutes.post('/', async (c) => {
 
 // Edit church form
 adminChurchesRoutes.get('/:id/edit', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
@@ -705,7 +705,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
 
 // Update church (includes image upload)
 adminChurchesRoutes.post('/:id', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
@@ -942,7 +942,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
 // Delete church
 adminChurchesRoutes.post('/:id/delete', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
   // Delete related data first

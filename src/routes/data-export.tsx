@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { eq, sql } from 'drizzle-orm';
 import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
-import { createDb } from '../db';
+import { createDb, createDbWithContext } from '../db';
 import { churches, churchGatherings, affiliations, churchAffiliations, counties } from '../db/schema';
 import { Layout } from '../components/Layout';
 import { ErrorPage } from '../components/ErrorPage';
@@ -19,7 +19,7 @@ export const dataExportRoutes = new Hono<{ Bindings: Bindings; Variables: Variab
 
 // JSON Export
 dataExportRoutes.get('/churches.json', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
@@ -107,7 +107,7 @@ dataExportRoutes.get('/churches.json', async (c) => {
 
 // YAML Export
 dataExportRoutes.get('/churches.yaml', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
@@ -212,7 +212,7 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
 
 // CSV Export
 dataExportRoutes.get('/churches.csv', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
@@ -330,7 +330,7 @@ dataExportRoutes.get('/churches.csv', async (c) => {
 
 // Excel Export
 dataExportRoutes.get('/churches.xlsx', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get all churches with 'Listed' or 'Unlisted' status
   const allChurches = await db
@@ -516,7 +516,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
 // Data Export Page
 dataExportRoutes.get('/data', async (c) => {
   try {
-    const db = createDb(c.env);
+    const db = createDbWithContext(c);
 
     // Check for admin user
     const user = await getUser(c);

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
-import { createDb } from '../db';
+import { createDb, createDbWithContext } from '../db';
 import { churches, counties, affiliations, pages, settings } from '../db/schema';
 import type { Bindings } from '../types';
 
@@ -8,7 +8,7 @@ export const seoRoutes = new Hono<{ Bindings: Bindings }>();
 
 // robots.txt
 seoRoutes.get('/robots.txt', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
   
@@ -42,7 +42,7 @@ Sitemap: https://${siteDomain}/sitemap.xml`;
 
 // llms.txt
 seoRoutes.get('/llms.txt', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
   const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
   const regionSetting = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
@@ -106,7 +106,7 @@ For more information, visit https://${siteDomain}/`;
 
 // sitemap.xml
 seoRoutes.get('/sitemap.xml', async (c) => {
-  const db = createDb(c.env);
+  const db = createDbWithContext(c);
 
   // Get site domain from settings
   const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
