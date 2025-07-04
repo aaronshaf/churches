@@ -3287,9 +3287,9 @@ app.get('/admin', requireAdminBetter, async (c) => {
               </a>
 
               <a
-                href="/admin/monitoring"
+                href="/admin/db-performance"
                 class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
-                data-testid="card-monitoring"
+                data-testid="card-db-performance"
               >
                 <div>
                   <span class="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100">
@@ -3306,9 +3306,9 @@ app.get('/admin', requireAdminBetter, async (c) => {
                 <div class="mt-4">
                   <h3 class="text-lg font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
-                    Auth Monitoring
+                    Database Performance
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Monitor authentication system performance</p>
+                  <p class="mt-2 text-sm text-gray-500">Monitor Turso database metrics and timing</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
