@@ -23,7 +23,15 @@ export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
   });
 
   if (!session?.user) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const returnUrl = encodeURIComponent(c.req.url);
+    return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
 
   c.set('betterUser', session.user);
@@ -37,7 +45,17 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   
   const sessionMatch = cookies.match(/session=([^;]+)/);
   if (!sessionMatch) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    // Check if this is an API request
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    // For HTML requests, redirect to login
+    const returnUrl = encodeURIComponent(c.req.url);
+    return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
   
   const sessionId = sessionMatch[1];
@@ -73,15 +91,40 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   .get();
   
   if (!session) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const returnUrl = encodeURIComponent(c.req.url);
+    return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
   
   if (new Date(session.expiresAt) < new Date()) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Session expired' }, 401);
+    }
+    
+    const returnUrl = encodeURIComponent(c.req.url);
+    return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
   
   if (session.userRole !== 'admin') {
-    return c.json({ error: 'Forbidden' }, 403);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Forbidden - Admin access required' }, 403);
+    }
+    
+    // Import error handling utilities
+    const { AppError } = await import('../utils/async-handler');
+    throw new AppError('Admin access required', 403, 'Permission Error');
   }
   c.set('betterUser', { 
     id: session.userId,
@@ -101,11 +144,28 @@ export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
   });
 
   if (!session?.user) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const returnUrl = encodeURIComponent(c.req.url);
+    return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
 
   if (session.user.role !== 'admin' && session.user.role !== 'contributor') {
-    return c.json({ error: 'Forbidden' }, 403);
+    const isApiRequest = c.req.path.startsWith('/api/') || 
+                        c.req.header('Accept')?.includes('application/json');
+    
+    if (isApiRequest) {
+      return c.json({ error: 'Forbidden - Contributor access required' }, 403);
+    }
+    
+    // Import error handling utilities
+    const { AppError } = await import('../utils/async-handler');
+    throw new AppError('Contributor access required', 403, 'Permission Error');
   }
 
   c.set('betterUser', session.user);
