@@ -8,6 +8,7 @@ import { users } from '../db/auth-schema';
 import { settings } from '../db/schema';
 import { createAuth } from '../lib/auth';
 import { createDb } from '../db';
+import { validateAuthEnvVars } from '../utils/env-validation';
 import type { Bindings } from '../types';
 
 const betterAuthApp = new Hono<{ Bindings: Bindings }>();
@@ -146,6 +147,14 @@ betterAuthApp.get('/signin', async (c) => {
 
 // Google OAuth initiation
 betterAuthApp.get('/google', async (c) => {
+  // Validate OAuth environment variables
+  try {
+    validateAuthEnvVars(c.env);
+  } catch (error) {
+    console.error('OAuth configuration error:', error);
+    return c.redirect('/auth/signin?error=OAuth configuration missing');
+  }
+  
   const redirectUrl = c.req.query('redirect') || '/admin';
   
   // Store redirect URL in session/cookie for after OAuth
@@ -181,6 +190,8 @@ betterAuthApp.get('/callback/google', async (c) => {
   }
 
   try {
+    // Validate OAuth environment variables
+    validateAuthEnvVars(c.env);
     
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

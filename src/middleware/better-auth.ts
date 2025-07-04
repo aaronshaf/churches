@@ -1,10 +1,19 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { createAuth } from '../lib/auth';
+import { EnvironmentError } from '../utils/env-validation';
 
 export const betterAuthMiddleware: MiddlewareHandler = async (c, next) => {
-  const auth = createAuth(c.env);
-  c.set('betterAuth', auth);
-  await next();
+  try {
+    const auth = createAuth(c.env);
+    c.set('betterAuth', auth);
+    await next();
+  } catch (error) {
+    if (error instanceof EnvironmentError) {
+      // Let the global error handler catch this
+      throw error;
+    }
+    throw error;
+  }
 };
 
 export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
@@ -38,6 +47,10 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const { drizzle } = await import('drizzle-orm/libsql');
   const { eq } = await import('drizzle-orm');
   const { users, sessions } = await import('../db/auth-schema');
+  const { validateDatabaseEnvVars } = await import('../utils/env-validation');
+  
+  // Validate environment variables
+  validateDatabaseEnvVars(c.env);
   
   const client = createClient({
     url: c.env.TURSO_DATABASE_URL,
@@ -116,6 +129,10 @@ export const getUser = async (c: Context): Promise<any | null> => {
     const { drizzle } = await import('drizzle-orm/libsql');
     const { eq } = await import('drizzle-orm');
     const { users, sessions } = await import('../db/auth-schema');
+    const { validateDatabaseEnvVars } = await import('../utils/env-validation');
+    
+    // Validate environment variables
+    validateDatabaseEnvVars(c.env);
     
     const client = createClient({
       url: c.env.TURSO_DATABASE_URL,

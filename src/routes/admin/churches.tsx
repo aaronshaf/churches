@@ -461,7 +461,17 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Handle image upload if present
     if (body.image && body.image instanceof File && body.image.size > 0) {
       try {
-        const imageId = await uploadToCloudflareImages(c.env, body.image, `church-${id}`);
+        const uploadResult = await uploadToCloudflareImages(
+          body.image,
+          c.env.CLOUDFLARE_ACCOUNT_ID,
+          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        );
+        
+        if (!uploadResult.success || !uploadResult.result) {
+          throw new Error('Failed to upload image');
+        }
+        
+        const imageId = uploadResult.result.id;
         
         // Save image record
         await db.insert(churchImages).values({
