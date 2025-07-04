@@ -60,6 +60,7 @@ import { extractChurchDataFromWebsite } from './utils/website-extraction';
 import { getSiteTitle } from './utils/settings';
 import { compareChurchData, createAuditComment } from './utils/audit-trail';
 import { EnvironmentError } from './utils/env-validation';
+import { sanitizeErrorMessage, generateErrorId, getErrorStatusCode } from './utils/error-handling';
 
 type Variables = {
   user: any;
@@ -72,27 +73,56 @@ app.use('*', envCheckMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
-  console.error('Application error:', err);
+  const errorId = generateErrorId();
+  const statusCode = getErrorStatusCode(err);
   
-  // Handle environment variable errors
+  // Log the full error with ID for debugging
+  console.error(`[${errorId}] Application error:`, err);
+  
+  // Handle environment variable errors specially
   if (err instanceof EnvironmentError) {
     return c.html(
       <Layout currentPath="/error" hideFooter={true}>
         <ErrorPage 
-          error={`Configuration Error: ${err.message}. Please ensure all required environment variables are set in your .dev.vars file (local) or Cloudflare Workers secrets (production).`}
+          error={err.message}
+          errorType="Configuration Error"
+          errorDetails="Please ensure all required environment variables are set in your deployment configuration."
           statusCode={500}
+          errorId={errorId}
         />
       </Layout>,
       500
     );
   }
   
-  // Handle other errors
+  // Sanitize and categorize the error
+  const { message, type, details } = sanitizeErrorMessage(err);
+  
+  // Check if it's an API request
+  const isApiRequest = c.req.path.startsWith('/api/') || 
+                      c.req.header('Accept')?.includes('application/json');
+  
+  if (isApiRequest) {
+    return c.json({
+      error: type,
+      message: details || message,
+      errorId,
+      statusCode
+    }, statusCode);
+  }
+  
+  // Handle HTML error pages
   return c.html(
     <Layout currentPath="/error" hideFooter={true}>
-      <ErrorPage error={err.message} statusCode={500} />
+      <ErrorPage 
+        error={message}
+        errorType={type}
+        errorDetails={details}
+        statusCode={statusCode}
+        errorId={errorId}
+      />
     </Layout>,
-    500
+    statusCode
   );
 });
 
@@ -4594,6 +4624,37 @@ app.get('*', async (c) => {
       pages={navbarPages}
     >
       <NotFound />
+    </Layout>,
+    404
+  );
+});
+
+// Custom 404 handler
+app.notFound((c) => {
+  const errorId = generateErrorId();
+  
+  // Check if it's an API request
+  const isApiRequest = c.req.path.startsWith('/api/') || 
+                      c.req.header('Accept')?.includes('application/json');
+  
+  if (isApiRequest) {
+    return c.json({
+      error: 'Not Found',
+      message: 'The requested API endpoint does not exist.',
+      errorId,
+      statusCode: 404
+    }, 404);
+  }
+  
+  return c.html(
+    <Layout currentPath="/error" hideFooter={true}>
+      <ErrorPage 
+        error="The requested page could not be found."
+        errorType="Not Found"
+        errorDetails="The page you are looking for may have been moved or deleted."
+        statusCode={404}
+        errorId={errorId}
+      />
     </Layout>,
     404
   );
