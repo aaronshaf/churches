@@ -167,7 +167,7 @@ export const ErrorPage: FC<ErrorPageProps> = ({
               <p class="mt-2">
                 If this problem persists, please check{' '}
                 <a
-                  href="https://status.turso.tech/"
+                  href="https://www.cloudflarestatus.com/"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="font-medium text-red-600 hover:text-red-700"

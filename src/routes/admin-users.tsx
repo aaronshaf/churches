@@ -37,13 +37,7 @@ adminUsersApp.post('/:userId/role', async (c) => {
     return c.json({ error: 'Invalid role' }, 400);
   }
 
-  const db = drizzle(
-    createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    }),
-    { schema: { users } }
-  );
+  const db = drizzle(c.env.DB, { schema: { users } });
 
   try {
     // Update user role
