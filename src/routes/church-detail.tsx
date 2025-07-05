@@ -70,10 +70,13 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         statementOfFaith: churches.statementOfFaith,
         language: churches.language,
         publicNotes: churches.publicNotes,
+        privateNotes: churches.privateNotes,
         lastUpdated: churches.lastUpdated,
         countyId: churches.countyId,
+        countyName: sql<string | null>`${counties.name}`.as('countyName'),
       })
       .from(churches)
+      .leftJoin(counties, eq(churches.countyId, counties.id))
       .where(eq(churches.path, churchPath))
       .get();
 
@@ -86,16 +89,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       );
     }
 
-    // Get county name separately if church has a countyId
-    let countyName: string | null = null;
-    if (church.countyId) {
-      const county = await db
-        .select({ name: counties.name })
-        .from(counties)
-        .where(eq(counties.id, church.countyId))
-        .get();
-      countyName = county?.name || null;
-    }
 
     // Get church gatherings (services)
     const churchGatheringsList = await db
@@ -184,7 +177,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           ? {
               '@type': 'PostalAddress',
               streetAddress: church.gatheringAddress,
-              addressLocality: countyName ? countyName.replace(' County', '') : undefined,
+              addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
               addressRegion: siteRegion,
               addressCountry: 'US',
             }
@@ -207,7 +200,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         address: {
           '@type': 'PostalAddress',
           streetAddress: church.gatheringAddress,
-          addressLocality: countyName ? countyName.replace(' County', '') : undefined,
+          addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
           addressRegion: siteRegion,
           addressCountry: 'US',
           // postalCode: church.zip || undefined, // Not in schema
