@@ -1924,12 +1924,10 @@ app.get('/churches/:path', async (c) => {
                     </div>
                   )}
                 </div>
-                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Image Modal */}
       <div
