@@ -7,11 +7,6 @@ assets = { directory = "./public" }
 [observability]
 enabled = true
 
-# Analytics Engine for database performance tracking
-[[analytics_engine_datasets]]
-binding = "utahchurches_analytics"
-dataset = "utahchurches_events"
-
 [vars]
 # Add your non-sensitive configuration here
 # For production, set the following secrets using wrangler:

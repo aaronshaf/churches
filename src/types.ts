@@ -12,8 +12,6 @@ export interface Bindings {
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_IMAGES_API_TOKEN?: string;
   OPENROUTER_API_KEY?: string;
-  // Analytics Engine binding
-  utahchurches_analytics?: AnalyticsEngineDataset;
 }
 
 // User role types
