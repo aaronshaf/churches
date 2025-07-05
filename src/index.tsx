@@ -196,14 +196,14 @@ app.use('/api/*', cors());
 
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env);
+  const db = createDb(env.DB);
   const faviconUrlSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
   return faviconUrlSetting?.value || undefined;
 }
 
 // Helper function to fetch logo URL
 async function getLogoUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env);
+  const db = createDb(env.DB);
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
   return logoUrlSetting?.value || undefined;
 }
@@ -212,7 +212,7 @@ async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 async function getNavbarPages(
   env: Bindings
 ): Promise<Array<{ id: number; title: string; path: string; navbarOrder: number | null }>> {
-  const db = createDb(env);
+  const db = createDb(env.DB);
   const navbarPages = await db
     .select({
       id: pages.id,
