@@ -91,7 +91,7 @@ feedbackRoutes.get('/', async (c) => {
           </div>
 
           {!user ? (
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div class="bg-white rounded-lg border border-gray-200 p-8 text-center">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -108,7 +108,7 @@ feedbackRoutes.get('/', async (c) => {
               <div class="mt-6">
                 <a
                   href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
                   Sign in to continue
                 </a>
@@ -121,7 +121,7 @@ feedbackRoutes.get('/', async (c) => {
                 <div class="grid gap-4 sm:grid-cols-3">
                   <button
                     onclick={`updateFeedbackType('general'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:shadow-md transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
                       feedbackType === 'general'
                         ? 'border-primary-500 ring-2 ring-primary-200'
                         : 'border-gray-200 hover:border-gray-300'
@@ -143,13 +143,12 @@ feedbackRoutes.get('/', async (c) => {
                     </div>
                     <div class="mt-4">
                       <p class="font-semibold text-gray-900">General Feedback</p>
-                      <p class="mt-1 text-sm text-gray-500">Share thoughts about the website</p>
                     </div>
                   </button>
 
                   <button
                     onclick={`updateFeedbackType('church'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:shadow-md transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
                       feedbackType === 'church'
                         ? 'border-primary-500 ring-2 ring-primary-200'
                         : 'border-gray-200 hover:border-gray-300'
@@ -171,13 +170,12 @@ feedbackRoutes.get('/', async (c) => {
                     </div>
                     <div class="mt-4">
                       <p class="font-semibold text-gray-900">Church Feedback</p>
-                      <p class="mt-1 text-sm text-gray-500">Comment on a specific church</p>
                     </div>
                   </button>
 
                   <button
                     onclick={`updateFeedbackType('suggestion'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:shadow-md transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
                       feedbackType === 'suggestion'
                         ? 'border-primary-500 ring-2 ring-primary-200'
                         : 'border-gray-200 hover:border-gray-300'
@@ -194,7 +192,6 @@ feedbackRoutes.get('/', async (c) => {
                     </div>
                     <div class="mt-4">
                       <p class="font-semibold text-gray-900">Suggest a Church</p>
-                      <p class="mt-1 text-sm text-gray-500">Tell us about a new church</p>
                     </div>
                   </button>
                 </div>
@@ -204,7 +201,7 @@ feedbackRoutes.get('/', async (c) => {
               {feedbackType === 'general' && (
                 <form method="post" action="/feedback/submit" class="space-y-8">
                   <input type="hidden" name="type" value="general" />
-                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                  <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
                     <div class="px-4 py-6 sm:p-8">
                       <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                         <div class="sm:col-span-6">
@@ -217,7 +214,7 @@ feedbackRoutes.get('/', async (c) => {
                               name="content"
                               rows={6}
                               required
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                               placeholder="Share your thoughts about Utah Churches..."
                             ></textarea>
                             <p class="mt-3 text-sm text-gray-600">
@@ -237,7 +234,7 @@ feedbackRoutes.get('/', async (c) => {
                       </button>
                       <button
                         type="submit"
-                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                       >
                         Submit Feedback
                       </button>
@@ -249,7 +246,7 @@ feedbackRoutes.get('/', async (c) => {
               {feedbackType === 'church' && (
                 <form method="post" action="/feedback/submit" class="space-y-8">
                   <input type="hidden" name="type" value="church" />
-                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                  <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
                     <div class="px-4 py-6 sm:p-8">
                       <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                         <div class="sm:col-span-6">
@@ -261,7 +258,7 @@ feedbackRoutes.get('/', async (c) => {
                               id="churchId"
                               name="churchId"
                               required
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             >
                               <option value="">Select a church...</option>
                               {allChurches.map((ch) => (
@@ -283,7 +280,7 @@ feedbackRoutes.get('/', async (c) => {
                               name="content"
                               rows={6}
                               required
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                               placeholder="Provide information about this church..."
                             ></textarea>
                             <p class="mt-3 text-sm text-gray-600">
@@ -303,7 +300,7 @@ feedbackRoutes.get('/', async (c) => {
                       </button>
                       <button
                         type="submit"
-                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                       >
                         Submit Feedback
                       </button>
@@ -314,7 +311,7 @@ feedbackRoutes.get('/', async (c) => {
 
               {feedbackType === 'suggestion' && (
                 <form method="post" action="/feedback/suggest-church" class="space-y-8">
-                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                  <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
                     <div class="px-4 py-6 sm:p-8">
                       <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                         <div class="sm:col-span-4">
@@ -327,7 +324,7 @@ feedbackRoutes.get('/', async (c) => {
                               name="churchName"
                               id="churchName"
                               required
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             />
                           </div>
                         </div>
@@ -341,7 +338,7 @@ feedbackRoutes.get('/', async (c) => {
                               type="text"
                               name="address"
                               id="address"
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             />
                           </div>
                         </div>
@@ -355,7 +352,7 @@ feedbackRoutes.get('/', async (c) => {
                               type="url"
                               name="website"
                               id="website"
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             />
                           </div>
                         </div>
@@ -369,7 +366,7 @@ feedbackRoutes.get('/', async (c) => {
                               type="tel"
                               name="phone"
                               id="phone"
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             />
                           </div>
                         </div>
@@ -383,7 +380,7 @@ feedbackRoutes.get('/', async (c) => {
                               type="text"
                               name="denomination"
                               id="denomination"
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                             />
                           </div>
                         </div>
@@ -397,7 +394,7 @@ feedbackRoutes.get('/', async (c) => {
                               name="serviceTimes"
                               id="serviceTimes"
                               rows={3}
-                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                              class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                               placeholder="e.g., Sunday 10:30 AM, Wednesday 7:00 PM"
                             ></textarea>
                           </div>
@@ -414,7 +411,7 @@ feedbackRoutes.get('/', async (c) => {
                       </button>
                       <button
                         type="submit"
-                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                        class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                       >
                         Submit Church Suggestion
                       </button>
