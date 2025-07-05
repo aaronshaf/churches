@@ -52,7 +52,6 @@
     "wrangler": "^4.22.0"
   },
   "dependencies": {
-    "@libsql/client": "^0.15.9",
     "better-auth": "^1.2.12",
     "drizzle-orm": "^0.44.2",
     "hono": "^4.8.1",

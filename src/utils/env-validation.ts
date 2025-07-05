@@ -1,8 +1,6 @@
 // Environment variable validation utility
 
 export interface RequiredEnvVars {
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   GOOGLE_CLIENT_ID: string;
@@ -34,8 +32,6 @@ export class EnvironmentError extends Error {
 
 export function validateRequiredEnvVars(env: any): asserts env is EnvVars {
   const requiredVars: (keyof RequiredEnvVars)[] = [
-    'TURSO_DATABASE_URL',
-    'TURSO_AUTH_TOKEN',
     'BETTER_AUTH_SECRET',
     'BETTER_AUTH_URL',
     'GOOGLE_CLIENT_ID',
@@ -50,14 +46,9 @@ export function validateRequiredEnvVars(env: any): asserts env is EnvVars {
   }
 }
 
-export function validateDatabaseEnvVars(
-  env: any
-): asserts env is Pick<EnvVars, 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'> {
-  const requiredVars = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN'];
-  const missingVars = requiredVars.filter((varName) => !env[varName]);
-
-  if (missingVars.length > 0) {
-    throw new EnvironmentError(missingVars);
+export function validateDatabaseEnvVars(env: any): asserts env is { DB: D1Database } {
+  if (!env.DB) {
+    throw new EnvironmentError(['DB']);
   }
 }
 
@@ -65,22 +56,14 @@ export function validateAuthEnvVars(
   env: any
 ): asserts env is Pick<
   EnvVars,
-  | 'TURSO_DATABASE_URL'
-  | 'TURSO_AUTH_TOKEN'
-  | 'BETTER_AUTH_SECRET'
-  | 'BETTER_AUTH_URL'
-  | 'GOOGLE_CLIENT_ID'
-  | 'GOOGLE_CLIENT_SECRET'
-> {
-  const requiredVars = [
-    'TURSO_DATABASE_URL',
-    'TURSO_AUTH_TOKEN',
-    'BETTER_AUTH_SECRET',
-    'BETTER_AUTH_URL',
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-  ];
+  'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'
+> & { DB: D1Database } {
+  const requiredVars = ['BETTER_AUTH_SECRET', 'BETTER_AUTH_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
   const missingVars = requiredVars.filter((varName) => !env[varName]);
+
+  if (!env.DB) {
+    missingVars.push('DB');
+  }
 
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);

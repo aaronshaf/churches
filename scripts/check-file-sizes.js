@@ -3,8 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Maximum file size in bytes (start with current largest file size, then gradually reduce)
-const MAX_FILE_SIZE = 231155; // bytes (current size of src/index.tsx)
+// Maximum file size in bytes (gradually reducing from 231KB)
+const MAX_FILE_SIZE = 195584; // bytes (reduced from 231KB, current largest is ~191KB)
 
 // Get staged files
 const { execSync } = require('child_process');

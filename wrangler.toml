@@ -7,9 +7,18 @@ assets = { directory = "./public" }
 [observability]
 enabled = true
 
+# D1 Database Configuration
+# Create your D1 databases using:
+# wrangler d1 create your-database-name
+# Then update the database_id values below with the output from those commands
+
+[[d1_databases]]
+binding = "DB"
+database_name = "utahchurches"
+database_id = "YOUR_DATABASE_ID_HERE"
+preview_database_id = "YOUR_PREVIEW_DATABASE_ID_HERE"
+
 [vars]
 # Add your non-sensitive configuration here
 # For production, set the following secrets using wrangler:
-# wrangler secret put TURSO_DATABASE_URL
-# wrangler secret put TURSO_AUTH_TOKEN
 # wrangler secret put GOOGLE_MAPS_API_KEY
