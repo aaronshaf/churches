@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { createDbWithContext } from '../../db';
-import { comments, churchSuggestions, users } from '../../db/schema';
+import { comments, churchSuggestions } from '../../db/schema';
+import { users } from '../../db/auth-schema';
 import { requireAdminBetter } from '../../middleware/better-auth';
 import type { Bindings } from '../../types';
 import { desc, eq, gt, sql } from 'drizzle-orm';
