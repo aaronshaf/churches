@@ -38,6 +38,7 @@ import { dataExportRoutes } from './routes/data-export';
 import { apiRoutes } from './routes/api';
 import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
+import { adminFeedbackRoutes } from './routes/admin/feedback';
 import type { Bindings } from './types';
 import {
   deleteFromCloudflareImages,
@@ -293,6 +294,7 @@ app.route('/', dataExportRoutes);
 // Mount admin routes
 app.route('/admin/churches', adminChurchesRoutes);
 app.route('/admin/affiliations', adminAffiliationsRoutes);
+app.route('/admin/feedback', adminFeedbackRoutes);
 
 app.get('/', async (c) => {
   try {
@@ -2927,6 +2929,26 @@ app.get('/admin', requireAdminBetter, async (c) => {
     .limit(1)
     .all();
 
+  // Get recent comments/feedback
+  const recentComments = await db
+    .select({
+      id: comments.id,
+      content: comments.content,
+      userId: comments.userId,
+      churchId: comments.churchId,
+      createdAt: comments.createdAt,
+      type: comments.type,
+      churchName: churches.name,
+      churchPath: churches.path,
+      userName: users.username,
+    })
+    .from(comments)
+    .leftJoin(churches, eq(comments.churchId, churches.id))
+    .leftJoin(users, eq(comments.userId, users.id))
+    .orderBy(desc(comments.createdAt))
+    .limit(3)
+    .all();
+
   return c.html(
     <Layout
       title="Admin Dashboard"
@@ -3032,6 +3054,73 @@ app.get('/admin', requireAdminBetter, async (c) => {
                 >
                   View all churches needing review →
                 </a>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Feedback Section */}
+          {recentComments && recentComments.length > 0 && (
+            <div class="mb-8" data-testid="recent-feedback-section">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900">Recent Feedback</h2>
+                  <p class="text-sm text-gray-600 mt-1">Latest comments and feedback from users</p>
+                </div>
+                <a
+                  href="/admin/feedback"
+                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
+                >
+                  View all feedback →
+                </a>
+              </div>
+
+              <div class="space-y-3">
+                {recentComments.map((comment) => (
+                  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 overflow-hidden">
+                    <div class="p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center gap-2 mb-2">
+                            <span class="text-sm font-medium text-gray-900">
+                              {comment.userName || 'Anonymous'}
+                            </span>
+                            {comment.type === 'system' && (
+                              <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-gray-50 text-gray-700 ring-gray-600/20">
+                                System
+                              </span>
+                            )}
+                            <span class="text-sm text-gray-500">
+                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          {comment.churchName && (
+                            <p class="text-sm text-gray-600 mb-1">
+                              On: <a href={`/churches/${comment.churchPath}`} class="text-primary-600 hover:text-primary-500">
+                                {comment.churchName}
+                              </a>
+                            </p>
+                          )}
+                          <p class="text-sm text-gray-700 line-clamp-2">
+                            {comment.content}
+                          </p>
+                        </div>
+                        <a
+                          href={`/admin/feedback#comment-${comment.id}`}
+                          class="ml-4 text-gray-400 hover:text-gray-500"
+                        >
+                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -3273,6 +3362,40 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     Submissions ({submissionCount?.count || 0})
                   </h3>
                   <p class="mt-2 text-sm text-gray-500">Review church suggestions from users</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
+
+              <a
+                href="/admin/feedback"
+                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-feedback"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-3 bg-amber-50 text-amber-700 group-hover:bg-amber-100">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <div class="mt-4">
+                  <h3 class="text-lg font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Feedback
+                  </h3>
+                  <p class="mt-2 text-sm text-gray-500">View and manage user comments and feedback</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
