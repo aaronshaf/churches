@@ -1,4 +1,5 @@
 import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 
 export const churches = sqliteTable('churches', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -25,8 +26,8 @@ export const churches = sqliteTable('churches', {
   language: text('language').notNull().default('English'),
   imageId: text('image_id'),
   imageUrl: text('image_url'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const counties = sqliteTable('counties', {
@@ -35,8 +36,8 @@ export const counties = sqliteTable('counties', {
   path: text('path').unique(),
   description: text('description'),
   population: integer('population'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const affiliations = sqliteTable('affiliations', {
@@ -47,8 +48,8 @@ export const affiliations = sqliteTable('affiliations', {
   website: text('website'),
   privateNotes: text('private_notes'),
   publicNotes: text('public_notes'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const churchAffiliations = sqliteTable(
@@ -78,8 +79,8 @@ export const users = sqliteTable('users', {
   userType: text('user_type', { enum: ['admin', 'contributor'] })
     .notNull()
     .default('contributor'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -88,7 +89,7 @@ export const sessions = sqliteTable('sessions', {
     .notNull()
     .references(() => users.id),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 */
 
@@ -99,8 +100,8 @@ export const churchGatherings = sqliteTable('church_gatherings', {
     .references(() => churches.id),
   time: text('time').notNull(),
   notes: text('notes'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const pages = sqliteTable('pages', {
@@ -111,16 +112,16 @@ export const pages = sqliteTable('pages', {
   featuredImageId: text('featured_image_id'),
   featuredImageUrl: text('featured_image_url'),
   navbarOrder: integer('navbar_order'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   key: text('key').notNull().unique(),
   value: text('value'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const churchImages = sqliteTable('church_images', {
@@ -132,8 +133,8 @@ export const churchImages = sqliteTable('church_images', {
   imageUrl: text('image_url').notNull(),
   caption: text('caption'),
   displayOrder: integer('display_order').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const churchSuggestions = sqliteTable('church_suggestions', {
@@ -160,8 +161,8 @@ export const churchSuggestions = sqliteTable('church_suggestions', {
     .default('pending'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const comments = sqliteTable('comments', {
@@ -179,6 +180,6 @@ export const comments = sqliteTable('comments', {
     .default('pending'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });

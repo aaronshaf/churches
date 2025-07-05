@@ -4,7 +4,7 @@ import { pages } from '../db/schema';
 import type { Bindings } from '../types';
 
 export async function getNavbarPages(env: Bindings) {
-  const db = createDb(env);
+  const db = createDb(env.DB);
 
   const navbarPages = await db
     .select({

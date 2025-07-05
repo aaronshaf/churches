@@ -5,8 +5,8 @@ import type { Bindings } from '../types';
 
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   try {
-    const db = createDb(env);
-    const faviconUrlSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
+    const db = createDb(env.DB);
+    const faviconUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'favicon_url')).get();
 
     return faviconUrlSetting?.value || undefined;
   } catch (error) {
@@ -17,8 +17,8 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
 
 export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   try {
-    const db = createDb(env);
-    const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
+    const db = createDb(env.DB);
+    const logoUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'logo_url')).get();
 
     return logoUrlSetting?.value || undefined;
   } catch (error) {
@@ -29,8 +29,8 @@ export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 
 export async function getSiteTitle(env: Bindings): Promise<string> {
   try {
-    const db = createDb(env);
-    const siteTitleSetting = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
+    const db = createDb(env.DB);
+    const siteTitleSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_title')).get();
 
     return siteTitleSetting?.value || 'Churches';
   } catch (error) {
@@ -41,13 +41,13 @@ export async function getSiteTitle(env: Bindings): Promise<string> {
 
 export async function getSiteSettings(env: Bindings) {
   try {
-    const db = createDb(env);
+    const db = createDb(env.DB);
 
     const [siteTitle, tagline, frontPageTitle, faviconUrl] = await Promise.all([
-      db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
-      db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
-      db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
-      db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_title')).get(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'tagline')).get(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'front_page_title')).get(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'favicon_url')).get(),
     ]);
 
     return {
@@ -69,12 +69,12 @@ export async function getSiteSettings(env: Bindings) {
 
 export async function getImagePrefix(env: Bindings): Promise<string> {
   try {
-    const db = createDb(env);
-    const imagePrefixSetting = await db.select().from(settings).where(eq(settings.key, 'image_prefix')).get();
+    const db = createDb(env.DB);
+    const imagePrefixSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'image_prefix')).get();
 
     // If no setting exists, derive from site domain or use default
     if (!imagePrefixSetting?.value) {
-      const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+      const domainSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get();
       if (domainSetting?.value) {
         // Extract domain name without TLD (e.g., "utahchurches" from "utahchurches.org")
         const domainParts = domainSetting.value.split('.');

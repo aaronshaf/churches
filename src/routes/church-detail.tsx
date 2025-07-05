@@ -58,7 +58,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         path: churches.path,
         status: churches.status,
         gatheringAddress: churches.gatheringAddress,
-        mailingAddress: churches.mailingAddress,
         latitude: churches.latitude,
         longitude: churches.longitude,
         phone: churches.phone,
@@ -71,13 +70,10 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         statementOfFaith: churches.statementOfFaith,
         language: churches.language,
         publicNotes: churches.publicNotes,
-        privateNotes: churches.privateNotes,
         lastUpdated: churches.lastUpdated,
         countyId: churches.countyId,
-        countyName: counties.name,
       })
       .from(churches)
-      .leftJoin(counties, eq(churches.countyId, counties.id))
       .where(eq(churches.path, churchPath))
       .get();
 
@@ -90,12 +86,23 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       );
     }
 
+    // Get county name separately if church has a countyId
+    let countyName: string | null = null;
+    if (church.countyId) {
+      const county = await db
+        .select({ name: counties.name })
+        .from(counties)
+        .where(eq(counties.id, church.countyId))
+        .get();
+      countyName = county?.name || null;
+    }
+
     // Get church gatherings (services)
     const churchGatheringsList = await db
       .select()
       .from(churchGatherings)
       .where(eq(churchGatherings.churchId, church.id))
-      .orderBy(churchGatherings.order)
+      .orderBy(churchGatherings.id)
       .all();
 
     // Get church affiliations
@@ -105,12 +112,11 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         name: affiliations.name,
         website: affiliations.website,
         publicNotes: affiliations.publicNotes,
-        order: churchAffiliations.order,
       })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
       .where(eq(churchAffiliations.churchId, church.id))
-      .orderBy(churchAffiliations.order)
+      .orderBy(affiliations.name)
       .all();
 
     // Get church images
@@ -118,7 +124,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .select()
       .from(churchImages)
       .where(eq(churchImages.churchId, church.id))
-      .orderBy(churchImages.order)
+      .orderBy(churchImages.displayOrder)
       .all();
 
     // Get comments for this church
@@ -146,8 +152,8 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     }));
 
     // Get site settings for JSON-LD
-    const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
-    const siteRegionSetting = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
+    const siteDomainSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get();
+    const siteRegionSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_region')).get();
 
     const siteDomain = siteDomainSetting?.value || 'utahchurches.org';
     const siteRegion = siteRegionSetting?.value || 'UT';
@@ -178,7 +184,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           ? {
               '@type': 'PostalAddress',
               streetAddress: church.gatheringAddress,
-              addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
+              addressLocality: countyName ? countyName.replace(' County', '') : undefined,
               addressRegion: siteRegion,
               addressCountry: 'US',
             }
@@ -201,7 +207,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         address: {
           '@type': 'PostalAddress',
           streetAddress: church.gatheringAddress,
-          addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
+          addressLocality: countyName ? countyName.replace(' County', '') : undefined,
           addressRegion: siteRegion,
           addressCountry: 'US',
           // postalCode: church.zip || undefined, // Not in schema
