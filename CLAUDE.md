@@ -218,7 +218,6 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - Hover states and transitions for interactivity
 - **Hover-intent prefetching**: 200ms delay before prefetching pages on link hover
 - **Optimistic UI**: Immediate visual feedback for delete operations
-- **Progressive disclosure**: Subtle feedback sections for non-authenticated users
 
 ## Performance Optimizations
 
@@ -243,7 +242,6 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - **Compact Layout**: Reduced spacing in change log displays
 
 ### User Experience Improvements
-- **Progressive Disclosure**: Feedback forms are subtle for non-authenticated users
 - **Contextual Actions**: Edit links appear in footer based on user permissions
 - **Consistent Iconography**: Activity uses lightning bolt, changes use "Change" instead of "Change Log"
 

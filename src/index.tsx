@@ -31,6 +31,7 @@ import { adminActivityRoutes } from './routes/admin/activity';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
 import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
+import { adminNotificationsRoutes } from './routes/admin/notifications';
 import { adminUsersApp } from './routes/admin-users';
 import { apiRoutes } from './routes/api';
 import { betterAuthApp } from './routes/better-auth';
@@ -288,6 +289,7 @@ app.route('/admin/churches', adminChurchesRoutes);
 app.route('/admin/affiliations', adminAffiliationsRoutes);
 app.route('/admin/feedback', adminFeedbackRoutes);
 app.route('/admin/activity', adminActivityRoutes);
+app.route('/api/admin/notifications', adminNotificationsRoutes);
 app.route('/feedback', feedbackRoutes);
 
 app.get('/', async (c) => {
@@ -3126,6 +3128,35 @@ app.get('/admin', requireAdminBetter, async (c) => {
             <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
           </div>
 
+          {/* Notifications Section */}
+          <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Web Notifications</h3>
+                  <p class="text-sm text-gray-600 mb-4">
+                    Get notified when new feedback is submitted or churches are suggested for review.
+                  </p>
+                  <div id="notification-status" class="flex items-center gap-3">
+                    <button
+                      id="enable-notifications"
+                      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      onclick="setupNotifications()"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12v-1a9 9 0 10-18 0v1M5.5 17h13a2.5 2.5 0 000-5h-13a2.5 2.5 0 000 5z"/>
+                      </svg>
+                      Enable Notifications
+                    </button>
+                    <span id="notification-info" class="text-sm text-gray-500">
+                      Browser notifications are not enabled
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* To Review Section */}
           {churchesForReview && churchesForReview.length > 0 && (
             <div class="mb-8" data-testid="to-review-section">
@@ -3784,6 +3815,100 @@ app.get('/admin', requireAdminBetter, async (c) => {
               
               return true;
             }
+          `,
+        }}
+      />
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            // Web Notifications Setup
+            async function setupNotifications() {
+              const button = document.getElementById('enable-notifications');
+              const info = document.getElementById('notification-info');
+              
+              if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+                info.textContent = 'Notifications not supported in this browser';
+                button.disabled = true;
+                return;
+              }
+              
+              try {
+                // Request notification permission
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                  // Register service worker
+                  const registration = await navigator.serviceWorker.register('/sw.js');
+                  
+                  // Wait for service worker to be ready
+                  await navigator.serviceWorker.ready;
+                  
+                  // Send initialization message to service worker
+                  if (registration.active) {
+                    registration.active.postMessage({ type: 'INIT_ADMIN_CHECKS' });
+                  }
+                  
+                  button.textContent = 'Notifications Enabled';
+                  button.disabled = true;
+                  button.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+                  button.classList.add('bg-green-600');
+                  info.textContent = 'You will be notified of new feedback and submissions';
+                  
+                  // Subscribe for push notifications (optional enhancement)
+                  try {
+                    const subscription = await registration.pushManager.subscribe({
+                      userVisibleOnly: true,
+                      applicationServerKey: null // Would need VAPID keys for push notifications
+                    });
+                    
+                    // Send subscription to server
+                    await fetch('/api/admin/notifications/subscribe', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(subscription)
+                    });
+                  } catch (pushError) {
+                    console.log('Push notifications not available, using service worker polling');
+                  }
+                  
+                } else if (permission === 'denied') {
+                  info.textContent = 'Notifications blocked. Enable in browser settings.';
+                  button.disabled = true;
+                } else {
+                  info.textContent = 'Notification permission required';
+                }
+              } catch (error) {
+                console.error('Error setting up notifications:', error);
+                info.textContent = 'Error setting up notifications';
+              }
+            }
+            
+            // Check current notification status on page load
+            document.addEventListener('DOMContentLoaded', async function() {
+              const button = document.getElementById('enable-notifications');
+              const info = document.getElementById('notification-info');
+              
+              if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+                info.textContent = 'Notifications not supported';
+                button.disabled = true;
+                return;
+              }
+              
+              if (Notification.permission === 'granted') {
+                const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+                if (registration) {
+                  button.textContent = 'Notifications Enabled';
+                  button.disabled = true;
+                  button.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+                  button.classList.add('bg-green-600');
+                  info.textContent = 'Notifications are active';
+                }
+              } else if (Notification.permission === 'denied') {
+                info.textContent = 'Notifications blocked. Enable in browser settings.';
+                button.disabled = true;
+              }
+            });
           `,
         }}
       />
