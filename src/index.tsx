@@ -1849,17 +1849,24 @@ app.get('/churches/:path', async (c) => {
                 )}
 
                 {/* Comments Section */}
-                {user && (
-                  <div id="comments" class="mt-6 pt-6 border-t border-gray-200" data-testid="comments-section">
-                    <ChurchComments
-                      churchId={church.id}
-                      churchName={church.name}
-                      churchPath={church.path || ''}
-                      comments={processedComments}
-                      user={user}
-                    />
-                  </div>
-                )}
+                {(() => {
+                  if (!user) return null;
+                  const canSeeAllComments = user && (user.role === 'admin' || user.role === 'contributor');
+                  const visibleComments = canSeeAllComments ? processedComments : processedComments.filter((comment) => comment.isOwn);
+                  if (visibleComments.length === 0) return null;
+                  
+                  return (
+                    <div id="comments" class="mt-6 pt-6 border-t border-gray-200" data-testid="comments-section">
+                      <ChurchComments
+                        churchId={church.id}
+                        churchName={church.name}
+                        churchPath={church.path || ''}
+                        comments={processedComments}
+                        user={user}
+                      />
+                    </div>
+                  );
+                })()}
 
                 {/* Feedback Section */}
                 <div class="mt-8 border-t pt-8">
