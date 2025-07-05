@@ -1866,6 +1866,70 @@ app.get('/churches/:path', async (c) => {
                     />
                   </div>
                 )}
+
+                {/* Feedback Section */}
+                <div class="mt-8 border-t pt-8">
+                  <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
+                    <div class="px-4 py-6 sm:p-8">
+                      <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4">Submit Feedback</h3>
+                      <p class="text-sm text-gray-600 mb-6">
+                        Help us maintain accurate information about {church.name}. Your feedback is important to us.
+                      </p>
+                      
+                      {!user ? (
+                        <div class="text-center py-6">
+                          <div class="bg-gray-50 rounded-lg p-6">
+                            <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <p class="text-sm text-gray-600 mb-4">Please sign in to submit feedback</p>
+                            <a 
+                              href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
+                              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                            >
+                              Sign In
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <form method="post" action="/feedback/submit">
+                          <input type="hidden" name="type" value="church" />
+                          <input type="hidden" name="churchId" value={church.id} />
+                          
+                          <div class="space-y-4">
+                            <div>
+                              <label for="feedback-content" class="block text-sm font-medium leading-6 text-gray-900">
+                                Your feedback <span class="text-red-500">*</span>
+                              </label>
+                              <div class="mt-2">
+                                <textarea
+                                  id="feedback-content"
+                                  name="content"
+                                  rows={4}
+                                  required
+                                  class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                                  placeholder="Provide information about this church..."
+                                ></textarea>
+                              </div>
+                              <p class="mt-2 text-sm text-gray-500">
+                                Share corrections, updates, or additional information about this church.
+                              </p>
+                            </div>
+                            
+                            <div class="flex items-center justify-end gap-x-3">
+                              <button
+                                type="submit"
+                                class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                              >
+                                Submit Feedback
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1934,6 +1998,60 @@ app.get('/churches/:path', async (c) => {
                 closeImageModal();
               }
             });
+            
+            // Check for feedback status in URL and show notification
+            document.addEventListener('DOMContentLoaded', function() {
+              const urlParams = new URLSearchParams(window.location.search);
+              const feedbackStatus = urlParams.get('feedback');
+              
+              if (feedbackStatus === 'success') {
+                showNotification('Feedback submitted successfully! Thank you for helping us improve.', 'success');
+                // Clean up URL
+                window.history.replaceState({}, '', window.location.pathname);
+              } else if (feedbackStatus === 'error') {
+                showNotification('Sorry, there was an error submitting your feedback. Please try again.', 'error');
+                // Clean up URL
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            });
+            
+            function showNotification(message, type) {
+              const notification = document.createElement('div');
+              notification.className = \`fixed top-4 right-4 z-50 p-4 rounded-md max-w-sm \${
+                type === 'success' 
+                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }\`;
+              notification.innerHTML = \`
+                <div class="flex items-start">
+                  <div class="flex-shrink-0">
+                    \${type === 'success' 
+                      ? '<svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+                      : '<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+                    }
+                  </div>
+                  <div class="ml-3">
+                    <p class="text-sm font-medium">\${message}</p>
+                  </div>
+                  <div class="ml-auto pl-3">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              \`;
+              
+              document.body.appendChild(notification);
+              
+              // Auto-remove after 5 seconds
+              setTimeout(() => {
+                if (notification.parentNode) {
+                  notification.remove();
+                }
+              }, 5000);
+            }
           `,
         }}
       />

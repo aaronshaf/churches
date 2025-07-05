@@ -482,9 +482,36 @@ feedbackRoutes.post('/submit', async (c) => {
       })
       .run();
 
+    // If this is church feedback with a churchId, redirect back to the church page
+    if (feedbackType === 'church' && churchId) {
+      const church = await db
+        .select({ path: churches.path })
+        .from(churches)
+        .where(eq(churches.id, churchId))
+        .get();
+      
+      if (church?.path) {
+        return c.redirect(`/churches/${church.path}?feedback=success`);
+      }
+    }
+
     return c.redirect('/feedback?success=true');
   } catch (error) {
     console.error('Error submitting feedback:', error);
+    
+    // If this is church feedback with a churchId, redirect back to the church page with error
+    if (feedbackType === 'church' && churchId) {
+      const church = await db
+        .select({ path: churches.path })
+        .from(churches)
+        .where(eq(churches.id, churchId))
+        .get();
+      
+      if (church?.path) {
+        return c.redirect(`/churches/${church.path}?feedback=error`);
+      }
+    }
+    
     return c.redirect('/feedback?error=submission-failed');
   }
 });
