@@ -2048,6 +2048,7 @@ app.get('/churches/:path', async (c) => {
           `,
         }}
       />
+      </div>
     </Layout>
   );
 });
