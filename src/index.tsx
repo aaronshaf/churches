@@ -1863,29 +1863,29 @@ app.get('/churches/:path', async (c) => {
 
                 {/* Feedback Section */}
                 <div class="mt-8 border-t pt-8">
-                  <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
-                    <div class="px-4 py-6 sm:p-8">
-                      <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4">Submit Feedback</h3>
-                      <p class="text-sm text-gray-600 mb-6">
-                        Help us maintain accurate information about {church.name}. Your feedback is important to us.
+                  {!user ? (
+                    <div class="text-center py-4">
+                      <p class="text-sm text-gray-500 mb-3">
+                        Have feedback about {church.name}?
                       </p>
-                      
-                      {!user ? (
-                        <div class="text-center py-6">
-                          <div class="bg-gray-50 rounded-lg p-6">
-                            <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                            <p class="text-sm text-gray-600 mb-4">Please sign in to submit feedback</p>
-                            <a 
-                              href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
-                              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                              Sign In
-                            </a>
-                          </div>
-                        </div>
-                      ) : (
+                      <a 
+                        href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
+                        class="inline-flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                      >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Sign in to submit feedback
+                      </a>
+                    </div>
+                  ) : (
+                    <div class="bg-white ring-1 ring-gray-900/5 sm:rounded-xl">
+                      <div class="px-4 py-6 sm:p-8">
+                        <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4">Submit Feedback</h3>
+                        <p class="text-sm text-gray-600 mb-6">
+                          Help us maintain accurate information about {church.name}. Your feedback is important to us.
+                        </p>
+                        
                         <form method="post" action="/feedback/submit">
                           <input type="hidden" name="type" value="church" />
                           <input type="hidden" name="churchId" value={church.id} />
@@ -1920,9 +1920,10 @@ app.get('/churches/:path', async (c) => {
                             </div>
                           </div>
                         </form>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
                 </div>
               </div>
             </div>
