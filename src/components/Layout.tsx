@@ -187,7 +187,7 @@ export const Layout: FC<LayoutProps> = ({
           dangerouslySetInnerHTML={{
             __html: `
             let preloadTimeout;
-            let preloadLink;
+            let prefetchedUrls = new Set();
             
             function preloadAfterDelay(url, delay) {
               if (preloadTimeout) {
@@ -195,15 +195,13 @@ export const Layout: FC<LayoutProps> = ({
               }
               
               preloadTimeout = setTimeout(() => {
-                if (preloadLink) {
-                  preloadLink.remove();
+                if (!prefetchedUrls.has(url)) {
+                  const link = document.createElement('link');
+                  link.rel = 'prefetch';
+                  link.href = url;
+                  document.head.appendChild(link);
+                  prefetchedUrls.add(url);
                 }
-                
-                preloadLink = document.createElement('link');
-                preloadLink.rel = 'preload';
-                preloadLink.href = url;
-                preloadLink.as = 'document';
-                document.head.appendChild(preloadLink);
               }, delay);
             }
             
@@ -211,11 +209,6 @@ export const Layout: FC<LayoutProps> = ({
               if (preloadTimeout) {
                 clearTimeout(preloadTimeout);
                 preloadTimeout = null;
-              }
-              
-              if (preloadLink) {
-                preloadLink.remove();
-                preloadLink = null;
               }
             }
             
