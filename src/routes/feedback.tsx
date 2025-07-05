@@ -121,10 +121,10 @@ feedbackRoutes.get('/', async (c) => {
                 <div class="grid gap-4 sm:grid-cols-3">
                   <button
                     onclick={`updateFeedbackType('general'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all ${
                       feedbackType === 'general'
-                        ? 'border-primary-500 ring-2 ring-primary-200'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
                     <div
@@ -148,10 +148,10 @@ feedbackRoutes.get('/', async (c) => {
 
                   <button
                     onclick={`updateFeedbackType('church'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all ${
                       feedbackType === 'church'
-                        ? 'border-primary-500 ring-2 ring-primary-200'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
                     <div
@@ -175,10 +175,10 @@ feedbackRoutes.get('/', async (c) => {
 
                   <button
                     onclick={`updateFeedbackType('suggestion'${churchId ? `, '${churchId}'` : ''})`}
-                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all bg-white ${
+                    class={`relative rounded-lg border-2 p-6 text-left hover:border-gray-400 transition-all ${
                       feedbackType === 'suggestion'
-                        ? 'border-primary-500 ring-2 ring-primary-200'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
                     <div
