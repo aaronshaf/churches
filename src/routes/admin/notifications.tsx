@@ -9,7 +9,7 @@ type Variables = {
   betterUser: any;
 };
 
-export const adminNotificationsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const adminNotificationsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Get new comments for admin notifications (requires admin auth)
 adminNotificationsRoutes.get('/comments', requireAdminBetter, async (c) => {
