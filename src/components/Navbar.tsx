@@ -21,8 +21,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               class="flex items-center"
               aria-label="Utah Churches - Home"
               data-testid="logo-link"
-              onmouseover="prefetchAfterDelay('/', 200)"
-              onmouseout="cancelPrefetch()"
+              onmouseover="preloadAfterDelay('/', 200)"
+              onmouseout="cancelPreload()"
             >
               {logoUrl ? (
                 <img src={logoUrl} alt="Utah Churches" class="h-10 sm:h-12 w-auto" />
@@ -44,8 +44,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
                 aria-current={currentPath === '/' ? 'page' : undefined}
                 data-testid="nav-churches"
-                onmouseover="prefetchAfterDelay('/', 200)"
-                onmouseout="cancelPrefetch()"
+                onmouseover="preloadAfterDelay('/', 200)"
+                onmouseout="cancelPreload()"
               >
                 Churches
               </a>
@@ -59,8 +59,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
                   aria-current={currentPath === '/map' ? 'page' : undefined}
                   data-testid="nav-map"
-                  onmouseover="prefetchAfterDelay('/map', 200)"
-                  onmouseout="cancelPrefetch()"
+                  onmouseover="preloadAfterDelay('/map', 200)"
+                  onmouseout="cancelPreload()"
                 >
                   Map
                 </a>
@@ -76,8 +76,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   currentPath === '/networks' || currentPath?.startsWith('/admin/affiliations') ? 'page' : undefined
                 }
                 data-testid="nav-networks"
-                onmouseover="prefetchAfterDelay('/networks', 200)"
-                onmouseout="cancelPrefetch()"
+                onmouseover="preloadAfterDelay('/networks', 200)"
+                onmouseout="cancelPreload()"
               >
                 Networks
               </a>
@@ -93,8 +93,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                     } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
                     data-testid={`nav-page-${page.path}`}
-                    onmouseover={`prefetchAfterDelay('/${page.path}', 200)`}
-                    onmouseout="cancelPrefetch()"
+                    onmouseover={`preloadAfterDelay('/${page.path}', 200)`}
+                    onmouseout="cancelPreload()"
                   >
                     {page.title}
                   </a>
@@ -187,5 +187,43 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
         </div>
       </div>
     </nav>
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+        let preloadTimeout;
+        let preloadLink;
+        
+        function preloadAfterDelay(url, delay) {
+          if (preloadTimeout) {
+            clearTimeout(preloadTimeout);
+          }
+          
+          preloadTimeout = setTimeout(() => {
+            if (preloadLink) {
+              preloadLink.remove();
+            }
+            
+            preloadLink = document.createElement('link');
+            preloadLink.rel = 'preload';
+            preloadLink.href = url;
+            preloadLink.as = 'document';
+            document.head.appendChild(preloadLink);
+          }, delay);
+        }
+        
+        function cancelPreload() {
+          if (preloadTimeout) {
+            clearTimeout(preloadTimeout);
+            preloadTimeout = null;
+          }
+          
+          if (preloadLink) {
+            preloadLink.remove();
+            preloadLink = null;
+          }
+        }
+        `,
+      }}
+    ></script>
   );
 };
