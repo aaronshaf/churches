@@ -36,6 +36,11 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
   const canSeeAllComments = user && (user.role === 'admin' || user.role === 'contributor');
   const visibleComments = canSeeAllComments ? comments : comments.filter((comment) => comment.isOwn);
 
+  // Don't show anything if there are no visible comments
+  if (visibleComments.length === 0) {
+    return null;
+  }
+
   return (
     <div class="space-y-6" data-testid="church-comments">
       {/* Header */}
