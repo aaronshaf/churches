@@ -26,27 +26,30 @@ adminFeedbackRoutes.get('/', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
 
   // Get all comments with related data
-  const allComments = await db
-    .select({
-      id: comments.id,
-      content: comments.content,
-      userId: comments.userId,
-      churchId: comments.churchId,
-      createdAt: comments.createdAt,
-      type: comments.type,
-      isPublic: comments.isPublic,
-      status: comments.status,
-      metadata: comments.metadata,
-      churchName: churches.name,
-      churchPath: churches.path,
-      userName: users.username,
-      userEmail: users.email,
-    })
+  const allCommentsRaw = await db
+    .select()
     .from(comments)
     .leftJoin(churches, eq(comments.churchId, churches.id))
     .leftJoin(users, eq(comments.userId, users.id))
     .orderBy(desc(comments.createdAt))
     .all();
+
+  // Transform the data to a cleaner format
+  const allComments = allCommentsRaw.map(row => ({
+    id: row.comments.id,
+    content: row.comments.content,
+    userId: row.comments.userId,
+    churchId: row.comments.churchId,
+    createdAt: row.comments.createdAt,
+    type: row.comments.type,
+    isPublic: row.comments.isPublic,
+    status: row.comments.status,
+    metadata: row.comments.metadata,
+    churchName: row.churches?.name || null,
+    churchPath: row.churches?.path || null,
+    userName: row.users?.username || null,
+    userEmail: row.users?.email || null,
+  }));
 
   return c.html(
     <Layout

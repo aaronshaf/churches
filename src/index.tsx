@@ -2930,24 +2930,27 @@ app.get('/admin', requireAdminBetter, async (c) => {
     .all();
 
   // Get recent comments/feedback
-  const recentComments = await db
-    .select({
-      id: comments.id,
-      content: comments.content,
-      userId: comments.userId,
-      churchId: comments.churchId,
-      createdAt: comments.createdAt,
-      type: comments.type,
-      churchName: churches.name,
-      churchPath: churches.path,
-      userName: users.username,
-    })
+  const recentCommentsRaw = await db
+    .select()
     .from(comments)
     .leftJoin(churches, eq(comments.churchId, churches.id))
     .leftJoin(users, eq(comments.userId, users.id))
     .orderBy(desc(comments.createdAt))
     .limit(3)
     .all();
+
+  // Transform the data to a cleaner format
+  const recentComments = recentCommentsRaw.map(row => ({
+    id: row.comments.id,
+    content: row.comments.content,
+    userId: row.comments.userId,
+    churchId: row.comments.churchId,
+    createdAt: row.comments.createdAt,
+    type: row.comments.type,
+    churchName: row.churches?.name || null,
+    churchPath: row.churches?.path || null,
+    userName: row.users?.username || null,
+  }));
 
   return c.html(
     <Layout
