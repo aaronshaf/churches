@@ -179,17 +179,6 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
             )}
           </div>
 
-          {/* Arrow icon */}
-          {church.path && (
-            <svg
-              class="h-5 w-5 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          )}
         </div>
       </div>
 
