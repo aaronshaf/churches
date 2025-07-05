@@ -186,26 +186,36 @@ export const Layout: FC<LayoutProps> = ({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-            let prefetchTimer;
-            let prefetchedUrls = new Set();
+            let preloadTimeout;
+            let preloadLink;
             
-            function prefetchAfterDelay(url, delay) {
-              cancelPrefetch();
-              prefetchTimer = setTimeout(() => {
-                if (!prefetchedUrls.has(url)) {
-                  const link = document.createElement('link');
-                  link.rel = 'prefetch';
-                  link.href = url;
-                  document.head.appendChild(link);
-                  prefetchedUrls.add(url);
+            function preloadAfterDelay(url, delay) {
+              if (preloadTimeout) {
+                clearTimeout(preloadTimeout);
+              }
+              
+              preloadTimeout = setTimeout(() => {
+                if (preloadLink) {
+                  preloadLink.remove();
                 }
+                
+                preloadLink = document.createElement('link');
+                preloadLink.rel = 'preload';
+                preloadLink.href = url;
+                preloadLink.as = 'document';
+                document.head.appendChild(preloadLink);
               }, delay);
             }
             
-            function cancelPrefetch() {
-              if (prefetchTimer) {
-                clearTimeout(prefetchTimer);
-                prefetchTimer = null;
+            function cancelPreload() {
+              if (preloadTimeout) {
+                clearTimeout(preloadTimeout);
+                preloadTimeout = null;
+              }
+              
+              if (preloadLink) {
+                preloadLink.remove();
+                preloadLink = null;
               }
             }
             

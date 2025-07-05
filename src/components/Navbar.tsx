@@ -187,43 +187,5 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
         </div>
       </div>
     </nav>
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `
-        let preloadTimeout;
-        let preloadLink;
-        
-        function preloadAfterDelay(url, delay) {
-          if (preloadTimeout) {
-            clearTimeout(preloadTimeout);
-          }
-          
-          preloadTimeout = setTimeout(() => {
-            if (preloadLink) {
-              preloadLink.remove();
-            }
-            
-            preloadLink = document.createElement('link');
-            preloadLink.rel = 'preload';
-            preloadLink.href = url;
-            preloadLink.as = 'document';
-            document.head.appendChild(preloadLink);
-          }, delay);
-        }
-        
-        function cancelPreload() {
-          if (preloadTimeout) {
-            clearTimeout(preloadTimeout);
-            preloadTimeout = null;
-          }
-          
-          if (preloadLink) {
-            preloadLink.remove();
-            preloadLink = null;
-          }
-        }
-        `,
-      }}
-    ></script>
   );
 };
