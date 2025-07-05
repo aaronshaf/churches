@@ -3657,15 +3657,15 @@ app.get('/admin', requireAdminBetter, async (c) => {
                   <div key={activity.id} class="group">
                     <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
                       <div class="flex items-start space-x-3">
-                        {/* Avatar */}
+                        {/* Activity Icon */}
                         <div class="flex-shrink-0">
-                          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"
                               />
                             </svg>
                           </div>
@@ -3676,20 +3676,31 @@ app.get('/admin', requireAdminBetter, async (c) => {
                           <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center space-x-2">
                               <p class="text-sm font-medium text-gray-900">{activity.userName || 'System'}</p>
-                              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
+                              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                     stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"
                                   />
                                 </svg>
-                                Change Log
+                                Change
                               </span>
                             </div>
                             <div class="flex items-center space-x-3">
-                              <time class="text-xs text-gray-500">
+                              <time 
+                                class="text-xs text-gray-500 cursor-help" 
+                                title={new Date(activity.createdAt).toLocaleString('en-US', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit'
+                                })}
+                              >
                                 {new Date(activity.createdAt).toLocaleDateString('en-US', {
                                   month: 'short',
                                   day: 'numeric',
@@ -3703,7 +3714,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
                                 <form method="post" action={`/api/comments/${activity.id}/delete`} class="inline">
                                   <button
                                     type="submit"
-                                    onclick="return confirm('Are you sure you want to delete this activity log?')"
+                                    onclick="return handleActivityDelete(this, 'Are you sure you want to delete this activity log?')"
                                     class="text-xs text-red-600 hover:text-red-800 focus:outline-none transition-colors font-medium"
                                     title="Delete activity log"
                                   >
@@ -3726,11 +3737,11 @@ app.get('/admin', requireAdminBetter, async (c) => {
                           )}
                           <div class="prose prose-sm max-w-none">
                             <div
-                              class="text-gray-700 text-sm leading-relaxed"
+                              class="text-gray-700 text-sm"
                               dangerouslySetInnerHTML={{
                                 __html: activity.content
                                   .replace(/```yaml\n([\s\S]*?)```/g, (_match, p1) => {
-                                    return `<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">${p1.trim()}</pre>`;
+                                    return `<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-1 text-xs font-mono">${p1.trim()}</pre>`;
                                   })
                                   .replace(/\n/g, '<br>'),
                               }}
@@ -3746,6 +3757,36 @@ app.get('/admin', requireAdminBetter, async (c) => {
           )}
         </div>
       </div>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            function handleActivityDelete(button, message) {
+              if (!confirm(message)) {
+                return false;
+              }
+              
+              // Find the activity item container
+              const activityItem = button.closest('.group');
+              if (activityItem) {
+                // Add visual feedback
+                activityItem.style.opacity = '0.5';
+                activityItem.style.pointerEvents = 'none';
+                button.innerHTML = 'Deleting...';
+                button.disabled = true;
+                
+                // Add a subtle red border to indicate deletion
+                const card = activityItem.querySelector('.bg-white');
+                if (card) {
+                  card.classList.add('border-red-200', 'bg-red-50');
+                }
+              }
+              
+              return true;
+            }
+          `,
+        }}
+      />
     </Layout>
   );
 });

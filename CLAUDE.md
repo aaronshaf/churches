@@ -216,6 +216,36 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - Consistent color scheme via Tailwind config
 - Loading states with delays to prevent flash
 - Hover states and transitions for interactivity
+- **Hover-intent prefetching**: 200ms delay before prefetching pages on link hover
+- **Optimistic UI**: Immediate visual feedback for delete operations
+- **Progressive disclosure**: Subtle feedback sections for non-authenticated users
+
+## Performance Optimizations
+
+### Hover-Intent Prefetching
+- **Implementation**: JavaScript functions in Layout component
+- **Trigger**: 200ms hover delay on navigation links
+- **Scope**: Navbar, county cards, church cards, network pages
+- **Method**: Uses `rel="prefetch"` for optimal browser caching
+- **Cleanup**: Automatic timeout cancellation on mouse leave
+
+### Optimistic UI Updates
+- **Delete Operations**: Immediate visual feedback before server response
+- **Visual States**: Opacity reduction, disabled state, loading text
+- **Error Handling**: Form submission continues normally for server validation
+
+## Admin Panel Features
+
+### Activity Management
+- **Date Tooltips**: Hover over timestamps to see full date/time
+- **Visual Feedback**: Activity changes use lightning bolt icon instead of checkmark
+- **Optimistic Deletes**: Immediate UI feedback when deleting activity items
+- **Compact Layout**: Reduced spacing in change log displays
+
+### User Experience Improvements
+- **Progressive Disclosure**: Feedback forms are subtle for non-authenticated users
+- **Contextual Actions**: Edit links appear in footer based on user permissions
+- **Consistent Iconography**: Activity uses lightning bolt, changes use "Change" instead of "Change Log"
 
 ## Development Best Practices
 
