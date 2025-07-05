@@ -45,7 +45,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
             {/* Church Name */}
             <h3 class="text-lg font-semibold text-gray-900 mb-3">
               {church.path ? (
-                <a href={`/churches/${church.path}`} class="hover:text-primary-600 transition-colors">
+                <a href={`/churches/${church.path}`} class="hover:text-primary-600 hover:underline transition-colors">
                   {church.name}
                 </a>
               ) : (
