@@ -58,32 +58,6 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
         )}
       </div>
 
-      {/* Add Comment Form */}
-      {user && (
-        <div
-          class="bg-white border border-gray-200 rounded-xl px-6 pt-6 pb-4 shadow-sm"
-          data-testid="comment-form-container"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <p class="text-sm text-gray-600">Have feedback about this church?</p>
-            <a
-              href={`/feedback?type=church&churchId=${churchId}`}
-              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-lg transition-colors"
-              data-testid="submit-feedback-link"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              Submit Feedback
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* Comments List */}
       {visibleComments.length > 0 && (
