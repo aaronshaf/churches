@@ -494,6 +494,8 @@ app.get('/', async (c) => {
                           <a 
                             href={`/counties/${county.path || county.id}`}
                             class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                            onmouseover={`preloadAfterDelay('/counties/${county.path || county.id}', 200)`}
+                            onmouseout="cancelPreload()"
                           >
                             {county.name}
                           </a>
