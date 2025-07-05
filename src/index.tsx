@@ -1872,9 +1872,6 @@ app.get('/churches/:path', async (c) => {
                 <div class="mt-8 border-t pt-8">
                   {!user ? (
                     <div class="text-center py-4">
-                      <p class="text-sm text-gray-500 mb-3">
-                        Have feedback about {church.name}?
-                      </p>
                       <a 
                         href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
                         class="inline-flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
