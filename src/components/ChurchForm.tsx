@@ -651,7 +651,10 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               data-testid="btn-submit"
               class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              <span id="button-text">{isNew ? 'Create Church' : 'Save Changes'}</span>
+              <span id="button-text">
+                {isNew ? 'Create Church' : 'Save Changes'}
+                <span class="ml-2 text-xs opacity-75 hidden sm:inline">⌘⏎</span>
+              </span>
               <span id="button-spinner" class="hidden">
                 <svg
                   class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
@@ -1217,6 +1220,34 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               input.value = 'true';
             });
           }
+          
+          // Cmd+Enter / Ctrl+Enter save hotkey
+          document.addEventListener('keydown', function(e) {
+            // Check if we're in the church form context
+            if (!form) return;
+            
+            // Detect platform for the right modifier key
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+            
+            if (e.key === 'Enter' && modifierKey && !e.shiftKey && !e.altKey) {
+              e.preventDefault();
+              
+              // Trigger the primary save button
+              if (saveButton && !saveButton.disabled) {
+                saveButton.click();
+              }
+            }
+          });
+          
+          // Update hotkey hint based on platform
+          document.addEventListener('DOMContentLoaded', function() {
+            const hotkeyHint = document.querySelector('#button-text .text-xs');
+            if (hotkeyHint) {
+              const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+              hotkeyHint.textContent = isMac ? '⌘⏎' : 'Ctrl+⏎';
+            }
+          });
           
           // File upload drag and drop functionality
           const dropZone = document.getElementById('drop-zone');

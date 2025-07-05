@@ -255,6 +255,11 @@ wrangler secret put GOOGLE_CLIENT_SECRET
   - Only activates when not in form input fields
   - Cross-platform compatible (Windows, Mac, Chrome, Safari)
   - Instantly navigates to `/admin/churches/{id}/edit`
+- **Quick Save**: Press `Cmd+Enter` (Mac) or `Ctrl+Enter` (Windows/Linux) to save forms
+  - Works on church edit forms when typing in input fields
+  - Universal save hotkey following modern web app standards
+  - Visual hint displayed on save button
+  - Triggers primary save action
 
 ## Development Best Practices
 
