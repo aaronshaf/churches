@@ -45,8 +45,8 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
             {/* Church Name */}
             <h3 class="text-lg font-semibold text-gray-900 mb-3">
               {church.path ? (
-                <a 
-                  href={`/churches/${church.path}`} 
+                <a
+                  href={`/churches/${church.path}`}
                   class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
                   onmouseover={`preloadAfterDelay('/churches/${church.path}', 200)`}
                   onmouseout="cancelPreload()"
@@ -183,7 +183,6 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
               </div>
             )}
           </div>
-
         </div>
       </div>
 

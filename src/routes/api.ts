@@ -1,11 +1,46 @@
-import { eq } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
-import { churches, comments } from '../db/schema';
+import { churches, comments, counties } from '../db/schema';
 import { requireAdminBetter } from '../middleware/better-auth';
 import type { Bindings } from '../types';
 
 export const apiRoutes = new Hono<{ Bindings: Bindings }>();
+
+// Search churches
+apiRoutes.get('/churches/search', async (c) => {
+  const db = createDbWithContext(c);
+  const query = c.req.query('q') || '';
+  const limit = Number(c.req.query('limit')) || 10;
+
+  if (!query || query.length < 2) {
+    return c.json({ churches: [] });
+  }
+
+  const searchResults = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      countyName: counties.name,
+    })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE`)
+    .orderBy(
+      sql`CASE 
+        WHEN ${churches.name} LIKE ${query + '%'} COLLATE NOCASE THEN 1 
+        WHEN ${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE THEN 2 
+        ELSE 3 
+      END`,
+      churches.name
+    )
+    .limit(limit)
+    .all();
+
+  return c.json({ churches: searchResults });
+});
 
 // Get all churches
 apiRoutes.get('/churches', async (c) => {
@@ -13,7 +48,18 @@ apiRoutes.get('/churches', async (c) => {
   const limit = Number(c.req.query('limit')) || 20;
   const offset = Number(c.req.query('offset')) || 0;
 
-  const allChurches = await db.select().from(churches).limit(limit).offset(offset);
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      path: churches.path,
+      status: churches.status,
+      gatheringAddress: churches.gatheringAddress,
+    })
+    .from(churches)
+    .limit(limit)
+    .offset(offset)
+    .all();
 
   return c.json({
     churches: allChurches,

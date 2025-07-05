@@ -15,11 +15,11 @@ const adminNotificationsRoutes = new Hono<{ Bindings: Bindings; Variables: Varia
 // Get new comments for admin notifications (requires admin auth)
 adminNotificationsRoutes.get('/comments', requireAdminBetter, async (c) => {
   const db = createDbWithContext(c);
-  
+
   // Get timestamp from query param (defaults to 1 hour ago)
   const since = c.req.query('since');
   const sinceTimestamp = since ? new Date(parseInt(since)) : new Date(Date.now() - 60 * 60 * 1000);
-  
+
   try {
     // Get recent feedback comments
     const recentComments = await db
@@ -30,13 +30,11 @@ adminNotificationsRoutes.get('/comments', requireAdminBetter, async (c) => {
         createdAt: comments.createdAt,
         userEmail: users.email,
         userName: users.name,
-        churchId: comments.churchId
+        churchId: comments.churchId,
       })
       .from(comments)
       .leftJoin(users, eq(comments.userId, users.id))
-      .where(
-        sql`${comments.createdAt} > ${sinceTimestamp.toISOString()} AND ${comments.type} = 'user'`
-      )
+      .where(sql`${comments.createdAt} > ${sinceTimestamp.toISOString()} AND ${comments.type} = 'user'`)
       .orderBy(desc(comments.createdAt))
       .limit(50)
       .all();
@@ -51,11 +49,11 @@ adminNotificationsRoutes.get('/comments', requireAdminBetter, async (c) => {
 // Get new church suggestions for admin notifications (requires admin auth)
 adminNotificationsRoutes.get('/suggestions', requireAdminBetter, async (c) => {
   const db = createDbWithContext(c);
-  
+
   // Get timestamp from query param (defaults to 1 hour ago)
   const since = c.req.query('since');
   const sinceTimestamp = since ? new Date(parseInt(since)) : new Date(Date.now() - 60 * 60 * 1000);
-  
+
   try {
     // Get recent church suggestions
     const recentSuggestions = await db
@@ -66,13 +64,11 @@ adminNotificationsRoutes.get('/suggestions', requireAdminBetter, async (c) => {
         address: churchSuggestions.address,
         createdAt: churchSuggestions.createdAt,
         userEmail: users.email,
-        userName: users.name
+        userName: users.name,
       })
       .from(churchSuggestions)
       .leftJoin(users, eq(churchSuggestions.userId, users.id))
-      .where(
-        sql`${churchSuggestions.createdAt} > ${sinceTimestamp.toISOString()}`
-      )
+      .where(sql`${churchSuggestions.createdAt} > ${sinceTimestamp.toISOString()}`)
       .orderBy(desc(churchSuggestions.createdAt))
       .limit(50)
       .all();
@@ -87,15 +83,15 @@ adminNotificationsRoutes.get('/suggestions', requireAdminBetter, async (c) => {
 // Register for push notifications (requires admin auth)
 adminNotificationsRoutes.post('/subscribe', requireAdminBetter, async (c) => {
   const user = c.get('betterUser');
-  
+
   try {
     const subscription = await c.req.json();
-    
+
     // In a real implementation, you would store this subscription in the database
     // For now, we'll just acknowledge the subscription
     console.log('Admin notification subscription registered for user:', user.email);
     console.log('Subscription details:', subscription);
-    
+
     return c.json({ success: true, message: 'Subscription registered' });
   } catch (error) {
     console.error('Error registering notification subscription:', error);
@@ -106,12 +102,12 @@ adminNotificationsRoutes.post('/subscribe', requireAdminBetter, async (c) => {
 // Check notification permission status (requires admin auth)
 adminNotificationsRoutes.get('/status', requireAdminBetter, async (c) => {
   const user = c.get('betterUser');
-  
+
   return c.json({
     user: user.email,
     role: user.role,
     notificationsSupported: true, // Will be checked on client side
-    subscriptionActive: false // Would check database in real implementation
+    subscriptionActive: false, // Would check database in real implementation
   });
 });
 

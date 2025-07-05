@@ -706,7 +706,6 @@ dataExportRoutes.get('/data', async (c) => {
                       <div class="mt-2 text-sm text-blue-700">
                         <ul class="list-disc list-inside space-y-1">
                           <li>Data includes church details, locations, and affiliations</li>
-                          <li>Updated regularly as new churches are added</li>
                         </ul>
                       </div>
                     </div>

@@ -17,7 +17,7 @@ export const Toast: FC<ToastProps> = ({ message, churchName, churchPath, type = 
     <>
       <div
         id="toast"
-        class={`fixed top-4 right-4 z-50 transform transition-all duration-300 ease-in-out translate-x-full opacity-0 ${bgColor} ${borderColor} border rounded-lg shadow-lg p-4 max-w-md`}
+        class={`fixed bottom-4 right-4 z-50 transform transition-all duration-300 ease-in-out translate-x-full opacity-0 ${bgColor} ${borderColor} border rounded-lg shadow-lg p-4 max-w-md`}
       >
         <div class="flex items-start">
           <div class="flex-shrink-0">

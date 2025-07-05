@@ -489,11 +489,15 @@ app.get('/', async (c) => {
               </div>
               <div id="counties-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {countiesWithChurches.map((county) => (
-                  <div class="county-card group bg-white rounded-lg ring-1 ring-gray-200 hover:ring-gray-300 transition-all duration-200 p-6" data-name={county.name} data-population={county.population || 0}>
+                  <div
+                    class="county-card group bg-white rounded-lg ring-1 ring-gray-200 hover:ring-gray-300 transition-all duration-200 p-6"
+                    data-name={county.name}
+                    data-population={county.population || 0}
+                  >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <h3 class="text-base font-semibold mb-1">
-                          <a 
+                          <a
                             href={`/counties/${county.path || county.id}`}
                             class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
                             onmouseover={`preloadAfterDelay('/counties/${county.path || county.id}', 200)`}
@@ -505,7 +509,9 @@ app.get('/', async (c) => {
                         <p class="mt-1 text-sm text-gray-500">
                           {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
                         </p>
-                        {county.description && <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>}
+                        {county.description && (
+                          <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1854,9 +1860,11 @@ app.get('/churches/:path', async (c) => {
                 {(() => {
                   if (!user) return null;
                   const canSeeAllComments = user && (user.role === 'admin' || user.role === 'contributor');
-                  const visibleComments = canSeeAllComments ? processedComments : processedComments.filter((comment) => comment.isOwn);
+                  const visibleComments = canSeeAllComments
+                    ? processedComments
+                    : processedComments.filter((comment) => comment.isOwn);
                   if (visibleComments.length === 0) return null;
-                  
+
                   return (
                     <div id="comments" class="mt-6 pt-6 border-t border-gray-200" data-testid="comments-section">
                       <ChurchComments
@@ -1874,12 +1882,17 @@ app.get('/churches/:path', async (c) => {
                 <div class="mt-8 border-t pt-8">
                   {!user ? (
                     <div class="text-center py-4">
-                      <a 
+                      <a
                         href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
                         class="inline-flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
                       >
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                          />
                         </svg>
                         Sign in to submit feedback
                       </a>
@@ -1891,11 +1904,11 @@ app.get('/churches/:path', async (c) => {
                         <p class="text-sm text-gray-600 mb-6">
                           Help us maintain accurate information about {church.name}. Your feedback is important to us.
                         </p>
-                        
+
                         <form method="post" action="/feedback/submit">
                           <input type="hidden" name="type" value="church" />
                           <input type="hidden" name="churchId" value={church.id} />
-                          
+
                           <div class="space-y-4">
                             <div>
                               <label for="feedback-content" class="block text-sm font-medium leading-6 text-gray-900">
@@ -1915,7 +1928,7 @@ app.get('/churches/:path', async (c) => {
                                 Share corrections, updates, or additional information about this church.
                               </p>
                             </div>
-                            
+
                             <div class="flex items-center justify-end gap-x-3">
                               <button
                                 type="submit"
@@ -1935,45 +1948,45 @@ app.get('/churches/:path', async (c) => {
           </div>
         </div>
 
-      {/* Image Modal */}
-      <div
-        id="imageModal"
-        class="hidden fixed inset-0 z-50 overflow-y-auto"
-        aria-labelledby="modal-title"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div
-            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-            aria-hidden="true"
-            onclick="closeImageModal()"
-          ></div>
-          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-            &#8203;
-          </span>
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="relative">
-                <button
-                  onclick="closeImageModal()"
-                  class="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
-                >
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <img id="modalImage" src="" alt="" class="w-full h-auto" />
-                <p id="modalCaption" class="mt-4 text-gray-700 text-center"></p>
+        {/* Image Modal */}
+        <div
+          id="imageModal"
+          class="hidden fixed inset-0 z-50 overflow-y-auto"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              aria-hidden="true"
+              onclick="closeImageModal()"
+            ></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+              &#8203;
+            </span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="relative">
+                  <button
+                    onclick="closeImageModal()"
+                    class="absolute -top-2 -right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <img id="modalImage" src="" alt="" class="w-full h-auto" />
+                  <p id="modalCaption" class="mt-4 text-gray-700 text-center"></p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             function showImageModal(imageUrl, caption) {
               const modal = document.getElementById('imageModal');
               const modalImage = document.getElementById('modalImage');
@@ -1997,6 +2010,24 @@ app.get('/churches/:path', async (c) => {
                 closeImageModal();
               }
             });
+            
+            // Edit hotkey for admins and contributors
+            ${
+              user && (user.role === 'admin' || user.role === 'contributor')
+                ? `
+            document.addEventListener('keydown', function(e) {
+              // Check if user is not in an input field
+              const tagName = e.target.tagName.toLowerCase();
+              const isInputField = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || e.target.contentEditable === 'true';
+              
+              if (e.key === 'e' && !isInputField && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                window.location.href = '/admin/churches/${church.id}/edit';
+              }
+            });
+            `
+                : ''
+            }
             
             // Check for feedback status in URL and show notification
             document.addEventListener('DOMContentLoaded', function() {
@@ -2052,8 +2083,8 @@ app.get('/churches/:path', async (c) => {
               }, 5000);
             }
           `,
-        }}
-      />
+          }}
+        />
       </div>
     </Layout>
   );
@@ -3128,35 +3159,6 @@ app.get('/admin', requireAdminBetter, async (c) => {
             <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Admin Dashboard</h1>
           </div>
 
-          {/* Notifications Section */}
-          <div class="mb-8">
-            <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Web Notifications</h3>
-                  <p class="text-sm text-gray-600 mb-4">
-                    Get notified when new feedback is submitted or churches are suggested for review.
-                  </p>
-                  <div id="notification-status" class="flex items-center gap-3">
-                    <button
-                      id="enable-notifications"
-                      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                      onclick="setupNotifications()"
-                    >
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12v-1a9 9 0 10-18 0v1M5.5 17h13a2.5 2.5 0 000-5h-13a2.5 2.5 0 000 5z"/>
-                      </svg>
-                      Enable Notifications
-                    </button>
-                    <span id="notification-info" class="text-sm text-gray-500">
-                      Browser notifications are not enabled
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* To Review Section */}
           {churchesForReview && churchesForReview.length > 0 && (
             <div class="mb-8" data-testid="to-review-section">
@@ -3688,18 +3690,26 @@ app.get('/admin', requireAdminBetter, async (c) => {
                   <div key={activity.id} class="group">
                     <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
                       <div class="flex items-start space-x-3">
-                        {/* Activity Icon */}
+                        {/* User Avatar */}
                         <div class="flex-shrink-0">
-                          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z"
-                              />
-                            </svg>
-                          </div>
+                          {activity.userEmail ? (
+                            <img
+                              class="w-9 h-9 rounded-full"
+                              src={activity.userImage || getGravatarUrl(activity.userEmail)}
+                              alt={activity.userName || 'User'}
+                            />
+                          ) : (
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                                />
+                              </svg>
+                            </div>
+                          )}
                         </div>
 
                         {/* Content */}
@@ -3720,8 +3730,8 @@ app.get('/admin', requireAdminBetter, async (c) => {
                               </span>
                             </div>
                             <div class="flex items-center space-x-3">
-                              <time 
-                                class="text-xs text-gray-500 cursor-help" 
+                              <time
+                                class="text-xs text-gray-500 cursor-help"
                                 title={new Date(activity.createdAt).toLocaleString('en-US', {
                                   weekday: 'long',
                                   year: 'numeric',
@@ -3729,7 +3739,7 @@ app.get('/admin', requireAdminBetter, async (c) => {
                                   day: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit',
-                                  second: '2-digit'
+                                  second: '2-digit',
                                 })}
                               >
                                 {new Date(activity.createdAt).toLocaleDateString('en-US', {
@@ -3786,6 +3796,40 @@ app.get('/admin', requireAdminBetter, async (c) => {
               </div>
             </div>
           )}
+
+          {/* Notifications Section */}
+          <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Web Notifications</h3>
+                  <p class="text-sm text-gray-600 mb-4">
+                    Get notified when new feedback is submitted or churches are suggested for review.
+                  </p>
+                  <div id="notification-status" class="flex items-center gap-3">
+                    <button
+                      id="enable-notifications"
+                      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      onclick="setupNotifications()"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 17h5l-5 5v-5zM21 12v-1a9 9 0 10-18 0v1M5.5 17h13a2.5 2.5 0 000-5h-13a2.5 2.5 0 000 5z"
+                        />
+                      </svg>
+                      Enable Notifications
+                    </button>
+                    <span id="notification-info" class="text-sm text-gray-500">
+                      Browser notifications are not enabled
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

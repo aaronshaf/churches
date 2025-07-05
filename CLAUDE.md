@@ -244,6 +244,17 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 ### User Experience Improvements
 - **Contextual Actions**: Edit links appear in footer based on user permissions
 - **Consistent Iconography**: Activity uses lightning bolt, changes use "Change" instead of "Change Log"
+- **Quick Search**: Press `/` key to quickly search and navigate to churches (admin/contributor only)
+  - Activates when not in a form input field
+  - Real-time search as you type
+  - Navigate results with arrow keys
+  - Press Enter to go to selected church
+  - Press Escape to close
+- **Quick Edit**: Press `E` key to instantly edit the current church (admin/contributor only)
+  - Works on individual church detail pages (`/churches/:path`)
+  - Only activates when not in form input fields
+  - Cross-platform compatible (Windows, Mac, Chrome, Safari)
+  - Instantly navigates to `/admin/churches/{id}/edit`
 
 ## Development Best Practices
 

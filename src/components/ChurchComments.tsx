@@ -63,7 +63,6 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
         )}
       </div>
 
-
       {/* Comments List */}
       {visibleComments.length > 0 && (
         <div class="space-y-3" data-testid="comments-list">

@@ -1,6 +1,7 @@
 import type { FC } from 'hono/jsx';
 import { Footer } from './Footer';
 import { Navbar } from './Navbar';
+import { QuickSearch } from './QuickSearch';
 
 type LayoutProps = {
   title?: string;
@@ -277,6 +278,7 @@ export const Layout: FC<LayoutProps> = ({
           />
         )}
         {currentPath === '/admin/churches' && <script src="/js/church-filters.js"></script>}
+        <QuickSearch userRole={user?.role} />
       </body>
     </html>
   );
