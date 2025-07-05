@@ -52,7 +52,7 @@ export function formatChangesAsYaml(changes: ChangeRecord[]): string {
   if (changes.length === 0) return 'No changes detected';
 
   const changeObj: Record<string, { from: any; to: any }> = {};
-  
+
   for (const change of changes) {
     changeObj[change.field] = {
       from: change.from ?? null,
@@ -70,14 +70,10 @@ export function formatChangesAsYaml(changes: ChangeRecord[]): string {
 /**
  * Create an audit comment content
  */
-export function createAuditComment(
-  userName: string,
-  action: string,
-  changes: ChangeRecord[]
-): string {
+export function createAuditComment(userName: string, action: string, changes: ChangeRecord[]): string {
   const timestamp = new Date().toISOString();
   const yamlChanges = formatChangesAsYaml(changes);
-  
+
   return `${userName} ${action} at ${timestamp}\n\n\`\`\`yaml\n${yamlChanges}\n\`\`\``;
 }
 
@@ -98,9 +94,9 @@ export function compareChurchData(
   changes.push(...compareObjects(oldChurch, newChurch));
 
   // Compare gatherings
-  const oldGatheringStrs = oldGatherings.map(g => `${g.time}${g.notes ? ` - ${g.notes}` : ''}`).sort();
-  const newGatheringStrs = newGatherings.map(g => `${g.time}${g.notes ? ` - ${g.notes}` : ''}`).sort();
-  
+  const oldGatheringStrs = oldGatherings.map((g) => `${g.time}${g.notes ? ` - ${g.notes}` : ''}`).sort();
+  const newGatheringStrs = newGatherings.map((g) => `${g.time}${g.notes ? ` - ${g.notes}` : ''}`).sort();
+
   if (JSON.stringify(oldGatheringStrs) !== JSON.stringify(newGatheringStrs)) {
     changes.push({
       field: 'gatherings',
@@ -110,9 +106,9 @@ export function compareChurchData(
   }
 
   // Compare affiliations
-  const oldAffiliationNames = oldAffiliations.map(a => a.name).sort();
-  const newAffiliationNames = newAffiliations.map(a => a.name).sort();
-  
+  const oldAffiliationNames = oldAffiliations.map((a) => a.name).sort();
+  const newAffiliationNames = newAffiliations.map((a) => a.name).sort();
+
   if (JSON.stringify(oldAffiliationNames) !== JSON.stringify(newAffiliationNames)) {
     changes.push({
       field: 'affiliations',

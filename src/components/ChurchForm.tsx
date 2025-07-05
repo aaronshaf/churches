@@ -28,13 +28,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
   return (
     <>
-      <form
-        method="post"
-        action={action}
-        class="space-y-8"
-        data-testid="church-form"
-        enctype="multipart/form-data"
-      >
+      <form method="post" action={action} class="space-y-8" data-testid="church-form" enctype="multipart/form-data">
         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
           <div class="px-4 py-6 sm:p-8">
             <div class="max-w-2xl">

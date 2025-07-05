@@ -169,7 +169,9 @@ export const comments = sqliteTable('comments', {
   userId: text('user_id').notNull(),
   churchId: integer('church_id').references(() => churches.id),
   content: text('content').notNull(),
-  type: text('type', { enum: ['user', 'system'] }).notNull().default('user'),
+  type: text('type', { enum: ['user', 'system'] })
+    .notNull()
+    .default('user'),
   metadata: text('metadata'), // JSON string for storing change details
   isPublic: integer('is_public', { mode: 'boolean' }).default(false),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] })

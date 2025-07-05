@@ -5,7 +5,7 @@ import type { Bindings } from '../types';
 
 export async function getNavbarPages(env: Bindings) {
   const db = createDb(env);
-  
+
   const navbarPages = await db
     .select({
       id: pages.id,
@@ -17,6 +17,6 @@ export async function getNavbarPages(env: Bindings) {
     .where(isNotNull(pages.navbarOrder))
     .orderBy(pages.navbarOrder)
     .all();
-  
+
   return navbarPages;
 }

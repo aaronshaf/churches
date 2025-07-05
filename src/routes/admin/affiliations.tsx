@@ -1,18 +1,14 @@
-import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { createDb, createDbWithContext } from '../../db';
-import { affiliations, churchAffiliations } from '../../db/schema';
-import { Layout } from '../../components/Layout';
+import { Hono } from 'hono';
 import { AffiliationForm } from '../../components/AffiliationForm';
+import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
+import { createDbWithContext } from '../../db';
+import { affiliations, churchAffiliations } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import {
-  affiliationSchema,
-  parseFormBody,
-  validateFormData,
-} from '../../utils/validation';
-import { getLogoUrl } from '../../utils/settings';
 import type { Bindings } from '../../types';
+import { getLogoUrl } from '../../utils/settings';
+import { affiliationSchema, parseFormBody, validateFormData } from '../../utils/validation';
 
 type Variables = {
   user: any;
@@ -27,13 +23,9 @@ adminAffiliationsRoutes.use('*', requireAdminWithRedirect);
 adminAffiliationsRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  const _logoUrl = await getLogoUrl(c.env);
 
-  const allAffiliations = await db
-    .select()
-    .from(affiliations)
-    .orderBy(desc(affiliations.updatedAt))
-    .all();
+  const allAffiliations = await db.select().from(affiliations).orderBy(desc(affiliations.updatedAt)).all();
 
   const content = (
     <Layout title="Manage Affiliations" user={user}>
@@ -41,9 +33,7 @@ adminAffiliationsRoutes.get('/', async (c) => {
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
             <h1 class="text-2xl font-semibold text-gray-900">Affiliations</h1>
-            <p class="mt-2 text-sm text-gray-700">
-              A list of all church affiliations and networks.
-            </p>
+            <p class="mt-2 text-sm text-gray-700">A list of all church affiliations and networks.</p>
           </div>
           <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
             <a
@@ -82,19 +72,24 @@ adminAffiliationsRoutes.get('/', async (c) => {
                         {affiliation.name}
                       </td>
                       <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                          affiliation.status === 'Listed' ? 'bg-green-50 text-green-700' :
-                          affiliation.status === 'Unlisted' ? 'bg-gray-50 text-gray-700' :
-                          'bg-red-50 text-red-700'
-                        }`}>
+                        <span
+                          class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                            affiliation.status === 'Listed'
+                              ? 'bg-green-50 text-green-700'
+                              : affiliation.status === 'Unlisted'
+                                ? 'bg-gray-50 text-gray-700'
+                                : 'bg-red-50 text-red-700'
+                          }`}
+                        >
                           {affiliation.status}
                         </span>
                       </td>
-                      <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {affiliation.path}
-                      </td>
+                      <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{affiliation.path}</td>
                       <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                        <a href={`/admin/affiliations/${affiliation.id}/edit`} class="text-primary-600 hover:text-primary-900">
+                        <a
+                          href={`/admin/affiliations/${affiliation.id}/edit`}
+                          class="text-primary-600 hover:text-primary-900"
+                        >
                           Edit<span class="sr-only">, {affiliation.name}</span>
                         </a>
                       </td>
@@ -115,7 +110,7 @@ adminAffiliationsRoutes.get('/', async (c) => {
 // New affiliation form
 adminAffiliationsRoutes.get('/new', async (c) => {
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  const _logoUrl = await getLogoUrl(c.env);
 
   const content = (
     <Layout title="Add Affiliation" user={user}>
@@ -123,11 +118,7 @@ adminAffiliationsRoutes.get('/new', async (c) => {
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Add Affiliation</h1>
         </div>
-        <AffiliationForm
-          affiliation={null}
-          action="/admin/affiliations"
-          cancelUrl="/admin/affiliations"
-        />
+        <AffiliationForm affiliation={null} action="/admin/affiliations" cancelUrl="/admin/affiliations" />
       </div>
     </Layout>
   );
@@ -139,7 +130,7 @@ adminAffiliationsRoutes.get('/new', async (c) => {
 adminAffiliationsRoutes.post('/', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  const _logoUrl = await getLogoUrl(c.env);
 
   try {
     const body = await c.req.parseBody();
@@ -177,7 +168,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
 adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  const _logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
@@ -208,7 +199,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
 adminAffiliationsRoutes.post('/:id', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
+  const _logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   try {
@@ -216,12 +207,15 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     const parsedBody = parseFormBody(body);
     const validatedData = await validateFormData(affiliationSchema, parsedBody);
 
-    await db.update(affiliations).set({
-      name: validatedData.name,
-      path: validatedData.path,
-      status: validatedData.status,
-      updatedAt: new Date(),
-    }).where(eq(affiliations.id, id));
+    await db
+      .update(affiliations)
+      .set({
+        name: validatedData.name,
+        path: validatedData.path,
+        status: validatedData.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(affiliations.id, id));
 
     return c.redirect('/admin/affiliations');
   } catch (error) {
@@ -249,7 +243,7 @@ adminAffiliationsRoutes.post('/:id/delete', async (c) => {
 
   // First delete all church affiliations
   await db.delete(churchAffiliations).where(eq(churchAffiliations.affiliationId, id));
-  
+
   // Then delete the affiliation
   await db.delete(affiliations).where(eq(affiliations.id, id));
 

@@ -54,14 +54,14 @@ export function sanitizeErrorMessage(error: Error | unknown): {
     return {
       message: message.substring(0, 200), // Limit message length
       type,
-      details
+      details,
     };
   }
 
   // Handle non-Error objects
   return {
     message: 'An unexpected error occurred',
-    type: 'Unknown Error'
+    type: 'Unknown Error',
   };
 }
 
@@ -74,7 +74,7 @@ export function generateErrorId(): string {
 export function getErrorStatusCode(error: Error | unknown): number {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    
+
     if (message.includes('not found') || message.includes('404')) return 404;
     if (message.includes('unauthorized') || message.includes('authentication')) return 401;
     if (message.includes('forbidden') || message.includes('permission')) return 403;
@@ -82,6 +82,6 @@ export function getErrorStatusCode(error: Error | unknown): number {
     if (message.includes('rate limit')) return 429;
     if (message.includes('timeout')) return 408;
   }
-  
+
   return 500;
 }

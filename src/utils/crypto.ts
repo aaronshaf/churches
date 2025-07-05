@@ -38,8 +38,9 @@ export function md5(str: string): string {
     const hex_tab = '0123456789abcdef';
     let str = '';
     for (let i = 0; i < binarray.length * 4; i++) {
-      str += hex_tab.charAt((binarray[i >> 2] >> ((i % 4) * 8 + 4)) & 0xf) +
-             hex_tab.charAt((binarray[i >> 2] >> ((i % 4) * 8)) & 0xf);
+      str +=
+        hex_tab.charAt((binarray[i >> 2] >> ((i % 4) * 8 + 4)) & 0xf) +
+        hex_tab.charAt((binarray[i >> 2] >> ((i % 4) * 8)) & 0xf);
     }
     return str;
   }
@@ -47,7 +48,7 @@ export function md5(str: string): string {
   const x = binl(str);
   const len = str.length * 8;
   x[len >> 5] |= 0x80 << (len % 32);
-  x[((len + 64) >>> 9 << 4) + 14] = len;
+  x[(((len + 64) >>> 9) << 4) + 14] = len;
 
   let a = 1732584193;
   let b = -271733879;

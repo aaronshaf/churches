@@ -72,7 +72,9 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     ? 'border-primary-500 text-gray-900'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b text-base font-medium transition-colors`}
-                aria-current={currentPath === '/networks' || currentPath?.startsWith('/admin/affiliations') ? 'page' : undefined}
+                aria-current={
+                  currentPath === '/networks' || currentPath?.startsWith('/admin/affiliations') ? 'page' : undefined
+                }
                 data-testid="nav-networks"
                 onmouseover="prefetchAfterDelay('/networks', 200)"
                 onmouseout="cancelPrefetch()"
@@ -98,7 +100,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   </a>
                 ))}
             </div>
-            
+
             {/* User menu for desktop */}
             <div class={`hidden sm:block ${user ? 'ml-8' : 'ml-4'}`}>
               <BetterAuthUserMenu user={user} />

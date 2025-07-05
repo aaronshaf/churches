@@ -1,4 +1,4 @@
-import { Context, Next } from 'hono';
+import type { Context, Next } from 'hono';
 import { Layout } from '../components/Layout';
 
 // All required environment variables
@@ -13,7 +13,7 @@ const REQUIRED_ENV_VARS = [
 ] as const;
 
 // Optional environment variables that enable specific features
-const OPTIONAL_ENV_VARS = [
+const _OPTIONAL_ENV_VARS = [
   'GOOGLE_MAPS_API_KEY', // Required for maps feature
   'CLOUDFLARE_ACCOUNT_ID', // Required for image uploads
   'CLOUDFLARE_IMAGES_API_TOKEN', // Required for image uploads
@@ -21,22 +21,24 @@ const OPTIONAL_ENV_VARS = [
 ] as const;
 
 export async function envCheckMiddleware(c: Context, next: Next) {
-  const missingRequired = REQUIRED_ENV_VARS.filter(varName => !c.env[varName]);
-  
+  const missingRequired = REQUIRED_ENV_VARS.filter((varName) => !c.env[varName]);
+
   if (missingRequired.length > 0) {
     // Check if this is an API request
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
-      return c.json({
-        error: 'Configuration Error',
-        message: 'The application is not properly configured',
-        missingVariables: missingRequired,
-        required: REQUIRED_ENV_VARS,
-      }, 500);
+      return c.json(
+        {
+          error: 'Configuration Error',
+          message: 'The application is not properly configured',
+          missingVariables: missingRequired,
+          required: REQUIRED_ENV_VARS,
+        },
+        500
+      );
     }
-    
+
     // For HTML requests, return a user-friendly error page
     return c.html(
       <Layout title="Configuration Error" currentPath={c.req.path}>
@@ -47,13 +49,14 @@ export async function envCheckMiddleware(c: Context, next: Next) {
               The application is not properly configured. The following required environment variables are missing:
             </p>
             <ul class="list-disc list-inside space-y-2 mb-6">
-              {missingRequired.map(varName => (
+              {missingRequired.map((varName) => (
                 <li class="text-red-600 font-mono">{varName}</li>
               ))}
             </ul>
             <div class="bg-red-100 rounded p-4">
               <p class="text-sm text-red-800">
-                <strong>For administrators:</strong> Please ensure all required environment variables are set in your deployment configuration.
+                <strong>For administrators:</strong> Please ensure all required environment variables are set in your
+                deployment configuration.
               </p>
             </div>
           </div>
@@ -62,6 +65,6 @@ export async function envCheckMiddleware(c: Context, next: Next) {
       500
     );
   }
-  
+
   await next();
 }

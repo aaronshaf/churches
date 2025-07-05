@@ -4,12 +4,11 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { Layout } from '../components/Layout';
+import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
 import { settings } from '../db/schema';
-import { createAuth } from '../lib/auth';
-import { createDb, createDbWithContext } from '../db';
-import { validateAuthEnvVars } from '../utils/env-validation';
 import type { Bindings } from '../types';
+import { validateAuthEnvVars } from '../utils/env-validation';
 
 const betterAuthApp = new Hono<{ Bindings: Bindings }>();
 
@@ -17,22 +16,22 @@ const betterAuthApp = new Hono<{ Bindings: Bindings }>();
 betterAuthApp.get('/signin', async (c) => {
   const error = c.req.query('error');
   const redirectUrl = c.req.query('redirect') || '/admin';
-  
+
   // Get all required data for Layout component
   const db = createDbWithContext(c);
-  
+
   // Check for user session
   const { getUser } = await import('../middleware/better-auth');
   const user = await getUser(c);
-  
+
   // Get logo URL
   const logoUrlSetting = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
   const logoUrl = logoUrlSetting?.value || undefined;
-  
+
   // Get favicon URL
   const faviconUrlSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
   const faviconUrl = faviconUrlSetting?.value || undefined;
-  
+
   // Get navbar pages
   const { isNotNull } = await import('drizzle-orm');
   const { pages } = await import('../db/schema');
@@ -64,7 +63,12 @@ betterAuthApp.get('/signin', async (c) => {
           <div class="text-center">
             <div class="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
               </svg>
             </div>
             <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Sign In</h2>
@@ -76,7 +80,12 @@ betterAuthApp.get('/signin', async (c) => {
               <div class="flex">
                 <div class="flex-shrink-0">
                   <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div class="ml-3">
@@ -127,7 +136,6 @@ betterAuthApp.get('/signin', async (c) => {
                     <span class="px-4 bg-white text-gray-500 font-medium">Secure & Private</span>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -138,7 +146,6 @@ betterAuthApp.get('/signin', async (c) => {
               </p>
             </div>
           </div>
-
         </div>
       </div>
     </Layout>
@@ -154,16 +161,16 @@ betterAuthApp.get('/google', async (c) => {
     console.error('OAuth configuration error:', error);
     return c.redirect('/auth/signin?error=OAuth configuration missing');
   }
-  
+
   const redirectUrl = c.req.query('redirect') || '/admin';
-  
+
   // Store redirect URL in session/cookie for after OAuth
   setCookie(c, 'auth_redirect', redirectUrl, {
     path: '/',
     httpOnly: true,
-    maxAge: 600
+    maxAge: 600,
   });
-  
+
   // Create Google OAuth URL
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', c.env.GOOGLE_CLIENT_ID);
@@ -171,7 +178,7 @@ betterAuthApp.get('/google', async (c) => {
   googleAuthUrl.searchParams.set('response_type', 'code');
   googleAuthUrl.searchParams.set('scope', 'openid email profile');
   googleAuthUrl.searchParams.set('access_type', 'offline');
-  
+
   return c.redirect(googleAuthUrl.toString());
 });
 
@@ -192,7 +199,7 @@ betterAuthApp.get('/callback/google', async (c) => {
   try {
     // Validate OAuth environment variables
     validateAuthEnvVars(c.env);
-    
+
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -221,7 +228,6 @@ betterAuthApp.get('/callback/google', async (c) => {
       throw new Error('No email received from Google');
     }
 
-
     // Simple manual user/session creation
     const client = createClient({
       url: c.env.TURSO_DATABASE_URL,
@@ -231,11 +237,11 @@ betterAuthApp.get('/callback/google', async (c) => {
 
     // Check if user exists
     let user = await db.select().from(users).where(eq(users.email, googleUser.email)).get();
-    
+
     if (!user) {
       const userCount = await db.select().from(users).limit(1);
       const isFirstUser = userCount.length === 0;
-      
+
       const newUser = {
         id: crypto.randomUUID(),
         email: googleUser.email,
@@ -246,14 +252,15 @@ betterAuthApp.get('/callback/google', async (c) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await db.insert(users).values(newUser);
       user = newUser;
     } else {
       // Update existing user's image if they don't have one
       if (!user.image && googleUser.picture) {
-        await db.update(users)
-          .set({ 
+        await db
+          .update(users)
+          .set({
             image: googleUser.picture,
             updatedAt: new Date(),
           })
@@ -265,7 +272,7 @@ betterAuthApp.get('/callback/google', async (c) => {
     // Create session
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
-    
+
     const { sessions } = await import('../db/auth-schema');
     await db.insert(sessions).values({
       id: sessionId,
@@ -276,7 +283,7 @@ betterAuthApp.get('/callback/google', async (c) => {
       ipAddress: c.req.header('CF-Connecting-IP') || null,
       userAgent: c.req.header('User-Agent') || null,
     });
-    
+
     // Get redirect URL first
     const cookies_header = c.req.header('Cookie') || '';
     const redirectMatch = cookies_header.match(/auth_redirect=([^;]+)/);
@@ -287,13 +294,12 @@ betterAuthApp.get('/callback/google', async (c) => {
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
-    
+
     // Clear redirect cookie
     setCookie(c, 'auth_redirect', '', {
       path: '/',
       maxAge: 0,
     });
-    
 
     // Try redirect approach instead of HTML response
     return c.redirect(redirectUrl);

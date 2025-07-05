@@ -23,7 +23,7 @@ export type EnvVars = RequiredEnvVars & OptionalEnvVars;
 
 export class EnvironmentError extends Error {
   public missingVars: string[];
-  
+
   constructor(missingVars: string[]) {
     const message = `Missing required environment variables: ${missingVars.join(', ')}`;
     super(message);
@@ -42,24 +42,36 @@ export function validateRequiredEnvVars(env: any): asserts env is EnvVars {
     'GOOGLE_CLIENT_SECRET',
     'CLOUDFLARE_ACCOUNT_HASH',
   ];
-  
-  const missingVars = requiredVars.filter(varName => !env[varName]);
-  
+
+  const missingVars = requiredVars.filter((varName) => !env[varName]);
+
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);
   }
 }
 
-export function validateDatabaseEnvVars(env: any): asserts env is Pick<EnvVars, 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'> {
+export function validateDatabaseEnvVars(
+  env: any
+): asserts env is Pick<EnvVars, 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'> {
   const requiredVars = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN'];
-  const missingVars = requiredVars.filter(varName => !env[varName]);
-  
+  const missingVars = requiredVars.filter((varName) => !env[varName]);
+
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);
   }
 }
 
-export function validateAuthEnvVars(env: any): asserts env is Pick<EnvVars, 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN' | 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'> {
+export function validateAuthEnvVars(
+  env: any
+): asserts env is Pick<
+  EnvVars,
+  | 'TURSO_DATABASE_URL'
+  | 'TURSO_AUTH_TOKEN'
+  | 'BETTER_AUTH_SECRET'
+  | 'BETTER_AUTH_URL'
+  | 'GOOGLE_CLIENT_ID'
+  | 'GOOGLE_CLIENT_SECRET'
+> {
   const requiredVars = [
     'TURSO_DATABASE_URL',
     'TURSO_AUTH_TOKEN',
@@ -68,8 +80,8 @@ export function validateAuthEnvVars(env: any): asserts env is Pick<EnvVars, 'TUR
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
   ];
-  const missingVars = requiredVars.filter(varName => !env[varName]);
-  
+  const missingVars = requiredVars.filter((varName) => !env[varName]);
+
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);
   }
@@ -89,10 +101,10 @@ export function getEnvVarStatus(env: any): {
     'GOOGLE_CLIENT_SECRET',
     'CLOUDFLARE_ACCOUNT_HASH',
   ];
-  
-  const missing = requiredVars.filter(varName => !env[varName]);
-  const present = requiredVars.filter(varName => env[varName]);
-  
+
+  const missing = requiredVars.filter((varName) => !env[varName]);
+  const present = requiredVars.filter((varName) => env[varName]);
+
   return {
     missing,
     present,
@@ -106,10 +118,12 @@ export function hasCloudflareImageEnvVars(env: any): boolean {
 }
 
 // Validate Cloudflare image vars only when needed
-export function validateCloudflareImageEnvVars(env: any): asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> {
+export function validateCloudflareImageEnvVars(
+  env: any
+): asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> {
   const requiredVars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_HASH', 'CLOUDFLARE_IMAGES_API_TOKEN'];
-  const missingVars = requiredVars.filter(varName => !env[varName]);
-  
+  const missingVars = requiredVars.filter((varName) => !env[varName]);
+
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);
   }
@@ -120,7 +134,7 @@ export function hasGoogleMapsApiKey(env: any): boolean {
   return !!env.GOOGLE_MAPS_API_KEY;
 }
 
-// Check if OpenRouter API key is available  
+// Check if OpenRouter API key is available
 export function hasOpenRouterApiKey(env: any): boolean {
   return !!env.OPENROUTER_API_KEY;
 }

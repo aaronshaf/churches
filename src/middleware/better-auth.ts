@@ -23,13 +23,12 @@ export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
   });
 
   if (!session?.user) {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    
+
     const returnUrl = encodeURIComponent(c.req.url);
     return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
@@ -42,96 +41,93 @@ export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
 export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   // Manual session lookup since we're not using better-auth's built-in session management
   const cookies = c.req.header('Cookie') || '';
-  
+
   const sessionMatch = cookies.match(/session=([^;]+)/);
   if (!sessionMatch) {
     // Check if this is an API request
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    
+
     // For HTML requests, redirect to login
     const returnUrl = encodeURIComponent(c.req.url);
     return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
-  
+
   const sessionId = sessionMatch[1];
-  
+
   // Look up session in database
   const { createClient } = await import('@libsql/client');
   const { drizzle } = await import('drizzle-orm/libsql');
   const { eq } = await import('drizzle-orm');
   const { users, sessions } = await import('../db/auth-schema');
   const { validateDatabaseEnvVars } = await import('../utils/env-validation');
-  
+
   // Validate environment variables
   validateDatabaseEnvVars(c.env);
-  
+
   const client = createClient({
     url: c.env.TURSO_DATABASE_URL,
     authToken: c.env.TURSO_AUTH_TOKEN,
   });
   const db = drizzle(client, { schema: { users, sessions } });
-  
-  const session = await db.select({
-    sessionId: sessions.id,
-    userId: sessions.userId,
-    expiresAt: sessions.expiresAt,
-    userEmail: users.email,
-    userName: users.name,
-    userImage: users.image,
-    userRole: users.role,
-  })
-  .from(sessions)
-  .innerJoin(users, eq(sessions.userId, users.id))
-  .where(eq(sessions.id, sessionId))
-  .get();
-  
+
+  const session = await db
+    .select({
+      sessionId: sessions.id,
+      userId: sessions.userId,
+      expiresAt: sessions.expiresAt,
+      userEmail: users.email,
+      userName: users.name,
+      userImage: users.image,
+      userRole: users.role,
+    })
+    .from(sessions)
+    .innerJoin(users, eq(sessions.userId, users.id))
+    .where(eq(sessions.id, sessionId))
+    .get();
+
   if (!session) {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    
+
     const returnUrl = encodeURIComponent(c.req.url);
     return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
-  
+
   if (new Date(session.expiresAt) < new Date()) {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Session expired' }, 401);
     }
-    
+
     const returnUrl = encodeURIComponent(c.req.url);
     return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
-  
+
   if (session.userRole !== 'admin') {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Forbidden - Admin access required' }, 403);
     }
-    
+
     // Import error handling utilities
     const { AppError } = await import('../utils/async-handler');
     throw new AppError('Admin access required', 403, 'Permission Error');
   }
-  c.set('betterUser', { 
+  c.set('betterUser', {
     id: session.userId,
-    email: session.userEmail, 
+    email: session.userEmail,
     name: session.userName,
     image: session.userImage,
-    role: session.userRole 
+    role: session.userRole,
   });
 
   await next();
@@ -144,25 +140,23 @@ export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
   });
 
   if (!session?.user) {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    
+
     const returnUrl = encodeURIComponent(c.req.url);
     return c.redirect(`/auth/signin?return=${returnUrl}`);
   }
 
   if (session.user.role !== 'admin' && session.user.role !== 'contributor') {
-    const isApiRequest = c.req.path.startsWith('/api/') || 
-                        c.req.header('Accept')?.includes('application/json');
-    
+    const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
     if (isApiRequest) {
       return c.json({ error: 'Forbidden - Contributor access required' }, 403);
     }
-    
+
     // Import error handling utilities
     const { AppError } = await import('../utils/async-handler');
     throw new AppError('Contributor access required', 403, 'Permission Error');
@@ -176,13 +170,13 @@ export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
 export const getUser = async (c: Context): Promise<any | null> => {
   const cookies = c.req.header('Cookie') || '';
   const sessionMatch = cookies.match(/session=([^;]+)/);
-  
+
   if (!sessionMatch) {
     return null;
   }
-  
+
   const sessionId = sessionMatch[1];
-  
+
   try {
     // Look up session in database
     const { createClient } = await import('@libsql/client');
@@ -190,39 +184,40 @@ export const getUser = async (c: Context): Promise<any | null> => {
     const { eq } = await import('drizzle-orm');
     const { users, sessions } = await import('../db/auth-schema');
     const { validateDatabaseEnvVars } = await import('../utils/env-validation');
-    
+
     // Validate environment variables
     validateDatabaseEnvVars(c.env);
-    
+
     const client = createClient({
       url: c.env.TURSO_DATABASE_URL,
       authToken: c.env.TURSO_AUTH_TOKEN,
     });
     const db = drizzle(client, { schema: { users, sessions } });
-    
-    const session = await db.select({
-      userId: sessions.userId,
-      expiresAt: sessions.expiresAt,
-      userEmail: users.email,
-      userName: users.name,
-      userImage: users.image,
-      userRole: users.role,
-    })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(eq(sessions.id, sessionId))
-    .get();
-    
+
+    const session = await db
+      .select({
+        userId: sessions.userId,
+        expiresAt: sessions.expiresAt,
+        userEmail: users.email,
+        userName: users.name,
+        userImage: users.image,
+        userRole: users.role,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(eq(sessions.id, sessionId))
+      .get();
+
     if (!session || new Date(session.expiresAt) < new Date()) {
       return null;
     }
-    
-    return { 
+
+    return {
       id: session.userId,
-      email: session.userEmail, 
+      email: session.userEmail,
       name: session.userName,
       image: session.userImage,
-      role: session.userRole 
+      role: session.userRole,
     };
   } catch (error) {
     console.error('Error getting user session:', error);

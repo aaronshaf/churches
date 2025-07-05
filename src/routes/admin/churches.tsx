@@ -1,39 +1,33 @@
-import { Hono } from 'hono';
 import { desc, eq, like, or, sql } from 'drizzle-orm';
-import { createDb, createDbWithContext } from '../../db';
-import {
-  churches,
-  churchGatherings,
-  affiliations,
-  churchAffiliations,
-  counties,
-  churchImages,
-  comments,
-} from '../../db/schema';
-import { users } from '../../db/auth-schema';
-import { Layout } from '../../components/Layout';
+import { Hono } from 'hono';
 import { ChurchForm } from '../../components/ChurchForm';
+import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
 import { Toast } from '../../components/Toast';
+import { createDbWithContext } from '../../db';
+import {
+  affiliations,
+  churchAffiliations,
+  churches,
+  churchGatherings,
+  churchImages,
+  comments,
+  counties,
+} from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
+import type { Bindings } from '../../types';
+import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
+import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
 import { getLogoUrl } from '../../utils/settings';
 import {
   churchWithGatheringsSchema,
+  parseAffiliationsFromForm,
   parseFormBody,
   parseGatheringsFromForm,
-  parseAffiliationsFromForm,
   prepareChurchDataFromForm,
   validateFormData,
 } from '../../utils/validation';
 import { extractChurchDataFromWebsite } from '../../utils/website-extraction';
-import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
-import {
-  uploadToCloudflareImages,
-  deleteFromCloudflareImages,
-  getCloudflareImageUrl,
-  IMAGE_VARIANTS,
-} from '../../utils/cloudflare-images';
-import type { Bindings } from '../../types';
 
 type Variables = {
   user: any;
@@ -53,7 +47,7 @@ adminChurchesRoutes.get('/', async (c) => {
   const countyId = c.req.query('county');
   const affiliationId = c.req.query('affiliation');
   const status = c.req.query('status');
-  
+
   // Check for success message parameters
   const success = c.req.query('success');
   const churchName = c.req.query('churchName');
@@ -71,12 +65,7 @@ adminChurchesRoutes.get('/', async (c) => {
   // Apply filters
   const conditions = [];
   if (search) {
-    conditions.push(
-      or(
-        like(churches.name, `%${search}%`),
-        like(churches.gatheringAddress, `%${search}%`)
-      )
-    );
+    conditions.push(or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`)));
   }
   if (countyId) {
     conditions.push(eq(churches.countyId, Number(countyId)));
@@ -92,25 +81,26 @@ adminChurchesRoutes.get('/', async (c) => {
   const results = await query.orderBy(desc(churches.updatedAt)).all();
 
   // Get all church affiliations for the filtered churches
-  const churchIds = results.map(r => r.church.id);
-  const allChurchAffils = churchIds.length > 0 ? await db
-    .select({ 
-      churchId: churchAffiliations.churchId,
-      affiliationId: churchAffiliations.affiliationId 
-    })
-    .from(churchAffiliations)
-    .where(sql`${churchAffiliations.churchId} IN (${churchIds.map(() => '?').join(',')})`, ...churchIds)
-    .all() : [];
+  const churchIds = results.map((r) => r.church.id);
+  const allChurchAffils =
+    churchIds.length > 0
+      ? await db
+          .select({
+            churchId: churchAffiliations.churchId,
+            affiliationId: churchAffiliations.affiliationId,
+          })
+          .from(churchAffiliations)
+          .where(sql`${churchAffiliations.churchId} IN (${churchIds.map(() => '?').join(',')})`, ...churchIds)
+          .all()
+      : [];
 
   // Filter by affiliation if needed
   let filteredResults = results;
   if (affiliationId) {
     const affiliatedChurchIds = new Set(
-      allChurchAffils
-        .filter(ca => ca.affiliationId === Number(affiliationId))
-        .map(ca => ca.churchId)
+      allChurchAffils.filter((ca) => ca.affiliationId === Number(affiliationId)).map((ca) => ca.churchId)
     );
-    filteredResults = results.filter(r => affiliatedChurchIds.has(r.church.id));
+    filteredResults = results.filter((r) => affiliatedChurchIds.has(r.church.id));
   }
 
   // Get all counties and affiliations for filters
@@ -129,27 +119,27 @@ adminChurchesRoutes.get('/', async (c) => {
     countyName: county?.name || '',
     address: church.gatheringAddress || '',
     // For affiliation filtering, we need the affiliation IDs
-    affiliationIds: allChurchAffils
-      .filter(ca => ca.churchId === church.id)
-      .map(ca => ca.affiliationId)
+    affiliationIds: allChurchAffils.filter((ca) => ca.churchId === church.id).map((ca) => ca.affiliationId),
   }));
 
   const content = (
     <Layout title="Manage Churches" user={user} currentPath="/admin/churches">
       {success && (
-        <Toast 
+        <Toast
           message={success === 'created' ? 'Church created successfully!' : 'Church updated successfully!'}
           churchName={churchName}
           churchPath={churchPath}
           type="success"
         />
       )}
-      <script dangerouslySetInnerHTML={{
-        __html: `
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           window.churchesData = ${JSON.stringify(churchesData)};
           window.allChurchAffiliations = ${JSON.stringify(allChurchAffils)};
-        `
-      }} />
+        `,
+        }}
+      />
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
@@ -175,14 +165,28 @@ adminChurchesRoutes.get('/', async (c) => {
               <div class="mb-4 flex items-center justify-between">
                 <h3 class="text-base font-semibold leading-6 text-gray-900">Filters</h3>
                 <div id="filter-loading" class="hidden">
-                  <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg
+                    class="animate-spin h-5 w-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                 </div>
               </div>
               <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                <form method="GET" action="/admin/churches" id="church-filters-form" class="col-span-full grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
+                <form
+                  method="GET"
+                  action="/admin/churches"
+                  id="church-filters-form"
+                  class="col-span-full grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6"
+                >
                   {/* Search field - spans 2 columns on desktop */}
                   <div class="sm:col-span-2">
                     <label for="search" class="block text-sm font-medium leading-6 text-gray-900">
@@ -192,7 +196,11 @@ adminChurchesRoutes.get('/', async (c) => {
                       <div class="relative rounded-md shadow-sm">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                           <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                            <path
+                              fill-rule="evenodd"
+                              d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                              clip-rule="evenodd"
+                            />
                           </svg>
                         </div>
                         <input
@@ -219,7 +227,7 @@ adminChurchesRoutes.get('/', async (c) => {
                         class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
                       >
                         <option value="">All Counties</option>
-                        {allCounties.map(county => (
+                        {allCounties.map((county) => (
                           <option value={county.id} selected={countyId === String(county.id)}>
                             {county.name}
                           </option>
@@ -240,7 +248,7 @@ adminChurchesRoutes.get('/', async (c) => {
                         class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
                       >
                         <option value="">All Affiliations</option>
-                        {allAffiliations.map(affiliation => (
+                        {allAffiliations.map((affiliation) => (
                           <option value={affiliation.id} selected={affiliationId === String(affiliation.id)}>
                             {affiliation.name}
                           </option>
@@ -261,17 +269,30 @@ adminChurchesRoutes.get('/', async (c) => {
                         class="block w-full rounded-md border-0 py-2 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
                       >
                         <option value="">All Statuses</option>
-                        <option value="Listed" selected={status === 'Listed'}>Listed</option>
-                        <option value="Ready to list" selected={status === 'Ready to list'}>Ready to list</option>
-                        <option value="Assess" selected={status === 'Assess'}>Assess</option>
-                        <option value="Needs data" selected={status === 'Needs data'}>Needs data</option>
-                        <option value="Unlisted" selected={status === 'Unlisted'}>Unlisted</option>
-                        <option value="Heretical" selected={status === 'Heretical'}>Heretical</option>
-                        <option value="Closed" selected={status === 'Closed'}>Closed</option>
+                        <option value="Listed" selected={status === 'Listed'}>
+                          Listed
+                        </option>
+                        <option value="Ready to list" selected={status === 'Ready to list'}>
+                          Ready to list
+                        </option>
+                        <option value="Assess" selected={status === 'Assess'}>
+                          Assess
+                        </option>
+                        <option value="Needs data" selected={status === 'Needs data'}>
+                          Needs data
+                        </option>
+                        <option value="Unlisted" selected={status === 'Unlisted'}>
+                          Unlisted
+                        </option>
+                        <option value="Heretical" selected={status === 'Heretical'}>
+                          Heretical
+                        </option>
+                        <option value="Closed" selected={status === 'Closed'}>
+                          Closed
+                        </option>
                       </select>
                     </div>
                   </div>
-
 
                   {/* Clear filters link - only show if filters are active */}
                   {(search || countyId || affiliationId || status) && (
@@ -279,23 +300,36 @@ adminChurchesRoutes.get('/', async (c) => {
                       <div class="flex items-center justify-between">
                         <div class="flex items-center text-sm text-gray-600">
                           <svg class="mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                            />
                           </svg>
                           <span>
-                            Filters active: {[
+                            Filters active:{' '}
+                            {[
                               search && 'Search',
-                              countyId && 'County', 
+                              countyId && 'County',
                               affiliationId && 'Affiliation',
-                              status && 'Status'
-                            ].filter(Boolean).join(', ')}
+                              status && 'Status',
+                            ]
+                              .filter(Boolean)
+                              .join(', ')}
                           </span>
                         </div>
-                        <a 
-                          href="/admin/churches" 
+                        <a
+                          href="/admin/churches"
                           class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                         >
                           <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                           Clear filters
                         </a>
@@ -333,7 +367,7 @@ adminChurchesRoutes.get('/', async (c) => {
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                   {filteredResults.map(({ church, county }) => (
-                    <tr 
+                    <tr
                       key={church.id}
                       data-church-id={church.id}
                       data-church-name={church.name.toLowerCase()}
@@ -343,30 +377,38 @@ adminChurchesRoutes.get('/', async (c) => {
                       data-church-county-id={church.countyId || ''}
                     >
                       <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium sm:pl-0">
-                        <a href={`/churches/${church.path}`} class="text-primary-600 hover:text-primary-800 hover:underline">
+                        <a
+                          href={`/churches/${church.path}`}
+                          class="text-primary-600 hover:text-primary-800 hover:underline"
+                        >
                           {church.name}
                         </a>
                       </td>
                       <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                          church.status === 'Listed' ? 'bg-green-50 text-green-700' :
-                          church.status === 'Ready to list' ? 'bg-blue-50 text-blue-700' :
-                          church.status === 'Assess' ? 'bg-yellow-50 text-yellow-700' :
-                          church.status === 'Needs data' ? 'bg-orange-50 text-orange-700' :
-                          church.status === 'Unlisted' ? 'bg-gray-50 text-gray-700' :
-                          church.status === 'Heretical' ? 'bg-red-50 text-red-700' :
-                          church.status === 'Closed' ? 'bg-gray-50 text-gray-700' :
-                          'bg-gray-50 text-gray-700'
-                        }`}>
+                        <span
+                          class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                            church.status === 'Listed'
+                              ? 'bg-green-50 text-green-700'
+                              : church.status === 'Ready to list'
+                                ? 'bg-blue-50 text-blue-700'
+                                : church.status === 'Assess'
+                                  ? 'bg-yellow-50 text-yellow-700'
+                                  : church.status === 'Needs data'
+                                    ? 'bg-orange-50 text-orange-700'
+                                    : church.status === 'Unlisted'
+                                      ? 'bg-gray-50 text-gray-700'
+                                      : church.status === 'Heretical'
+                                        ? 'bg-red-50 text-red-700'
+                                        : church.status === 'Closed'
+                                          ? 'bg-gray-50 text-gray-700'
+                                          : 'bg-gray-50 text-gray-700'
+                          }`}
+                        >
                           {church.status}
                         </span>
                       </td>
-                      <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {county?.name || '-'}
-                      </td>
-                      <td class="px-3 py-4 text-sm text-gray-500">
-                        {church.gatheringAddress || '-'}
-                      </td>
+                      <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{county?.name || '-'}</td>
+                      <td class="px-3 py-4 text-sm text-gray-500">{church.gatheringAddress || '-'}</td>
                       <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                         <a href={`/admin/churches/${church.id}/edit`} class="text-primary-600 hover:text-primary-900">
                           Edit<span class="sr-only">, {church.name}</span>
@@ -385,9 +427,10 @@ adminChurchesRoutes.get('/', async (c) => {
           </div>
         </div>
       </div>
-      
-      <script dangerouslySetInnerHTML={{
-        __html: `
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
         (function() {
           const searchInput = document.getElementById('search');
           const countySelect = document.getElementById('county');
@@ -500,8 +543,9 @@ adminChurchesRoutes.get('/', async (c) => {
           // Initialize on page load
           updateClearFiltersVisibility();
         })();
-        `
-      }} />
+        `,
+        }}
+      />
     </Layout>
   );
 
@@ -551,26 +595,30 @@ adminChurchesRoutes.post('/', async (c) => {
   try {
     const body = await c.req.parseBody({ all: true });
     const parsedBody = parseFormBody(body);
-    
+
     // Parse gatherings and affiliations from form
     const gatherings = parseGatheringsFromForm(parsedBody);
     const formAffiliations = parseAffiliationsFromForm(parsedBody);
-    
+
     // Structure data for validation
     const dataToValidate = {
       church: parsedBody,
       gatherings,
-      affiliations: formAffiliations
+      affiliations: formAffiliations,
     };
-    
+
     const validationResult = validateFormData(churchWithGatheringsSchema, dataToValidate);
-    
+
     if (!validationResult.success) {
       console.error('Validation errors:', validationResult.errors);
       throw new Error(validationResult.message);
     }
-    
-    const { church: validatedChurchData, gatherings: validatedGatherings, affiliations: validatedAffiliations } = validationResult.data;
+
+    const {
+      church: validatedChurchData,
+      gatherings: validatedGatherings,
+      affiliations: validatedAffiliations,
+    } = validationResult.data;
 
     // Prepare church data for insertion
     const churchData = prepareChurchDataFromForm(validatedChurchData);
@@ -594,19 +642,15 @@ adminChurchesRoutes.post('/', async (c) => {
       const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
         churchId: church.id,
         affiliationId: Number(affiliationId),
-        order: index
+        order: index,
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
 
     // Create audit trail comment
     try {
-      const auditComment = createAuditComment(
-        user.name || user.email,
-        'created church',
-        []
-      );
-      
+      const auditComment = createAuditComment(user.name || user.email, 'created church', []);
+
       await db.insert(comments).values({
         userId: user.id,
         churchId: church.id,
@@ -626,7 +670,7 @@ adminChurchesRoutes.post('/', async (c) => {
     const params = new URLSearchParams({
       success: 'created',
       churchName: church.name,
-      churchPath: church.path
+      churchPath: church.path,
     });
     return c.redirect(`/admin/churches?${params.toString()}`);
   } catch (error) {
@@ -653,7 +697,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
-  
+
   // Check for success message parameters
   const success = c.req.query('success');
   const churchName = c.req.query('churchName');
@@ -675,12 +719,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const content = (
     <Layout title={`Edit ${church.name}`} currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
       {success && (
-        <Toast 
-          message="Church updated successfully!"
-          churchName={churchName}
-          churchPath={churchPath}
-          type="success"
-        />
+        <Toast message="Church updated successfully!" churchName={churchName} churchPath={churchPath} type="success" />
       )}
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
@@ -715,15 +754,16 @@ adminChurchesRoutes.post('/:id', async (c) => {
     const [oldChurch, oldGatherings, oldAffiliations] = await Promise.all([
       db.select().from(churches).where(eq(churches.id, id)).get(),
       db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
-      db.select({
-        id: affiliations.id,
-        name: affiliations.name,
-        path: affiliations.path,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(eq(churchAffiliations.churchId, id))
-      .all(),
+      db
+        .select({
+          id: affiliations.id,
+          name: affiliations.name,
+          path: affiliations.path,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(eq(churchAffiliations.churchId, id))
+        .all(),
     ]);
 
     if (!oldChurch) {
@@ -731,7 +771,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
     }
 
     const body = await c.req.parseBody({ all: true });
-    
+
     // Handle image upload if present
     if (body.image && body.image instanceof File && body.image.size > 0) {
       // Check if Cloudflare image API is configured
@@ -746,7 +786,9 @@ adminChurchesRoutes.post('/:id', async (c) => {
                   Image uploads are currently disabled because Cloudflare Images has not been configured.
                 </p>
                 <p class="mt-3 text-sm text-yellow-600">
-                  Please configure <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> and <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_IMAGES_API_TOKEN</code> to enable this feature.
+                  Please configure <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> and{' '}
+                  <code class="font-mono bg-yellow-100 px-1 rounded">CLOUDFLARE_IMAGES_API_TOKEN</code> to enable this
+                  feature.
                 </p>
                 <a href="/admin/churches" class="mt-4 inline-block text-yellow-800 hover:text-yellow-900 underline">
                   ← Back to churches
@@ -757,24 +799,24 @@ adminChurchesRoutes.post('/:id', async (c) => {
           400
         );
       }
-      
+
       try {
         const { getImagePrefix } = await import('../../utils/settings');
         const imagePrefix = await getImagePrefix(c.env);
-        
+
         const uploadResult = await uploadToCloudflareImages(
           body.image,
           c.env.CLOUDFLARE_ACCOUNT_ID,
           c.env.CLOUDFLARE_IMAGES_API_TOKEN,
           imagePrefix
         );
-        
+
         if (!uploadResult.success || !uploadResult.result) {
           throw new Error('Failed to upload image');
         }
-        
+
         const imageId = uploadResult.result.id;
-        
+
         // Save image record
         await db.insert(churchImages).values({
           churchId: id,
@@ -794,7 +836,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
         .from(churchImages)
         .where(eq(churchImages.id, Number(deleteImageId)))
         .get();
-      
+
       if (imageToDelete) {
         await deleteFromCloudflareImages(
           imageToDelete.cloudflareId,
@@ -807,26 +849,30 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     // Parse and validate form data
     const parsedBody = parseFormBody(body);
-    
+
     // Parse gatherings and affiliations from form
     const gatherings = parseGatheringsFromForm(parsedBody);
     const formAffiliations = parseAffiliationsFromForm(parsedBody);
-    
+
     // Structure data for validation
     const dataToValidate = {
       church: parsedBody,
       gatherings,
-      affiliations: formAffiliations
+      affiliations: formAffiliations,
     };
-    
+
     const validationResult = validateFormData(churchWithGatheringsSchema, dataToValidate);
-    
+
     if (!validationResult.success) {
       console.error('Validation errors:', validationResult.errors);
       throw new Error(validationResult.message);
     }
-    
-    const { church: validatedChurchData, gatherings: validatedGatherings, affiliations: validatedAffiliations } = validationResult.data;
+
+    const {
+      church: validatedChurchData,
+      gatherings: validatedGatherings,
+      affiliations: validatedAffiliations,
+    } = validationResult.data;
 
     // Prepare church data for update
     const churchData = prepareChurchDataFromForm(validatedChurchData);
@@ -851,21 +897,23 @@ adminChurchesRoutes.post('/:id', async (c) => {
       const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
         churchId: id,
         affiliationId: Number(affiliationId),
-        order: index
+        order: index,
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
 
     // Get new affiliations for audit trail
-    const newAffiliations = validatedAffiliations ? await db
-      .select({
-        id: affiliations.id,
-        name: affiliations.name,
-        path: affiliations.path,
-      })
-      .from(affiliations)
-      .where(sql`${affiliations.id} IN ${validatedAffiliations.map(Number)}`)
-      .all() : [];
+    const newAffiliations = validatedAffiliations
+      ? await db
+          .select({
+            id: affiliations.id,
+            name: affiliations.name,
+            path: affiliations.path,
+          })
+          .from(affiliations)
+          .where(sql`${affiliations.id} IN ${validatedAffiliations.map(Number)}`)
+          .all()
+      : [];
 
     // Create audit trail comment
     try {
@@ -877,14 +925,10 @@ adminChurchesRoutes.post('/:id', async (c) => {
         oldAffiliations,
         newAffiliations
       );
-      
+
       if (changes.length > 0) {
-        const auditComment = createAuditComment(
-          user.name || user.email,
-          'updated church data',
-          changes
-        );
-        
+        const auditComment = createAuditComment(user.name || user.email, 'updated church data', changes);
+
         await db.insert(comments).values({
           userId: user.id,
           churchId: id,
@@ -903,23 +947,23 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     // Get the church name for the success message
     const updatedChurch = await db.select().from(churches).where(eq(churches.id, id)).get();
-    
+
     // Check if this was a "save and continue" action
     if (body.continue === 'true') {
       // Redirect back to edit page with success message
       const params = new URLSearchParams({
         success: 'updated',
         churchName: updatedChurch?.name || 'Church',
-        churchPath: updatedChurch?.path || ''
+        churchPath: updatedChurch?.path || '',
       });
       return c.redirect(`/admin/churches/${id}/edit?${params.toString()}`);
     }
-    
+
     // Redirect with success message
     const params = new URLSearchParams({
       success: 'updated',
       churchName: updatedChurch?.name || 'Church',
-      churchPath: updatedChurch?.path || ''
+      churchPath: updatedChurch?.path || '',
     });
     return c.redirect(`/admin/churches?${params.toString()}`);
   } catch (error) {
@@ -949,7 +993,7 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   await db.delete(churchGatherings).where(eq(churchGatherings.churchId, id));
   await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, id));
   await db.delete(comments).where(eq(comments.churchId, id));
-  
+
   // Delete images
   const images = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
   for (const image of images) {
@@ -969,8 +1013,8 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
 
 // Extract website data
 adminChurchesRoutes.post('/:id/extract', async (c) => {
-  const user = c.get('betterUser');
-  const id = Number(c.req.param('id'));
+  const _user = c.get('betterUser');
+  const _id = Number(c.req.param('id'));
   const { website } = await c.req.json();
 
   if (!website) {
@@ -981,12 +1025,16 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
     // Check if OpenRouter API key is available
     const { hasOpenRouterApiKey } = await import('../../utils/env-validation');
     if (!hasOpenRouterApiKey(c.env)) {
-      return c.json({ 
-        error: 'AI extraction is not available',
-        message: 'The AI-powered website extraction feature requires an OpenRouter API key. Please configure OPENROUTER_API_KEY to enable this feature.'
-      }, 503);
+      return c.json(
+        {
+          error: 'AI extraction is not available',
+          message:
+            'The AI-powered website extraction feature requires an OpenRouter API key. Please configure OPENROUTER_API_KEY to enable this feature.',
+        },
+        503
+      );
     }
-    
+
     const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY);
     return c.json(extractedData);
   } catch (error) {

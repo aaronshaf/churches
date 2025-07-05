@@ -514,7 +514,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         const cleanOrigin = origin.replace(/\/$/, '');
 
         // Construct the full URL
-        processedData.statement_of_faith_url = cleanOrigin + '/' + cleanPath;
+        processedData.statement_of_faith_url = `${cleanOrigin}/${cleanPath}`;
       }
 
       // Clean up any double slashes (except after protocol)

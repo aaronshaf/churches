@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
-import { createDb, createDbWithContext } from '../db';
+import { Hono } from 'hono';
+import { createDbWithContext } from '../db';
 import { churches, comments } from '../db/schema';
 import { requireAdminBetter } from '../middleware/better-auth';
 import type { Bindings } from '../types';
@@ -47,11 +47,7 @@ apiRoutes.post('/comments/:id/delete', requireAdminBetter, async (c) => {
 
   try {
     // Check if comment exists
-    const comment = await db
-      .select()
-      .from(comments)
-      .where(eq(comments.id, commentId))
-      .get();
+    const comment = await db.select().from(comments).where(eq(comments.id, commentId)).get();
 
     if (!comment) {
       return c.json({ error: 'Comment not found' }, 404);

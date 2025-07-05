@@ -125,7 +125,9 @@ export const SettingsForm: FC<SettingsFormProps> = ({
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     placeholder="example.com"
                   />
-                  <p class="mt-2 text-sm text-gray-500">Your site's domain name (used in sitemap and structured data).</p>
+                  <p class="mt-2 text-sm text-gray-500">
+                    Your site's domain name (used in sitemap and structured data).
+                  </p>
                 </div>
               </div>
 
@@ -164,8 +166,8 @@ export const SettingsForm: FC<SettingsFormProps> = ({
                     pattern="[a-z0-9-]+"
                   />
                   <p class="mt-2 text-sm text-gray-500">
-                    Prefix for uploaded images in Cloudflare (lowercase letters, numbers, hyphens only). 
-                    If not set, will use domain name prefix.
+                    Prefix for uploaded images in Cloudflare (lowercase letters, numbers, hyphens only). If not set,
+                    will use domain name prefix.
                   </p>
                 </div>
               </div>

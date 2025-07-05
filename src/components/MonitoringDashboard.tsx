@@ -54,7 +54,9 @@ const MetricCard: FC<{ title: string; value: string; subtitle?: string }> = ({ t
   );
 };
 
-const ActivityItem: FC<{ activity: MonitoringDashboardProps['activityStats']['recentActivity'][0] }> = ({ activity }) => {
+const ActivityItem: FC<{ activity: MonitoringDashboardProps['activityStats']['recentActivity'][0] }> = ({
+  activity,
+}) => {
   const typeConfig = {
     login: { icon: '👤', color: 'text-green-600', bgColor: 'bg-green-100' },
     comment: { icon: '💬', color: 'text-blue-600', bgColor: 'bg-blue-100' },
@@ -87,9 +89,7 @@ const LoginItem: FC<{ login: MonitoringDashboardProps['loginStats']['recentLogin
   return (
     <div class="flex items-center justify-between py-3">
       <div class="flex items-center space-x-3">
-        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">
-          👤
-        </div>
+        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">👤</div>
         <div>
           <p class="text-sm font-medium text-gray-900">{login.user}</p>
           <p class="text-xs text-gray-500">{login.email}</p>
@@ -101,9 +101,7 @@ const LoginItem: FC<{ login: MonitoringDashboardProps['loginStats']['recentLogin
           <p class="text-xs text-gray-500">
             {timeAgo < 1 ? 'Just now' : timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo / 60)}h ago`}
           </p>
-          {login.ipAddress && (
-            <p class="text-xs text-gray-400">{login.ipAddress}</p>
-          )}
+          {login.ipAddress && <p class="text-xs text-gray-400">{login.ipAddress}</p>}
         </div>
       </div>
     </div>
@@ -121,26 +119,10 @@ export const MonitoringDashboard: FC<MonitoringDashboardProps> = ({ loginStats, 
 
       {/* Key Metrics */}
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Users"
-          value={`${loginStats.totalUsers}`}
-          subtitle="Registered users"
-        />
-        <MetricCard
-          title="Active Users (24h)"
-          value={`${loginStats.activeUsers24h}`}
-          subtitle="Users who logged in"
-        />
-        <MetricCard
-          title="Total Comments"
-          value={`${activityStats.totalComments}`}
-          subtitle="User comments posted"
-        />
-        <MetricCard
-          title="Comments Today"
-          value={`${activityStats.commentsToday}`}
-          subtitle="New comments posted"
-        />
+        <MetricCard title="Total Users" value={`${loginStats.totalUsers}`} subtitle="Registered users" />
+        <MetricCard title="Active Users (24h)" value={`${loginStats.activeUsers24h}`} subtitle="Users who logged in" />
+        <MetricCard title="Total Comments" value={`${activityStats.totalComments}`} subtitle="User comments posted" />
+        <MetricCard title="Comments Today" value={`${activityStats.commentsToday}`} subtitle="New comments posted" />
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

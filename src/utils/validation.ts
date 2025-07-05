@@ -199,7 +199,7 @@ export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<str
 
   const errors = result.error.flatten().fieldErrors;
   const firstErrorArray = Object.values(errors)[0];
-  const firstError = (firstErrorArray && firstErrorArray[0]) || 'Validation failed';
+  const firstError = firstErrorArray?.[0] || 'Validation failed';
 
   return {
     success: false,
@@ -252,9 +252,7 @@ export function parseAffiliationsFromForm(body: Record<string, any>) {
 
   // When using parseBody({ all: true }), multiple values come as an array
   if (Array.isArray(body.affiliations)) {
-    return body.affiliations
-      .map(v => Number(v))
-      .filter(id => !Number.isNaN(id) && id > 0);
+    return body.affiliations.map((v) => Number(v)).filter((id) => !Number.isNaN(id) && id > 0);
   }
 
   // Single value case
@@ -274,16 +272,16 @@ export function createValidationErrorResponse(errors: Record<string, string[]>, 
 // Helper to format phone numbers from XXX-XXX-XXXX to (XXX) XXX-XXXX
 export function formatPhoneNumber(phone: string | undefined): string | undefined {
   if (!phone) return undefined;
-  
+
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
-  
+
   // Check if it's a 10-digit phone number
   if (digits.length === 10) {
     // Format as (XXX) XXX-XXXX
     return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
   }
-  
+
   // Return original if not a 10-digit number
   return phone;
 }

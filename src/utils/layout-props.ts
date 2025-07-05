@@ -1,8 +1,8 @@
-import { Context } from 'hono';
-import { hasGoogleMapsApiKey } from './env-validation';
-import { getFaviconUrl, getLogoUrl } from './settings';
-import { getNavbarPages } from './pages';
+import type { Context } from 'hono';
 import { getUser } from '../middleware/better-auth';
+import { hasGoogleMapsApiKey } from './env-validation';
+import { getNavbarPages } from './pages';
+import { getFaviconUrl, getLogoUrl } from './settings';
 
 export async function getCommonLayoutProps(c: Context) {
   const [faviconUrl, logoUrl, navbarPages, user] = await Promise.all([
@@ -11,9 +11,9 @@ export async function getCommonLayoutProps(c: Context) {
     getNavbarPages(c.env),
     getUser(c),
   ]);
-  
+
   const showMap = hasGoogleMapsApiKey(c.env);
-  
+
   return {
     faviconUrl,
     logoUrl,

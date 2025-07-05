@@ -1,5 +1,3 @@
-import { validateCloudflareImageEnvVars } from './env-validation';
-
 export interface CloudflareImageUploadResponse {
   success: boolean;
   result?: {
@@ -23,14 +21,16 @@ export async function uploadToCloudflareImages(
 ): Promise<CloudflareImageUploadResponse> {
   // Validate that we have the required environment variables
   if (!accountId || !apiToken) {
-    throw new Error('Cloudflare Images configuration is missing. Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_IMAGES_API_TOKEN environment variables.');
+    throw new Error(
+      'Cloudflare Images configuration is missing. Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_IMAGES_API_TOKEN environment variables.'
+    );
   }
-  
+
   // Generate a prefixed image ID
   const timestamp = Date.now();
   const randomId = crypto.randomUUID().split('-')[0]; // Use first part of UUID for brevity
   const imageId = `${appPrefix}-${timestamp}-${randomId}`;
-  
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('id', imageId);
@@ -63,7 +63,9 @@ export async function deleteFromCloudflareImages(
 ): Promise<{ success: boolean }> {
   // Validate that we have the required environment variables
   if (!accountId || !apiToken) {
-    throw new Error('Cloudflare Images configuration is missing. Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_IMAGES_API_TOKEN environment variables.');
+    throw new Error(
+      'Cloudflare Images configuration is missing. Please set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_IMAGES_API_TOKEN environment variables.'
+    );
   }
   const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1/${imageId}`, {
     method: 'DELETE',

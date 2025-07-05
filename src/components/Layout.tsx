@@ -265,11 +265,15 @@ export const Layout: FC<LayoutProps> = ({
           {children}
         </main>
         {!hideFooter && (
-          <Footer user={user} churchId={churchId} countyId={countyId} affiliationId={affiliationId} currentPath={currentPath} />
+          <Footer
+            user={user}
+            churchId={churchId}
+            countyId={countyId}
+            affiliationId={affiliationId}
+            currentPath={currentPath}
+          />
         )}
-        {currentPath === '/admin/churches' && (
-          <script src="/js/church-filters.js"></script>
-        )}
+        {currentPath === '/admin/churches' && <script src="/js/church-filters.js"></script>}
       </body>
     </html>
   );

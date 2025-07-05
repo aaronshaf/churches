@@ -8,7 +8,7 @@ import { validateAuthEnvVars } from '../utils/env-validation';
 export function createAuth(env: any) {
   // Validate required environment variables
   validateAuthEnvVars(env);
-  
+
   const client = createClient({
     url: env.TURSO_DATABASE_URL,
     authToken: env.TURSO_AUTH_TOKEN,

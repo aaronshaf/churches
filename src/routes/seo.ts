@@ -1,7 +1,7 @@
-import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
-import { createDb, createDbWithContext } from '../db';
-import { churches, counties, affiliations, pages, settings } from '../db/schema';
+import { Hono } from 'hono';
+import { createDbWithContext } from '../db';
+import { affiliations, churches, counties, pages, settings } from '../db/schema';
 import type { Bindings } from '../types';
 
 export const seoRoutes = new Hono<{ Bindings: Bindings }>();
@@ -11,7 +11,7 @@ seoRoutes.get('/robots.txt', async (c) => {
   const db = createDbWithContext(c);
   const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
-  
+
   const robotsTxt = `User-agent: *
 Allow: /
 
@@ -47,7 +47,7 @@ seoRoutes.get('/llms.txt', async (c) => {
   const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
   const regionSetting = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
   const siteRegion = regionSetting?.value || 'UT';
-  
+
   const llmsTxt = `# Utah Churches Directory
 
 This is a directory of Christian churches in ${siteRegion === 'UT' ? 'Utah' : siteRegion}, United States.

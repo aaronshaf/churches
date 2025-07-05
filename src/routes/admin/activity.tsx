@@ -1,13 +1,13 @@
+import { and, desc, eq, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
-import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import { getLogoUrl } from '../../utils/settings';
-import { getNavbarPages } from '../../utils/pages';
 import { createDbWithContext } from '../../db';
-import { comments, churches } from '../../db/schema';
 import { users } from '../../db/auth-schema';
-import { desc, eq, sql, and, or, like } from 'drizzle-orm';
+import { churches, comments } from '../../db/schema';
+import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { Bindings } from '../../types';
+import { getNavbarPages } from '../../utils/pages';
+import { getLogoUrl } from '../../utils/settings';
 
 type Variables = {
   betterUser: any;
@@ -34,11 +34,11 @@ adminActivityRoutes.get('/', async (c) => {
 
   // Build filter conditions
   const conditions = [eq(comments.type, 'system')];
-  
+
   if (searchQuery) {
     conditions.push(like(comments.content, `%${searchQuery}%`));
   }
-  
+
   if (churchFilter) {
     conditions.push(eq(comments.churchId, Number.parseInt(churchFilter, 10)));
   }
@@ -71,16 +71,13 @@ adminActivityRoutes.get('/', async (c) => {
       name: churches.name,
     })
     .from(churches)
-    .innerJoin(comments, and(
-      eq(comments.churchId, churches.id),
-      eq(comments.type, 'system')
-    ))
+    .innerJoin(comments, and(eq(comments.churchId, churches.id), eq(comments.type, 'system')))
     .groupBy(churches.id, churches.name)
     .orderBy(churches.name)
     .all();
 
   // Transform the data to a cleaner format
-  const allActivity = allActivityRaw.map(row => ({
+  const allActivity = allActivityRaw.map((row) => ({
     id: row.comments.id,
     content: row.comments.content,
     userId: row.comments.userId,
@@ -97,21 +94,15 @@ adminActivityRoutes.get('/', async (c) => {
   }));
 
   // Calculate stats
-  const last24h = Date.now() - (24 * 60 * 60 * 1000);
+  const last24h = Date.now() - 24 * 60 * 60 * 1000;
   const stats = {
     total: count,
-    churchRelated: allActivity.filter(a => a.churchId).length,
-    last24h: allActivity.filter(a => a.createdAt > last24h / 1000).length,
+    churchRelated: allActivity.filter((a) => a.churchId).length,
+    last24h: allActivity.filter((a) => a.createdAt > last24h / 1000).length,
   };
 
   return c.html(
-    <Layout
-      title="System Activity - Admin"
-      user={user}
-      currentPath="/admin"
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title="System Activity - Admin" user={user} currentPath="/admin" logoUrl={logoUrl} pages={navbarPages}>
       <div class="min-h-full">
         {/* Header */}
         <div class="bg-white shadow">
@@ -120,7 +111,7 @@ adminActivityRoutes.get('/', async (c) => {
               <div class="flex-1 min-w-0">
                 {/* Breadcrumb */}
                 <nav class="flex" aria-label="Breadcrumb">
-                  <ol role="list" class="flex items-center space-x-2">
+                  <ol class="flex items-center space-x-2">
                     <li>
                       <a href="/admin" class="text-sm font-medium text-gray-500 hover:text-gray-700">
                         Admin
@@ -136,9 +127,7 @@ adminActivityRoutes.get('/', async (c) => {
                     </li>
                   </ol>
                 </nav>
-                <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                  System Activity
-                </h1>
+                <h1 class="mt-2 text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">System Activity</h1>
               </div>
             </div>
           </div>
@@ -155,9 +144,7 @@ adminActivityRoutes.get('/', async (c) => {
                       <div class="flex items-center">
                         <h1 class="text-xl font-semibold text-gray-900">Activity Log</h1>
                       </div>
-                      <p class="mt-1 text-sm text-gray-500">
-                        Track all system-generated changes and updates
-                      </p>
+                      <p class="mt-1 text-sm text-gray-500">Track all system-generated changes and updates</p>
                     </div>
                   </div>
                 </div>
@@ -235,7 +222,12 @@ adminActivityRoutes.get('/', async (c) => {
                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                       >
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                          />
                         </svg>
                         Filter
                       </button>
@@ -265,19 +257,23 @@ adminActivityRoutes.get('/', async (c) => {
                 {allActivity.length === 0 ? (
                   <div class="text-center py-12">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
                     </svg>
                     <h3 class="mt-2 text-sm font-medium text-gray-900">No activity found</h3>
                     <p class="mt-1 text-sm text-gray-500">
                       {searchQuery || churchFilter
                         ? 'Try adjusting your filters'
-                        : 'System activity logs will appear here'
-                      }
+                        : 'System activity logs will appear here'}
                     </p>
                   </div>
                 ) : (
                   <>
-                    <ul role="list" class="divide-y divide-gray-200">
+                    <ul class="divide-y divide-gray-200">
                       {allActivity.map((activity) => (
                         <li key={activity.id}>
                           <div class="px-4 py-4 sm:px-6">
@@ -285,18 +281,26 @@ adminActivityRoutes.get('/', async (c) => {
                               {/* Icon */}
                               <div class="flex-shrink-0">
                                 <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                                  <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  <svg
+                                    class="w-6 h-6 text-amber-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
                                   </svg>
                                 </div>
                               </div>
-                              
+
                               {/* Content */}
                               <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
-                                  <p class="text-sm font-medium text-gray-900">
-                                    {activity.userName || 'System'}
-                                  </p>
+                                  <p class="text-sm font-medium text-gray-900">{activity.userName || 'System'}</p>
                                   <div class="ml-2 flex-shrink-0 flex">
                                     <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
                                       System Log
@@ -314,20 +318,24 @@ adminActivityRoutes.get('/', async (c) => {
                                 </p>
                                 {activity.churchName && (
                                   <p class="mt-1 text-sm text-gray-900">
-                                    Church: <a href={`/churches/${activity.churchPath}`} class="font-medium text-primary-600 hover:text-primary-500">
+                                    Church:{' '}
+                                    <a
+                                      href={`/churches/${activity.churchPath}`}
+                                      class="font-medium text-primary-600 hover:text-primary-500"
+                                    >
                                       {activity.churchName}
                                     </a>
                                   </p>
                                 )}
                                 <div class="mt-2 text-sm text-gray-700">
-                                  <div 
-                                    dangerouslySetInnerHTML={{ 
+                                  <div
+                                    dangerouslySetInnerHTML={{
                                       __html: activity.content
-                                        .replace(/```yaml\n([\s\S]*?)```/g, (match, p1) => {
+                                        .replace(/```yaml\n([\s\S]*?)```/g, (_match, p1) => {
                                           return `<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">${p1.trim()}</pre>`;
                                         })
-                                        .replace(/\n/g, '<br>')
-                                    }} 
+                                        .replace(/\n/g, '<br>'),
+                                    }}
                                   />
                                 </div>
                                 {activity.metadata && (
@@ -346,7 +354,7 @@ adminActivityRoutes.get('/', async (c) => {
                         </li>
                       ))}
                     </ul>
-                    
+
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
@@ -385,7 +393,10 @@ adminActivityRoutes.get('/', async (c) => {
                             </p>
                           </div>
                           <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            <nav
+                              class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                              aria-label="Pagination"
+                            >
                               {page > 1 ? (
                                 <a
                                   href={`?page=${page - 1}${searchQuery ? `&search=${searchQuery}` : ''}${churchFilter ? `&church=${churchFilter}` : ''}`}
@@ -393,18 +404,26 @@ adminActivityRoutes.get('/', async (c) => {
                                 >
                                   <span class="sr-only">Previous</span>
                                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
                                 </a>
                               ) : (
                                 <span class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed">
                                   <span class="sr-only">Previous</span>
                                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
                                 </span>
                               )}
-                              
+
                               {/* Page numbers */}
                               {[...Array(Math.min(totalPages, 7))].map((_, i) => {
                                 const pageNum = i + 1;
@@ -436,14 +455,22 @@ adminActivityRoutes.get('/', async (c) => {
                                 >
                                   <span class="sr-only">Next</span>
                                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
                                 </a>
                               ) : (
                                 <span class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed">
                                   <span class="sr-only">Next</span>
                                   <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                    <path
+                                      fill-rule="evenodd"
+                                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                      clip-rule="evenodd"
+                                    />
                                   </svg>
                                 </span>
                               )}
