@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Check file sizes before running other checks
+node scripts/check-file-sizes.js
+
 pnpm lint-staged
