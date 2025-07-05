@@ -487,32 +487,24 @@ app.get('/', async (c) => {
               </div>
               <div id="counties-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {countiesWithChurches.map((county) => (
-                  <a
-                    href={`/counties/${county.path || county.id}`}
-                    class="county-card group bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-primary-500 transition-all duration-200 p-6"
-                    data-name={county.name}
-                    data-population={county.population || 0}
-                  >
+                  <div class="county-card group bg-white rounded-lg ring-1 ring-gray-200 hover:ring-gray-300 transition-all duration-200 p-6" data-name={county.name} data-population={county.population || 0}>
                     <div class="flex items-start justify-between">
-                      <div>
-                        <h3 class="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                          {county.name}
+                      <div class="flex-1">
+                        <h3 class="text-base font-semibold mb-1">
+                          <a 
+                            href={`/counties/${county.path || county.id}`}
+                            class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                          >
+                            {county.name}
+                          </a>
                         </h3>
                         <p class="mt-1 text-sm text-gray-500">
                           {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
                         </p>
+                        {county.description && <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>}
                       </div>
-                      <svg
-                        class="h-5 w-5 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
-                    {county.description && <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>}
-                  </a>
+                  </div>
                 ))}
               </div>
             </div>
