@@ -1,0 +1,1 @@
+ALTER TABLE `churches` ADD `mailing_address` text;

@@ -12,6 +12,7 @@ export const churches = sqliteTable('churches', {
   publicNotes: text('public_notes'),
   lastUpdated: integer('last_updated', { mode: 'timestamp' }),
   gatheringAddress: text('gathering_address'),
+  mailingAddress: text('mailing_address'),
   latitude: real('latitude'),
   longitude: real('longitude'),
   countyId: integer('county_id').references(() => counties.id),
