@@ -1573,21 +1573,11 @@ app.get('/map', async (c) => {
     )
     .all();
 
-  // Get gatherings for all churches
+  // Get gatherings for all churches (query all and filter in JS to avoid D1's SQL variable limit)
   const churchIds = allChurchesWithCoords.map((c) => c.id);
-  const allGatherings =
-    churchIds.length > 0
-      ? await db
-          .select()
-          .from(churchGatherings)
-          .where(
-            sql`${churchGatherings.churchId} IN (${sql.join(
-              churchIds.map((id) => sql`${id}`),
-              sql`, `
-            )})`
-          )
-          .all()
-      : [];
+  const churchIdSet = new Set(churchIds);
+  const allGatheringsRaw = await db.select().from(churchGatherings).all();
+  const allGatherings = allGatheringsRaw.filter((gathering) => churchIdSet.has(gathering.churchId));
 
   // Group gatherings by church ID
   const gatheringsByChurchId = allGatherings.reduce(
