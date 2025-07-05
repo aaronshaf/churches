@@ -1,6 +1,5 @@
-import { createClient } from '@libsql/client';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { Layout } from '../components/Layout';
 import { churchSuggestions, comments } from '../db/schema';
@@ -15,12 +14,7 @@ contributorApp.use('*', requireContributorBetter);
 // Dashboard for contributors
 contributorApp.get('/dashboard', async (c) => {
   const user = await getUser(c);
-  const db = drizzle(
-    createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    })
-  );
+  const db = drizzle(c.env.DB);
 
   // Get user's suggestions
   const userSuggestions = await db
@@ -239,12 +233,7 @@ contributorApp.post('/suggest', async (c) => {
   const user = await getUser(c);
   const formData = await c.req.formData();
 
-  const db = drizzle(
-    createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    })
-  );
+  const db = drizzle(c.env.DB);
 
   try {
     await db.insert(churchSuggestions).values({
@@ -283,12 +272,7 @@ contributorApp.post('/churches/:id/comment', async (c) => {
   const churchId = parseInt(c.req.param('id'));
   const formData = await c.req.formData();
 
-  const db = drizzle(
-    createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    })
-  );
+  const db = drizzle(c.env.DB);
 
   try {
     await db.insert(comments).values({

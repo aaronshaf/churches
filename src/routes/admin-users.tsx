@@ -1,6 +1,5 @@
-import { createClient } from '@libsql/client';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { UserRoleManager } from '../components/admin/UserRoleManager';
 import { Layout } from '../components/Layout';
@@ -16,13 +15,7 @@ adminUsersApp.use('*', requireAdminBetter);
 // Users management page
 adminUsersApp.get('/', async (c) => {
   const currentUser = await getUser(c);
-  const db = drizzle(
-    createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    }),
-    { schema: { users } }
-  );
+  const db = drizzle(c.env.DB, { schema: { users } });
 
   // Get all users
   const allUsers = await db.select().from(users).orderBy(users.createdAt);
