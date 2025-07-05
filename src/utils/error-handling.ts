@@ -25,6 +25,7 @@ export function sanitizeErrorMessage(error: Error | unknown): {
       .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
 
     // Categorize common errors with helpful messages
+    let type: string;
     if (message.includes('Failed query') || message.includes('Database')) {
       type = 'Database Error';
       details = 'There was a problem accessing the database. This is usually temporary.';

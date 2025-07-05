@@ -29,7 +29,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   return (
     <>
       <form
-        method="POST"
+        method="post"
         action={action}
         class="space-y-8"
         data-testid="church-form"

@@ -27,16 +27,14 @@ type ChurchCommentsProps = {
   };
 };
 
-export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, churchPath, comments, user }) => {
+export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, comments, user }) => {
   // Only show comments section for logged-in users
   if (!user) {
     return null;
   }
 
   const canSeeAllComments = user && (user.role === 'admin' || user.role === 'contributor');
-  const visibleComments = canSeeAllComments 
-    ? comments 
-    : comments.filter(comment => comment.isOwn);
+  const visibleComments = canSeeAllComments ? comments : comments.filter((comment) => comment.isOwn);
 
   return (
     <div class="space-y-6" data-testid="church-comments">
@@ -47,14 +45,14 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
             {canSeeAllComments ? 'Feedback' : 'My Notes'}
           </h3>
           <p class="text-sm text-gray-600 mt-0.5">
-            {canSeeAllComments 
-              ? 'Private comments from community members' 
-              : 'Your personal notes about this church'
-            }
+            {canSeeAllComments ? 'Private comments from community members' : 'Your personal notes about this church'}
           </p>
         </div>
         {visibleComments.length > 0 && (
-          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700" data-testid="comments-count">
+          <span
+            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+            data-testid="comments-count"
+          >
             {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
           </span>
         )}
@@ -62,41 +60,28 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
 
       {/* Add Comment Form */}
       {user && (
-        <div class="bg-white border border-gray-200 rounded-xl px-6 pt-6 pb-4 shadow-sm" data-testid="comment-form-container">
-          <form method="POST" action={`/churches/${churchPath}/comments`} class="p-0 m-0" data-testid="comment-form">
-            <div>
-              <label for="comment-content" class="sr-only">
-                Submit comment about {churchName}
-              </label>
-              <textarea
-                id="comment-content"
-                name="content"
-                rows="4"
-                required
-                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm placeholder-gray-400 resize-none px-4 py-3"
-                placeholder={`Submit comment about ${churchName}`}
-                data-testid="comment-textarea"
-              ></textarea>
-            </div>
-            <div class="flex items-center justify-between mt-4">
-              <div class="flex items-center space-x-1 text-xs text-gray-500">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>Private comment - only visible to you and site editors</span>
-              </div>
-              <button
-                type="submit"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-lg transition-colors"
-                data-testid="submit-comment-button"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Comment
-              </button>
-            </div>
-          </form>
+        <div
+          class="bg-white border border-gray-200 rounded-xl px-6 pt-6 pb-4 shadow-sm"
+          data-testid="comment-form-container"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-sm text-gray-600">Have feedback about this church?</p>
+            <a
+              href={`/feedback?type=church&churchId=${churchId}`}
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-lg transition-colors"
+              data-testid="submit-feedback-link"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              Submit Feedback
+            </a>
+          </div>
         </div>
       )}
 
@@ -105,32 +90,40 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
         <div class="space-y-3" data-testid="comments-list">
           {visibleComments.map((comment, index) => (
             <div key={comment.id} class="group" data-testid={`comment-${index}`}>
-              <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow" data-testid={`comment-container-${index}`}>
+              <div
+                class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow"
+                data-testid={`comment-container-${index}`}
+              >
                 <div class="flex items-start space-x-3">
                   {/* Avatar */}
                   <div class="flex-shrink-0">
                     {comment.userImage ? (
-                      <img 
+                      <img
                         src={comment.userImage}
                         alt={comment.userName || comment.userEmail}
                         class="w-9 h-9 rounded-full object-cover border border-gray-200"
                         onerror={`this.src='${getGravatarUrl(comment.userEmail, 36)}'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}`}
                       />
                     ) : (
-                      <img 
+                      <img
                         src={getGravatarUrl(comment.userEmail, 36)}
                         alt={comment.userName || comment.userEmail}
                         class="w-9 h-9 rounded-full object-cover border border-gray-200"
                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
                       />
                     )}
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center" style="display: none;">
+                    <div
+                      class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center"
+                      style="display: none;"
+                    >
                       <span class="text-sm font-semibold text-white">
-                        {comment.userName ? comment.userName.charAt(0).toUpperCase() : comment.userEmail.charAt(0).toUpperCase()}
+                        {comment.userName
+                          ? comment.userName.charAt(0).toUpperCase()
+                          : comment.userEmail.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Content */}
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-2">
@@ -146,7 +139,12 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                         {comment.type === 'system' && (
                           <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
                             </svg>
                             Change Log
                           </span>
@@ -159,15 +157,22 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                       </div>
                       <div class="flex items-center space-x-3">
                         <time class="text-xs text-gray-500">
-                          {new Date(comment.createdAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
+                          {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
                             day: 'numeric',
-                            year: new Date(comment.createdAt).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                            year:
+                              new Date(comment.createdAt).getFullYear() !== new Date().getFullYear()
+                                ? 'numeric'
+                                : undefined,
                           })}
                         </time>
                         {user.role === 'admin' && (
                           <div class="border-l border-gray-300 pl-3">
-                            <form method="POST" action={`/churches/${churchPath}/comments/${comment.id}/delete`} class="inline">
+                            <form
+                              method="post"
+                              action={`/churches/${churchPath}/comments/${comment.id}/delete`}
+                              class="inline"
+                            >
                               <button
                                 type="submit"
                                 onclick="return confirm('Are you sure you want to delete this comment?')"
@@ -185,14 +190,16 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                     <div class="prose prose-sm max-w-none">
                       {comment.type === 'system' ? (
                         <div class="text-gray-700 text-sm" data-testid={`comment-content-${index}`}>
-                          <div 
+                          <div
                             class={`comment-content ${comment.content.length > 500 ? 'comment-truncate' : ''}`}
                             data-comment-id={comment.id}
-                            dangerouslySetInnerHTML={{ 
+                            dangerouslySetInnerHTML={{
                               __html: comment.content
-                                .replace(/```yaml\n([\s\S]*?)```/g, '<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">$1</pre>')
-                                .replace(/\n/g, '<br>')
-                            }} 
+                                .replace(/```yaml\n([\s\S]*?)```/g, (_match, p1) => {
+                                  return `<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">${p1.trim()}</pre>`;
+                                })
+                                .replace(/\n/g, '<br>'),
+                            }}
                           />
                           {comment.content.length > 500 && (
                             <button
@@ -208,7 +215,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
                         </div>
                       ) : (
                         <div class="text-gray-700" data-testid={`comment-content-${index}`}>
-                          <p 
+                          <p
                             class={`leading-relaxed whitespace-pre-wrap comment-content ${comment.content.length > 500 ? 'comment-truncate' : ''}`}
                             data-comment-id={comment.id}
                           >
@@ -235,9 +242,10 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           ))}
         </div>
       )}
-      
-      <style dangerouslySetInnerHTML={{
-        __html: `
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
           .comment-truncate {
             max-height: 150px;
             overflow: hidden;
@@ -261,11 +269,13 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
           .comment-content.expanded::after {
             display: none;
           }
-        `
-      }} />
-      
-      <script dangerouslySetInnerHTML={{
-        __html: `
+        `,
+        }}
+      />
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
           function toggleComment(commentId) {
             const content = document.querySelector('[data-comment-id="' + commentId + '"]');
             const button = event.target.closest('button');
@@ -282,8 +292,9 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchName, 
               collapseText.classList.remove('hidden');
             }
           }
-        `
-      }} />
+        `,
+        }}
+      />
     </div>
   );
 };

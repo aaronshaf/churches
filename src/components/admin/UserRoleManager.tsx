@@ -54,7 +54,7 @@ export const UserRoleManager: FC<UserRoleManagerProps> = ({ users, currentUserId
                   {user.id === currentUserId ? (
                     <span class="text-gray-400">Current User</span>
                   ) : (
-                    <form method="POST" action={`/admin/users/${user.id}/role`} class="inline">
+                    <form method="post" action={`/admin/users/${user.id}/role`} class="inline">
                       <select
                         name="newRole"
                         onchange="this.form.submit()"

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { isNotNull } from 'drizzle-orm';
 import { createDb } from '../db';
 import { pages } from '../db/schema';
 import type { Bindings } from '../types';
@@ -11,9 +11,10 @@ export async function getNavbarPages(env: Bindings) {
       id: pages.id,
       title: pages.title,
       path: pages.path,
+      navbarOrder: pages.navbarOrder,
     })
     .from(pages)
-    .where(eq(pages.showInNavbar, true))
+    .where(isNotNull(pages.navbarOrder))
     .orderBy(pages.navbarOrder)
     .all();
   

@@ -11,7 +11,7 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
   return (
     <>
       <form
-        method="POST"
+        method="post"
         action={action}
         onsubmit="handleFormSubmit(event)"
         class="space-y-6"

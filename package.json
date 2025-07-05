@@ -25,7 +25,8 @@
     "format": "biome format --write src/",
     "check": "biome check src/",
     "typecheck": "tsc --noEmit",
-    "ci": "pnpm run check && pnpm run typecheck"
+    "ci": "pnpm run check && pnpm run typecheck",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "Aaron Shafovaloff",
@@ -41,10 +42,13 @@
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.1",
     "esbuild": "^0.25.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "nanoid": "^5.1.5",
     "postcss": "^8.5.6",
     "tailwindcss": "3",
     "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
     "wrangler": "^4.22.0"
   },
   "dependencies": {
@@ -57,5 +61,14 @@
     "openai": "^5.8.2",
     "xlsx": "^0.18.5",
     "zod": "^3.25.67"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "biome check --write",
+      "bash -c 'tsc --noEmit'"
+    ],
+    "*.{js,jsx,json,css,md}": [
+      "biome check --write"
+    ]
   }
 }

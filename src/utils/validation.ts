@@ -198,14 +198,18 @@ export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<str
   }
 
   const errors = result.error.flatten().fieldErrors;
-  const firstError = Object.values(errors)[0]?.[0] || 'Validation failed';
+  const firstErrorArray = Object.values(errors)[0];
+  const firstError = (firstErrorArray && firstErrorArray[0]) || 'Validation failed';
 
   return {
     success: false,
-    errors,
+    errors: errors as Record<string, string[]>,
     message: firstError,
   };
 }
+
+// Type for form data entry values
+type FormDataEntryValue = string | File;
 
 // Helper to parse form body with proper type conversion
 export function parseFormBody(body: Record<string, FormDataEntryValue | FormDataEntryValue[]>) {

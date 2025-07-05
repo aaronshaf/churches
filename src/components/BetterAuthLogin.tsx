@@ -19,7 +19,7 @@ export const BetterAuthLogin: FC<BetterAuthLoginProps> = ({ error, redirectUrl =
           </div>
         )}
 
-        <form class="mt-8 space-y-6" method="POST" action="/auth/signin">
+        <form class="mt-8 space-y-6" method="post" action="/auth/signin">
           <input type="hidden" name="redirectUrl" value={redirectUrl} />
           <div class="rounded-md shadow-sm -space-y-px">
             <div>

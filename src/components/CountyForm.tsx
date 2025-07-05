@@ -11,7 +11,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
   return (
     <>
       <form
-        method="POST"
+        method="post"
         action={action}
         onsubmit="handleFormSubmit(event)"
         class="space-y-8 divide-y divide-gray-200"
@@ -120,7 +120,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                   <textarea
                     id="description"
                     name="description"
-                    rows="4"
+                    rows={4}
                     data-testid="textarea-description"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     placeholder="Brief description of the county, its location, or notable features..."

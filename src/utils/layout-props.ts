@@ -1,6 +1,7 @@
 import { Context } from 'hono';
 import { hasGoogleMapsApiKey } from './env-validation';
-import { getFaviconUrl, getLogoUrl, getNavbarPages } from './settings';
+import { getFaviconUrl, getLogoUrl } from './settings';
+import { getNavbarPages } from './pages';
 import { getUser } from '../middleware/better-auth';
 
 export async function getCommonLayoutProps(c: Context) {

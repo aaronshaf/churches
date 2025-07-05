@@ -106,7 +106,7 @@ contributorApp.get('/suggest', async (c) => {
       <div class="max-w-3xl mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6">Suggest a Church</h1>
 
-        <form method="POST" action="/contributor/suggest" class="bg-white rounded-lg shadow p-6">
+        <form method="post" action="/contributor/suggest" class="bg-white rounded-lg shadow p-6">
           <div class="mb-4">
             <label for="churchName" class="block text-sm font-medium text-gray-700 mb-2">
               Church Name *

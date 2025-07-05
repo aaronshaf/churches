@@ -21,7 +21,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
   return (
     <>
       <form
-        method="POST"
+        method="post"
         action={action}
         class="space-y-8 divide-y divide-gray-200"
         onsubmit="handleFormSubmit(event)"
@@ -159,7 +159,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                   <textarea
                     id="publicNotes"
                     name="publicNotes"
-                    rows="3"
+                    rows={3}
                     data-testid="textarea-publicNotes"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     placeholder="Notes visible to the public"
@@ -178,7 +178,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                   <textarea
                     id="privateNotes"
                     name="privateNotes"
-                    rows="3"
+                    rows={3}
                     data-testid="textarea-privateNotes"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     placeholder="Internal notes (not visible to public)"

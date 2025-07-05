@@ -1,12 +1,8 @@
 import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import yaml from 'js-yaml';
-import * as XLSX from 'xlsx';
-import { AffiliationForm } from './components/AffiliationForm';
 import { ChurchCard } from './components/ChurchCard';
 import { ChurchComments } from './components/ChurchComments';
-import { ChurchForm } from './components/ChurchForm';
 import { CountyForm } from './components/CountyForm';
 import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
@@ -15,6 +11,7 @@ import { NotFound } from './components/NotFound';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { createDb, createDbWithContext } from './db';
+import { users } from './db/auth-schema';
 import {
   affiliations,
   churchAffiliations,
@@ -27,18 +24,19 @@ import {
   pages,
   settings,
 } from './db/schema';
-import { users } from './db/auth-schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
 import { envCheckMiddleware } from './middleware/env-check';
-import { adminUsersApp } from './routes/admin-users';
-import { betterAuthApp } from './routes/better-auth';
-import { seoRoutes } from './routes/seo';
-import { dataExportRoutes } from './routes/data-export';
-import { apiRoutes } from './routes/api';
-import { adminChurchesRoutes } from './routes/admin/churches';
+import { adminActivityRoutes } from './routes/admin/activity';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
+import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
+import { adminUsersApp } from './routes/admin-users';
+import { apiRoutes } from './routes/api';
+import { betterAuthApp } from './routes/better-auth';
+import { dataExportRoutes } from './routes/data-export';
+import { feedbackRoutes } from './routes/feedback';
+import { seoRoutes } from './routes/seo';
 import type { Bindings } from './types';
 import {
   deleteFromCloudflareImages,
@@ -46,25 +44,17 @@ import {
   IMAGE_VARIANTS,
   uploadToCloudflareImages,
 } from './utils/cloudflare-images';
-import {
-  affiliationSchema,
-  churchWithGatheringsSchema,
-  countySchema,
-  pageSchema,
-  parseAffiliationsFromForm,
-  parseFormBody,
-  parseGatheringsFromForm,
-  prepareChurchDataFromForm,
-  validateFormData,
-} from './utils/validation';
-import { extractChurchDataFromWebsite } from './utils/website-extraction';
-import { getSiteTitle } from './utils/settings';
-import { compareChurchData, createAuditComment } from './utils/audit-trail';
+import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
-import { sanitizeErrorMessage, generateErrorId, getErrorStatusCode } from './utils/error-handling';
+import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
+import { getSiteTitle } from './utils/settings';
+import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
 type Variables = {
   user: any;
+  betterUser?: any;
+  betterSession?: any;
+  betterAuth?: any;
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -76,15 +66,15 @@ app.use('*', envCheckMiddleware);
 app.onError((err, c) => {
   const errorId = generateErrorId();
   const statusCode = getErrorStatusCode(err);
-  
+
   // Log the full error with ID for debugging
   console.error(`[${errorId}] Application error:`, err);
-  
+
   // Handle environment variable errors specially
   if (err instanceof EnvironmentError) {
     return c.html(
       <Layout currentPath="/error" hideFooter={true}>
-        <ErrorPage 
+        <ErrorPage
           error={err.message}
           errorType="Configuration Error"
           errorDetails="Please ensure all required environment variables are set in your deployment configuration."
@@ -95,35 +85,31 @@ app.onError((err, c) => {
       500
     );
   }
-  
+
   // Sanitize and categorize the error
   const { message, type, details } = sanitizeErrorMessage(err);
-  
+
   // Check if it's an API request
-  const isApiRequest = c.req.path.startsWith('/api/') || 
-                      c.req.header('Accept')?.includes('application/json');
-  
+  const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
   if (isApiRequest) {
-    return c.json({
-      error: type,
-      message: details || message,
-      errorId,
-      statusCode
-    }, statusCode);
+    return c.json(
+      {
+        error: type,
+        message: details || message,
+        errorId,
+        statusCode,
+      },
+      statusCode as any
+    );
   }
-  
+
   // Handle HTML error pages
   return c.html(
     <Layout currentPath="/error" hideFooter={true}>
-      <ErrorPage 
-        error={message}
-        errorType={type}
-        errorDetails={details}
-        statusCode={statusCode}
-        errorId={errorId}
-      />
+      <ErrorPage error={message} errorType={type} errorDetails={details} statusCode={statusCode} errorId={errorId} />
     </Layout>,
-    statusCode
+    statusCode as any
   );
 });
 
@@ -135,39 +121,40 @@ app.get('/api/auth/test', async (c) => {
 // Environment variables diagnostic route (only in development)
 app.get('/api/env-check', async (c) => {
   // Only allow in development for security
-  if (c.env.NODE_ENV === 'production') {
-    return c.json({ error: 'Not available in production' }, 403);
-  }
-  
+  // NODE_ENV is not available in Cloudflare Workers
+  // This endpoint should be protected by other means
+
   const { getEnvVarStatus } = await import('./utils/env-validation');
   const status = getEnvVarStatus(c.env);
-  
+
   return c.json({
     status: status.allRequired ? 'OK' : 'ERROR',
     missing: status.missing,
-    present: status.present.map(v => v.replace(/_/g, '_')), // Just list the names
+    present: status.present.map((v) => v.replace(/_/g, '_')), // Just list the names
     allRequired: status.allRequired,
   });
 });
-
 
 // Debug route to see what better-auth provides
 app.get('/api/auth/debug', async (c) => {
   try {
     const auth = createAuth(c.env);
-    return c.json({ 
+    return c.json({
       message: 'Better-auth debug',
       config: {
         baseURL: auth.options.baseURL,
         socialProviders: Object.keys(auth.options.socialProviders || {}),
-      }
+      },
     });
   } catch (error) {
     if (error instanceof EnvironmentError) {
-      return c.json({ 
-        error: 'Missing required environment variables',
-        missing: error.missingVars
-      }, 500);
+      return c.json(
+        {
+          error: 'Missing required environment variables',
+          missing: error.missingVars,
+        },
+        500
+      );
     }
     throw error;
   }
@@ -188,10 +175,13 @@ app.all('/api/auth/*', async (c) => {
   } catch (error) {
     console.error('Better-auth handler error:', error);
     if (error instanceof EnvironmentError) {
-      return c.json({ 
-        error: 'Authentication service configuration error', 
-        details: `Missing required environment variables: ${error.missingVars.join(', ')}`
-      }, 500);
+      return c.json(
+        {
+          error: 'Authentication service configuration error',
+          details: `Missing required environment variables: ${error.missingVars.join(', ')}`,
+        },
+        500
+      );
     }
     return c.json({ error: 'Auth handler failed' }, 500);
   }
@@ -266,13 +256,15 @@ app.onError((err, c) => {
   const isDatabaseError =
     err.message?.includes('Network connection lost') ||
     err.message?.includes('Failed query') ||
-    err.cause?.message?.includes('Network connection lost');
+    (err as any).cause?.message?.includes('Network connection lost');
+
+  const statusCode = 'status' in err ? err.status : 500;
 
   return c.html(
     <Layout title="Error">
-      <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={err.status || 500} />
+      <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={statusCode} />
     </Layout>,
-    err.status || 500
+    statusCode as any
   );
 });
 
@@ -295,6 +287,8 @@ app.route('/', dataExportRoutes);
 app.route('/admin/churches', adminChurchesRoutes);
 app.route('/admin/affiliations', adminAffiliationsRoutes);
 app.route('/admin/feedback', adminFeedbackRoutes);
+app.route('/admin/activity', adminActivityRoutes);
+app.route('/feedback', feedbackRoutes);
 
 app.get('/', async (c) => {
   try {
@@ -338,11 +332,7 @@ app.get('/', async (c) => {
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
     return c.html(
-      <Layout
-        title={frontPageTitle}
-        currentPath="/"
-        {...layoutProps}
-      >
+      <Layout title={frontPageTitle} currentPath="/" {...layoutProps}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Setup Alert for Admins */}
@@ -351,17 +341,27 @@ app.get('/', async (c) => {
                 <div class="flex items-start gap-3">
                   <div class="flex-shrink-0">
                     <div class="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-                      <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      <svg
+                        class="h-5 w-5 text-amber-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="2"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                        />
                       </svg>
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900">
-                      Complete your site setup
-                    </p>
+                    <p class="text-sm font-medium text-gray-900">Complete your site setup</p>
                     <p class="mt-1 text-sm text-gray-500">
-                      {missingSettings.length} setting{missingSettings.length !== 1 ? 's' : ''} need{missingSettings.length === 1 ? 's' : ''} configuration: {missingSettings.map((setting, index) => (
+                      {missingSettings.length} setting{missingSettings.length !== 1 ? 's' : ''} need
+                      {missingSettings.length === 1 ? 's' : ''} configuration:{' '}
+                      {missingSettings.map((setting, index) => (
                         <>
                           {index > 0 && ', '}
                           <span class="font-medium text-gray-700">{setting}</span>
@@ -369,23 +369,24 @@ app.get('/', async (c) => {
                       ))}
                     </p>
                     <div class="mt-3">
-                      <a 
-                        href="/admin/settings" 
-                        class="text-sm font-medium text-amber-600 hover:text-amber-500"
-                      >
+                      <a href="/admin/settings" class="text-sm font-medium text-amber-600 hover:text-amber-500">
                         Configure now →
                       </a>
                     </div>
                   </div>
                   <div class="flex-shrink-0 ml-4">
-                    <button 
+                    <button
                       type="button"
-                      onclick="this.closest('.bg-white').remove()" 
+                      onclick="this.closest('.bg-white').remove()"
                       class="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
                     >
                       <span class="sr-only">Dismiss</span>
                       <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        <path
+                          fill-rule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clip-rule="evenodd"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -444,7 +445,7 @@ app.get('/', async (c) => {
                 <h2 class="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Browse by County</h2>
                 <div class="flex items-center space-x-2">
                   <span class="text-sm text-gray-700">Sort by:</span>
-                  <div class="inline-flex rounded-md shadow-sm" role="group">
+                  <fieldset class="inline-flex rounded-md shadow-sm">
                     <button
                       type="button"
                       id="sort-population"
@@ -461,7 +462,7 @@ app.get('/', async (c) => {
                     >
                       Name
                     </button>
-                  </div>
+                  </fieldset>
                   <script
                     dangerouslySetInnerHTML={{
                       __html: `
@@ -568,11 +569,12 @@ app.get('/', async (c) => {
     );
   } catch (error) {
     console.error('Error loading home page:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to load churches';
     return c.html(
       <Layout title="Error">
-        <ErrorPage error={error.message || 'Failed to load churches'} statusCode={500} />
+        <ErrorPage error={errorMessage} statusCode={500} />
       </Layout>,
-      500
+      500 as any
     );
   }
 });
@@ -746,7 +748,6 @@ app.get('/counties/:path', async (c) => {
               </button>
             </div>
           )}
-
         </div>
       </div>
 
@@ -772,7 +773,6 @@ app.get('/counties/:path', async (c) => {
     </Layout>
   );
 });
-
 
 app.get('/networks', async (c) => {
   const db = createDbWithContext(c);
@@ -882,21 +882,21 @@ app.get('/suggest-church', async (c) => {
   // Show login prompt if not logged in
   if (!user) {
     return c.html(
-      <Layout
-        title="Suggest a Church"
-        user={user}
-        logoUrl={logoUrl}
-        pages={navbarPages}
-        currentPath="/suggest-church"
-      >
+      <Layout title="Suggest a Church" user={user} logoUrl={logoUrl} pages={navbarPages} currentPath="/suggest-church">
         <div class="mx-auto max-w-lg px-4 py-16 sm:px-6 lg:px-8">
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl p-8 text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             <h2 class="text-2xl font-semibold text-gray-900 mb-2">Sign In Required</h2>
             <p class="text-gray-600 mb-6">
-              You need to sign in before you can suggest a church. This helps us maintain the quality of our directory and contact you if we have questions about your suggestion.
+              You need to sign in before you can suggest a church. This helps us maintain the quality of our directory
+              and contact you if we have questions about your suggestion.
             </p>
             <a
               href={`/auth/signin?redirect=${encodeURIComponent('/suggest-church')}`}
@@ -904,7 +904,12 @@ app.get('/suggest-church', async (c) => {
               data-testid="signin-button"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                />
               </svg>
               Sign In to Continue
             </a>
@@ -923,7 +928,13 @@ app.get('/suggest-church', async (c) => {
       currentPath="/suggest-church"
     >
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-        <form method="POST" action="/suggest-church" onsubmit="handleSuggestSubmit(event)" class="space-y-8 max-w-4xl mx-auto" data-testid="suggest-church-form">
+        <form
+          method="post"
+          action="/suggest-church"
+          onsubmit="handleSuggestSubmit(event)"
+          class="space-y-8 max-w-4xl mx-auto"
+          data-testid="suggest-church-form"
+        >
           <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
             <div class="px-4 py-6 sm:p-8">
               <div class="mx-auto">
@@ -934,7 +945,11 @@ app.get('/suggest-church', async (c) => {
                     <div class="flex">
                       <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                          <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd"
+                          />
                         </svg>
                       </div>
                       <div class="ml-3">
@@ -979,7 +994,7 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div class="sm:col-span-6">
                     <label for="address" class="block text-sm font-medium leading-6 text-gray-900">
                       Address
@@ -1004,14 +1019,14 @@ app.get('/suggest-church', async (c) => {
                       <textarea
                         id="service-times"
                         name="serviceTimes"
-                        rows="3"
+                        rows={3}
                         class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                         placeholder="Sunday 9:00 AM - Traditional Service&#10;Sunday 11:00 AM - Contemporary Service&#10;Wednesday 7:00 PM - Bible Study"
                         data-testid="service-times-textarea"
                       ></textarea>
                     </div>
                   </div>
-                  
+
                   <div class="sm:col-span-6">
                     <label for="website" class="block text-sm font-medium leading-6 text-gray-900">
                       Website <span class="text-red-500">*</span>
@@ -1028,7 +1043,7 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div class="sm:col-span-6">
                     <label for="statement-of-faith" class="block text-sm font-medium leading-6 text-gray-900">
                       Statement of Faith URL
@@ -1060,7 +1075,7 @@ app.get('/suggest-church', async (c) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div class="sm:col-span-3">
                     <label for="email" class="block text-sm font-medium leading-6 text-gray-900">
                       Email
@@ -1149,7 +1164,7 @@ app.get('/suggest-church', async (c) => {
                       <textarea
                         id="notes"
                         name="notes"
-                        rows="4"
+                        rows={4}
                         class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                         placeholder="Any additional information about this church..."
                         data-testid="notes-textarea"
@@ -1157,16 +1172,12 @@ app.get('/suggest-church', async (c) => {
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
 
           <div class="flex items-center justify-end gap-x-6 px-4 py-3 sm:px-8">
-            <a
-              href="/"
-              class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
-            >
+            <a href="/" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">
               Cancel
             </a>
             <button
@@ -1181,7 +1192,9 @@ app.get('/suggest-church', async (c) => {
         </form>
       </div>
 
-      <script dangerouslySetInnerHTML={{ __html: `
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
         function handleSuggestSubmit(event) {
           const submitButton = document.getElementById('submit-button');
           const originalText = submitButton.textContent;
@@ -1189,7 +1202,9 @@ app.get('/suggest-church', async (c) => {
           submitButton.disabled = true;
           submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Submitting...';
         }
-      ` }} />
+      `,
+        }}
+      />
     </Layout>
   );
 });
@@ -1197,15 +1212,15 @@ app.get('/suggest-church', async (c) => {
 // Handle church suggestion submission
 app.post('/suggest-church', async (c) => {
   const user = await getUser(c);
-  
+
   // Require login
   if (!user) {
     return c.redirect(`/auth/signin?redirect=${encodeURIComponent('/suggest-church')}`);
   }
-  
+
   const db = createDbWithContext(c);
   const body = await c.req.parseBody();
-  
+
   // Extract city and state from address if provided
   let city = '';
   let zip = '';
@@ -1218,7 +1233,7 @@ app.post('/suggest-church', async (c) => {
       zip = match[2] || '';
     }
   }
-  
+
   // Store the suggestion in the dedicated church_suggestions table
   await db.insert(churchSuggestions).values({
     userId: user.id,
@@ -1246,9 +1261,6 @@ app.post('/suggest-church', async (c) => {
   // Redirect back to suggest page with success message
   return c.redirect('/suggest-church?success=true');
 });
-
-
-
 
 app.get('/churches/:path', async (c) => {
   const db = createDbWithContext(c);
@@ -1372,15 +1384,15 @@ app.get('/churches/:path', async (c) => {
     .all();
 
   // Process comments with visibility rules
-  const processedComments = allComments.map(comment => ({
+  const processedComments = allComments.map((comment) => ({
     id: comment.id,
     content: comment.content,
     type: comment.type || 'user',
-    metadata: comment.metadata,
+    metadata: comment.metadata || undefined,
     createdAt: comment.createdAt,
-    userName: comment.userName,
+    userName: comment.userName || undefined,
     userEmail: comment.userEmail || '',
-    userImage: comment.userImage,
+    userImage: comment.userImage || undefined,
     userId: comment.userId,
     isOwn: user ? comment.userId === user.id : false,
   }));
@@ -1493,7 +1505,7 @@ app.get('/churches/:path', async (c) => {
     '@type': 'Church',
     '@id': `https://${siteDomain}/churches/${church.path}`,
     name: church.name,
-    alternateName: church.alternateName || undefined,
+    // alternateName: church.alternateName || undefined, // Not in schema
     ...(church.gatheringAddress && {
       address: {
         '@type': 'PostalAddress',
@@ -1501,7 +1513,7 @@ app.get('/churches/:path', async (c) => {
         addressLocality: church.countyName ? church.countyName.replace(' County', '') : undefined,
         addressRegion: siteRegion,
         addressCountry: 'US',
-        postalCode: church.zip || undefined,
+        // postalCode: church.zip || undefined, // Not in schema
       },
     }),
     ...(church.latitude &&
@@ -1519,6 +1531,7 @@ app.get('/churches/:path', async (c) => {
       openingHours: churchGatheringsList.map((g) => g.time).join(', '),
     }),
     ...(church.publicNotes && { description: church.publicNotes }),
+    /* mailingAddress not in schema
     ...(church.mailingAddress && {
       location: {
         '@type': 'PostalAddress',
@@ -1527,7 +1540,7 @@ app.get('/churches/:path', async (c) => {
         addressRegion: siteRegion,
         addressCountry: 'US',
       },
-    }),
+    }), */
     ...(churchAffiliationsList.length > 0 && {
       memberOf: churchAffiliationsList.map((a) => ({
         '@type': 'Organization',
@@ -1552,7 +1565,7 @@ app.get('/churches/:path', async (c) => {
       title={`${church.name}`}
       jsonLd={jsonLd}
       user={user}
-      churchId={church.id}
+      churchId={church.id.toString()}
       faviconUrl={faviconUrl}
       logoUrl={logoUrl}
       pages={navbarPages}
@@ -1645,8 +1658,15 @@ app.get('/churches/:path', async (c) => {
                         <div class="mt-1 space-y-1">
                           {churchGatheringsList.map((gathering, index) => (
                             <div class="text-base text-gray-900" data-testid={`gathering-${index}`}>
-                              <span class="font-medium" data-testid={`gathering-time-${index}`}>{gathering.time}</span>
-                              {gathering.notes && <span class="text-gray-600" data-testid={`gathering-notes-${index}`}> – {gathering.notes}</span>}
+                              <span class="font-medium" data-testid={`gathering-time-${index}`}>
+                                {gathering.time}
+                              </span>
+                              {gathering.notes && (
+                                <span class="text-gray-600" data-testid={`gathering-notes-${index}`}>
+                                  {' '}
+                                  – {gathering.notes}
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1840,7 +1860,7 @@ app.get('/churches/:path', async (c) => {
                     <ChurchComments
                       churchId={church.id}
                       churchName={church.name}
-                      churchPath={church.path}
+                      churchPath={church.path || ''}
                       comments={processedComments}
                       user={user}
                     />
@@ -1963,6 +1983,7 @@ app.get('/networks/:id', async (c) => {
       path: churches.path,
       status: churches.status,
       gatheringAddress: churches.gatheringAddress,
+      website: churches.website,
       countyName: counties.name,
       countyPath: counties.path,
     })
@@ -2124,7 +2145,7 @@ app.get('/map', async (c) => {
     const logoUrl = await getLogoUrl(c.env);
     const navbarPages = await getNavbarPages(c.env);
     const user = await getUser(c);
-    
+
     return c.html(
       <Layout
         title="Map Unavailable"
@@ -2139,21 +2160,29 @@ app.get('/map', async (c) => {
             <div class="flex">
               <div class="flex-shrink-0">
                 <svg class="h-12 w-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
               </div>
               <div class="ml-4">
                 <h1 class="text-2xl font-bold text-yellow-800 mb-2">Map Feature Unavailable</h1>
                 <p class="text-yellow-700">
-                  The interactive map feature is currently unavailable because the Google Maps API key has not been configured.
+                  The interactive map feature is currently unavailable because the Google Maps API key has not been
+                  configured.
                 </p>
                 <p class="mt-4 text-sm text-yellow-600">
-                  <strong>For administrators:</strong> Please set the <code class="font-mono bg-yellow-100 px-1 py-0.5 rounded">GOOGLE_MAPS_API_KEY</code> environment variable to enable this feature.
+                  <strong>For administrators:</strong> Please set the{' '}
+                  <code class="font-mono bg-yellow-100 px-1 py-0.5 rounded">GOOGLE_MAPS_API_KEY</code> environment
+                  variable to enable this feature.
                 </p>
               </div>
             </div>
           </div>
-          
+
           <div class="mt-8">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Alternative Options</h2>
             <div class="space-y-4">
@@ -2177,7 +2206,7 @@ app.get('/map', async (c) => {
       </Layout>
     );
   }
-  
+
   const db = createDbWithContext(c);
 
   // Check for heretical query param
@@ -2290,9 +2319,7 @@ app.get('/map', async (c) => {
                   id="showUnlisted"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700">
-                  Show more churches ({unlistedChurches.length} unlisted)
-                </span>
+                <span class="ml-2 text-sm text-gray-700">Show more churches ({unlistedChurches.length} unlisted)</span>
               </label>
             </div>
 
@@ -2697,9 +2724,6 @@ app.get('/map', async (c) => {
   );
 });
 
-
-
-
 // Debug route
 app.get('/debug/login', async (c) => {
   try {
@@ -2714,7 +2738,8 @@ app.get('/debug/login', async (c) => {
       logoUrl,
     });
   } catch (error) {
-    return c.json({ error: error.message }, 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: errorMessage }, 500 as any);
   }
 });
 
@@ -2760,15 +2785,15 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
   try {
     const db = createDbWithContext(c);
     const layoutProps = await getLayoutProps(c);
-    
+
     // Get total user count
     const totalUsersResult = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
     const totalUsers = totalUsersResult?.count || 0;
-    
+
     // Get users who logged in within last 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const { sessions } = await import('./db/auth-schema');
-    
+
     const activeUsersResult = await db
       .select({ count: sql<number>`COUNT(DISTINCT ${sessions.userId})` })
       .from(sessions)
@@ -2800,7 +2825,7 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
       email: session.userEmail,
       role: session.userRole as 'admin' | 'contributor' | 'user',
       loginTime: new Date(session.createdAt),
-      ipAddress: session.ipAddress,
+      ipAddress: session.ipAddress || undefined,
     }));
 
     // Get comment statistics
@@ -2869,28 +2894,22 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
     };
 
     return c.html(
-      <Layout
-        title="Activity Monitoring"
-        currentPath="/admin/monitoring"
-        {...layoutProps}
-      >
+      <Layout title="Activity Monitoring" currentPath="/admin/monitoring" {...layoutProps}>
         <div class="min-h-screen bg-gray-50 py-8">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <MonitoringDashboard
-              loginStats={loginStats}
-              activityStats={activityStats}
-            />
+            <MonitoringDashboard loginStats={loginStats} activityStats={activityStats} />
           </div>
         </div>
       </Layout>
     );
   } catch (error) {
     console.error('Error loading monitoring dashboard:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to load monitoring dashboard';
     return c.html(
       <Layout title="Error">
-        <ErrorPage error={error.message || 'Failed to load monitoring dashboard'} statusCode={500} />
+        <ErrorPage error={errorMessage} statusCode={500} />
       </Layout>,
-      500
+      500 as any
     );
   }
 });
@@ -2929,18 +2948,19 @@ app.get('/admin', requireAdminBetter, async (c) => {
     .limit(1)
     .all();
 
-  // Get recent comments/feedback
-  const recentCommentsRaw = await db
+  // Get recent human feedback (user comments)
+  const recentFeedbackRaw = await db
     .select()
     .from(comments)
     .leftJoin(churches, eq(comments.churchId, churches.id))
     .leftJoin(users, eq(comments.userId, users.id))
+    .where(eq(comments.type, 'user'))
     .orderBy(desc(comments.createdAt))
     .limit(3)
     .all();
 
-  // Transform the data to a cleaner format
-  const recentComments = recentCommentsRaw.map(row => ({
+  // Transform feedback data
+  const recentFeedback = recentFeedbackRaw.map((row) => ({
     id: row.comments.id,
     content: row.comments.content,
     userId: row.comments.userId,
@@ -2949,17 +2969,40 @@ app.get('/admin', requireAdminBetter, async (c) => {
     type: row.comments.type,
     churchName: row.churches?.name || null,
     churchPath: row.churches?.path || null,
-    userName: row.users?.username || null,
+    userName: row.users?.name || null,
+    userEmail: row.users?.email || '',
+    userImage: row.users?.image || null,
+  }));
+
+  // Get recent system activity
+  const recentActivityRaw = await db
+    .select()
+    .from(comments)
+    .leftJoin(churches, eq(comments.churchId, churches.id))
+    .leftJoin(users, eq(comments.userId, users.id))
+    .where(eq(comments.type, 'system'))
+    .orderBy(desc(comments.createdAt))
+    .limit(3)
+    .all();
+
+  // Transform activity data
+  const recentActivity = recentActivityRaw.map((row) => ({
+    id: row.comments.id,
+    content: row.comments.content,
+    userId: row.comments.userId,
+    churchId: row.comments.churchId,
+    createdAt: row.comments.createdAt,
+    type: row.comments.type,
+    metadata: row.comments.metadata,
+    churchName: row.churches?.name || null,
+    churchPath: row.churches?.path || null,
+    userName: row.users?.name || null,
+    userEmail: row.users?.email || '',
+    userImage: row.users?.image || null,
   }));
 
   return c.html(
-    <Layout
-      title="Admin Dashboard"
-      user={user}
-      currentPath="/admin"
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title="Admin Dashboard" user={user} currentPath="/admin" logoUrl={logoUrl} pages={navbarPages}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
@@ -3067,12 +3110,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <a
                 href="/admin/churches"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-churches"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-primary-50 text-primary-700 group-hover:bg-primary-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3082,12 +3125,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Churches ({churchCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Add, edit, or remove church listings</p>
+                  <p class="mt-1 text-sm text-gray-500">Add, edit, or remove church listings</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3101,12 +3144,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/affiliations"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-affiliations"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3116,12 +3159,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Affiliations ({affiliationCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage denominations and networks</p>
+                  <p class="mt-1 text-sm text-gray-500">Manage denominations and networks</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3135,12 +3178,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/counties"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-counties"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-green-50 text-green-700 group-hover:bg-green-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3150,12 +3193,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Counties ({countyCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage county information</p>
+                  <p class="mt-1 text-sm text-gray-500">Manage county information</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3169,12 +3212,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/pages"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-pages"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-yellow-50 text-yellow-700 group-hover:bg-yellow-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-yellow-50 text-yellow-700 group-hover:bg-yellow-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3184,12 +3227,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Pages ({pageCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage static content pages</p>
+                  <p class="mt-1 text-sm text-gray-500">Manage static content pages</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3203,12 +3246,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/users"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-users"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3218,12 +3261,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Users ({userCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Manage user accounts and permissions</p>
+                  <p class="mt-1 text-sm text-gray-500">Manage user accounts and permissions</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3237,12 +3280,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/settings"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-settings"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-gray-50 text-gray-700 group-hover:bg-gray-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-gray-50 text-gray-700 group-hover:bg-gray-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3258,12 +3301,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Settings
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Configure site settings and options</p>
+                  <p class="mt-1 text-sm text-gray-500">Configure site settings and options</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3277,27 +3320,22 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/submissions"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-submissions"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 4v16m8-8H4"
-                      />
+                  <span class="rounded-lg inline-flex p-2 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Submissions ({submissionCount?.count || 0})
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">Review church suggestions from users</p>
+                  <p class="mt-1 text-sm text-gray-500">Review church suggestions from users</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3311,12 +3349,12 @@ app.get('/admin', requireAdminBetter, async (c) => {
 
               <a
                 href="/admin/feedback"
-                class="relative group bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
                 data-testid="card-feedback"
               >
                 <div>
-                  <span class="rounded-lg inline-flex p-3 bg-amber-50 text-amber-700 group-hover:bg-amber-100">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="rounded-lg inline-flex p-2 bg-amber-50 text-amber-700 group-hover:bg-amber-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -3326,12 +3364,46 @@ app.get('/admin', requireAdminBetter, async (c) => {
                     </svg>
                   </span>
                 </div>
-                <div class="mt-4">
-                  <h3 class="text-lg font-medium">
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
                     <span class="absolute inset-0" aria-hidden="true"></span>
                     Feedback
                   </h3>
-                  <p class="mt-2 text-sm text-gray-500">View and manage user comments and feedback</p>
+                  <p class="mt-1 text-sm text-gray-500">View and manage user comments and feedback</p>
+                </div>
+                <span
+                  class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
+                  aria-hidden="true"
+                >
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
+                  </svg>
+                </span>
+              </a>
+
+              <a
+                href="/admin/activity"
+                class="relative group bg-white p-4 rounded-lg shadow-sm ring-1 ring-gray-900/5 hover:ring-primary-500 transition-all"
+                data-testid="card-activity"
+              >
+                <div>
+                  <span class="rounded-lg inline-flex p-2 bg-blue-50 text-blue-700 group-hover:bg-blue-100">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <div class="mt-3">
+                  <h3 class="text-base font-medium">
+                    <span class="absolute inset-0" aria-hidden="true"></span>
+                    Activity
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500">View system activity and change logs</p>
                 </div>
                 <span
                   class="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
@@ -3345,65 +3417,210 @@ app.get('/admin', requireAdminBetter, async (c) => {
             </div>
           </div>
 
-          {/* Recent Feedback Section */}
-          {recentComments && recentComments.length > 0 && (
-            <div class="mb-8" data-testid="recent-feedback-section">
+          {/* Feedback Section */}
+          {recentFeedback && recentFeedback.length > 0 && (
+            <div class="mb-8" data-testid="feedback-section">
               <div class="flex items-start justify-between mb-4">
                 <div>
-                  <h2 class="text-lg font-semibold text-gray-900">Recent Feedback</h2>
+                  <h2 class="text-lg font-semibold text-gray-900">Feedback</h2>
                   <p class="text-sm text-gray-600 mt-1">Latest comments and feedback from users</p>
                 </div>
-                <a
-                  href="/admin/feedback"
-                  class="text-sm font-medium text-primary-600 hover:text-primary-500"
-                >
+                <a href="/admin/feedback" class="text-sm font-medium text-primary-600 hover:text-primary-500">
                   View all feedback →
                 </a>
               </div>
 
-              <div class="space-y-3">
-                {recentComments.map((comment) => (
-                  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 overflow-hidden">
-                    <div class="p-4">
-                      <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                          <div class="flex items-center gap-2 mb-2">
-                            <span class="text-sm font-medium text-gray-900">
-                              {comment.userName || 'Anonymous'}
-                            </span>
-                            {comment.type === 'system' && (
-                              <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-gray-50 text-gray-700 ring-gray-600/20">
-                                System
-                              </span>
-                            )}
-                            <span class="text-sm text-gray-500">
-                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                              })}
+              <div class="space-y-3" data-testid="feedback-list">
+                {recentFeedback.map((comment, _index) => (
+                  <div key={comment.id} class="group">
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
+                      <div class="flex items-start space-x-3">
+                        {/* Avatar */}
+                        <div class="flex-shrink-0">
+                          {comment.userImage ? (
+                            <img
+                              src={comment.userImage}
+                              alt={comment.userName || comment.userEmail}
+                              class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                              onerror={`this.src='${getGravatarUrl(comment.userEmail, 36)}'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}`}
+                            />
+                          ) : (
+                            <img
+                              src={getGravatarUrl(comment.userEmail, 36)}
+                              alt={comment.userName || comment.userEmail}
+                              class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                            />
+                          )}
+                          <div
+                            class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center"
+                            style="display: none;"
+                          >
+                            <span class="text-sm font-semibold text-white">
+                              {comment.userName
+                                ? comment.userName.charAt(0).toUpperCase()
+                                : comment.userEmail.charAt(0).toUpperCase()}
                             </span>
                           </div>
+                        </div>
+
+                        {/* Content */}
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                              <p class="text-sm font-medium text-gray-900">
+                                {comment.userName || comment.userEmail?.split('@')[0] || 'Anonymous'}
+                              </p>
+                              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                                Member
+                              </span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                              <time class="text-xs text-gray-500">
+                                {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year:
+                                    new Date(comment.createdAt).getFullYear() !== new Date().getFullYear()
+                                      ? 'numeric'
+                                      : undefined,
+                                })}
+                              </time>
+                              <div class="border-l border-gray-300 pl-3">
+                                <form method="post" action={`/api/comments/${comment.id}/delete`} class="inline">
+                                  <button
+                                    type="submit"
+                                    onclick="return confirm('Are you sure you want to delete this comment?')"
+                                    class="text-xs text-red-600 hover:text-red-800 focus:outline-none transition-colors font-medium"
+                                    title="Delete comment"
+                                  >
+                                    Delete
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
                           {comment.churchName && (
-                            <p class="text-sm text-gray-600 mb-1">
-                              On: <a href={`/churches/${comment.churchPath}`} class="text-primary-600 hover:text-primary-500">
+                            <p class="text-sm text-gray-600 mb-2">
+                              On:{' '}
+                              <a
+                                href={`/churches/${comment.churchPath}`}
+                                class="text-primary-600 hover:text-primary-500 font-medium"
+                              >
                                 {comment.churchName}
                               </a>
                             </p>
                           )}
-                          <p class="text-sm text-gray-700 line-clamp-2">
-                            {comment.content}
-                          </p>
+                          <div class="prose prose-sm max-w-none">
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                          </div>
                         </div>
-                        <a
-                          href={`/admin/feedback#comment-${comment.id}`}
-                          class="ml-4 text-gray-400 hover:text-gray-500"
-                        >
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Activity Section */}
+          {recentActivity && recentActivity.length > 0 && (
+            <div class="mb-8" data-testid="recent-activity-section">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900">Activity</h2>
+                  <p class="text-sm text-gray-600 mt-1">Latest system activity and changes</p>
+                </div>
+                <a href="/admin/activity" class="text-sm font-medium text-primary-600 hover:text-primary-500">
+                  View all activity →
+                </a>
+              </div>
+
+              <div class="space-y-3" data-testid="activity-list">
+                {recentActivity.map((activity, _index) => (
+                  <div key={activity.id} class="group">
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
+                      <div class="flex items-start space-x-3">
+                        {/* Avatar */}
+                        <div class="flex-shrink-0">
+                          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                              <p class="text-sm font-medium text-gray-900">{activity.userName || 'System'}</p>
+                              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                Change Log
+                              </span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                              <time class="text-xs text-gray-500">
+                                {new Date(activity.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year:
+                                    new Date(activity.createdAt).getFullYear() !== new Date().getFullYear()
+                                      ? 'numeric'
+                                      : undefined,
+                                })}
+                              </time>
+                              <div class="border-l border-gray-300 pl-3">
+                                <form method="post" action={`/api/comments/${activity.id}/delete`} class="inline">
+                                  <button
+                                    type="submit"
+                                    onclick="return confirm('Are you sure you want to delete this activity log?')"
+                                    class="text-xs text-red-600 hover:text-red-800 focus:outline-none transition-colors font-medium"
+                                    title="Delete activity log"
+                                  >
+                                    Delete
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                          {activity.churchName && (
+                            <p class="text-sm text-gray-600 mb-2">
+                              On:{' '}
+                              <a
+                                href={`/churches/${activity.churchPath}`}
+                                class="text-primary-600 hover:text-primary-500 font-medium"
+                              >
+                                {activity.churchName}
+                              </a>
+                            </p>
+                          )}
+                          <div class="prose prose-sm max-w-none">
+                            <div
+                              class="text-gray-700 text-sm leading-relaxed"
+                              dangerouslySetInnerHTML={{
+                                __html: activity.content
+                                  .replace(/```yaml\n([\s\S]*?)```/g, (_match, p1) => {
+                                    return `<pre class="bg-gray-50 p-3 rounded-lg overflow-x-auto mt-2 text-xs font-mono">${p1.trim()}</pre>`;
+                                  })
+                                  .replace(/\n/g, '<br>'),
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3431,9 +3648,9 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
     .leftJoin(users, eq(churchSuggestions.userId, users.id))
     .orderBy(desc(churchSuggestions.createdAt))
     .all();
-    
+
   // Transform the data to a cleaner format
-  const suggestions = suggestionsRaw.map(row => ({
+  const suggestions = suggestionsRaw.map((row) => ({
     id: row.church_suggestions.id,
     churchName: row.church_suggestions.churchName,
     denomination: row.church_suggestions.denomination,
@@ -3453,10 +3670,10 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
   }));
 
   return c.html(
-    <Layout 
-      title="Church Submissions - Admin" 
-      user={user} 
-      logoUrl={logoUrl} 
+    <Layout
+      title="Church Submissions - Admin"
+      user={user}
+      logoUrl={logoUrl}
       pages={navbarPages}
       currentPath="/admin/submissions"
     >
@@ -3467,7 +3684,9 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
               <nav class="flex" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-4">
                   <li>
-                    <a href="/admin" class="text-gray-500 hover:text-gray-700">Admin</a>
+                    <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                      Admin
+                    </a>
                   </li>
                   <li>
                     <span class="mx-2 text-gray-400">/</span>
@@ -3490,14 +3709,19 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
           {suggestions.length === 0 ? (
             <div class="text-center py-12">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
               <h3 class="mt-2 text-sm font-semibold text-gray-900">No submissions</h3>
               <p class="mt-1 text-sm text-gray-500">No church suggestions have been submitted yet.</p>
             </div>
           ) : (
             <div class="space-y-4">
-              {suggestions.map((suggestion, index) => (
+              {suggestions.map((suggestion, _index) => (
                 <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden">
                   {/* Header */}
                   <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
@@ -3518,14 +3742,19 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                           </svg>
                           Create Church
                         </a>
-                        <form method="POST" action={`/admin/submissions/${suggestion.id}/delete`} class="inline m-0">
+                        <form method="post" action={`/admin/submissions/${suggestion.id}/delete`} class="inline m-0">
                           <button
                             type="submit"
                             onclick="return confirm('Are you sure you want to delete this submission?')"
                             class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors border border-gray-300 min-h-[36px]"
                           >
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                             Delete
                           </button>
@@ -3566,7 +3795,12 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                             <div>
                               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Website</dt>
                               <dd class="mt-1 text-sm">
-                                <a href={suggestion.website} target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:text-primary-500 break-all">
+                                <a
+                                  href={suggestion.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="text-primary-600 hover:text-primary-500 break-all"
+                                >
                                   {suggestion.website}
                                 </a>
                               </dd>
@@ -3588,10 +3822,20 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                         <div>
                           <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Statement of Faith</dt>
                           <dd class="mt-1 text-sm">
-                            <a href={suggestion.statementOfFaith} target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:text-primary-500 inline-flex items-center">
+                            <a
+                              href={suggestion.statementOfFaith}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-primary-600 hover:text-primary-500 inline-flex items-center"
+                            >
                               View Statement
                               <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
                               </svg>
                             </a>
                           </dd>
@@ -3605,34 +3849,54 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                         <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Social Media</dt>
                         <dd class="flex items-center gap-3">
                           {suggestion.facebook && (
-                            <a href={suggestion.facebook} target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <a
+                              href={suggestion.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
                               <span class="sr-only">Facebook</span>
                               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                               </svg>
                             </a>
                           )}
                           {suggestion.instagram && (
-                            <a href={suggestion.instagram} target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <a
+                              href={suggestion.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
                               <span class="sr-only">Instagram</span>
                               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z"/>
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z" />
                               </svg>
                             </a>
                           )}
                           {suggestion.youtube && (
-                            <a href={suggestion.youtube} target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <a
+                              href={suggestion.youtube}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
                               <span class="sr-only">YouTube</span>
                               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                               </svg>
                             </a>
                           )}
                           {suggestion.spotify && (
-                            <a href={suggestion.spotify} target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <a
+                              href={suggestion.spotify}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
                               <span class="sr-only">Spotify</span>
                               <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
                               </svg>
                             </a>
                           )}
@@ -3644,16 +3908,14 @@ app.get('/admin/submissions', requireAdminBetter, async (c) => {
                   {/* Footer */}
                   <div class="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div class="flex items-center justify-between text-xs text-gray-500">
-                      <span>
-                        Submitted by {suggestion.submittedByName || suggestion.submittedByEmail || 'Unknown'}
-                      </span>
+                      <span>Submitted by {suggestion.submittedByName || suggestion.submittedByEmail || 'Unknown'}</span>
                       <time>
                         {new Date(suggestion.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
                         })}
                       </time>
                     </div>
@@ -3775,7 +4037,7 @@ app.get('/admin/counties', requireAdminBetter, async (c) => {
                       >
                         Edit
                       </a>
-                      <form method="POST" action={`/admin/counties/${county.id}/delete`} class="inline">
+                      <form method="post" action={`/admin/counties/${county.id}/delete`} class="inline">
                         <button
                           type="submit"
                           class="text-red-600 hover:text-red-900"
@@ -3800,20 +4062,16 @@ app.get('/admin/counties', requireAdminBetter, async (c) => {
 // Create comment on church
 app.post('/churches/:path/comments', async (c) => {
   const user = await getUser(c);
-  
+
   if (!user) {
     return c.redirect('/auth/signin');
   }
 
   const db = createDbWithContext(c);
   const path = c.req.param('path');
-  
+
   // Get church by path
-  const church = await db
-    .select()
-    .from(churches)
-    .where(eq(churches.path, path))
-    .get();
+  const church = await db.select().from(churches).where(eq(churches.path, path)).get();
 
   if (!church) {
     return c.json({ error: 'Church not found' }, 404);
@@ -3843,7 +4101,7 @@ app.post('/churches/:path/comments', async (c) => {
 // Delete comment (admin only)
 app.post('/churches/:path/comments/:commentId/delete', async (c) => {
   const user = await getUser(c);
-  
+
   if (!user || user.role !== 'admin') {
     return c.json({ error: 'Unauthorized' }, 403);
   }
@@ -3851,23 +4109,16 @@ app.post('/churches/:path/comments/:commentId/delete', async (c) => {
   const db = createDbWithContext(c);
   const path = c.req.param('path');
   const commentId = parseInt(c.req.param('commentId'));
-  
+
   // Get church by path to verify it exists
-  const church = await db
-    .select()
-    .from(churches)
-    .where(eq(churches.path, path))
-    .get();
+  const church = await db.select().from(churches).where(eq(churches.path, path)).get();
 
   if (!church) {
     return c.json({ error: 'Church not found' }, 404);
   }
 
   // Delete the comment
-  const result = await db
-    .delete(comments)
-    .where(eq(comments.id, commentId))
-    .returning();
+  const result = await db.delete(comments).where(eq(comments.id, commentId)).returning();
 
   if (result.length === 0) {
     return c.json({ error: 'Comment not found' }, 404);
@@ -3880,12 +4131,9 @@ app.post('/churches/:path/comments/:commentId/delete', async (c) => {
 app.post('/admin/submissions/:id/delete', requireAdminBetter, async (c) => {
   const db = createDbWithContext(c);
   const suggestionId = parseInt(c.req.param('id'));
-  
+
   // Delete the submission
-  const result = await db
-    .delete(churchSuggestions)
-    .where(eq(churchSuggestions.id, suggestionId))
-    .returning();
+  const result = await db.delete(churchSuggestions).where(eq(churchSuggestions.id, suggestionId)).returning();
 
   if (result.length === 0) {
     return c.json({ error: 'Submission not found' }, 404);
@@ -4115,7 +4363,7 @@ app.get('/admin/pages', requireAdminBetter, async (c) => {
                       >
                         Edit
                       </a>
-                      <form method="POST" action={`/admin/pages/${page.id}/delete`} class="inline">
+                      <form method="post" action={`/admin/pages/${page.id}/delete`} class="inline">
                         <button
                           type="submit"
                           class="text-red-600 hover:text-red-900"
@@ -4430,23 +4678,20 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
   const layoutProps = await getLayoutProps(c);
 
   // Get current settings
-  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, imagePrefix, faviconUrl, logoUrlSetting] = await Promise.all([
-    db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
-    db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
-    db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
-    db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
-    db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
-    db.select().from(settings).where(eq(settings.key, 'image_prefix')).get(),
-    db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
-    db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
-  ]);
+  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, imagePrefix, faviconUrl, logoUrlSetting] =
+    await Promise.all([
+      db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
+      db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
+      db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
+      db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
+      db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+      db.select().from(settings).where(eq(settings.key, 'image_prefix')).get(),
+      db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
+      db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
+    ]);
 
   return c.html(
-    <Layout 
-      title="Settings" 
-      user={user}
-      {...layoutProps}
-    >
+    <Layout title="Settings" user={user} {...layoutProps}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4490,7 +4735,10 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const frontPageTitle = (body.frontPageTitle as string)?.trim();
   const siteDomain = (body.siteDomain as string)?.trim();
   const siteRegion = (body.siteRegion as string)?.trim().toUpperCase();
-  const imagePrefix = (body.imagePrefix as string)?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const imagePrefix = (body.imagePrefix as string)
+    ?.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
 
   // Update or insert site title
   const existingSiteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
@@ -4541,10 +4789,7 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const existingSiteDomain = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
 
   if (existingSiteDomain) {
-    await db
-      .update(settings)
-      .set({ value: siteDomain, updatedAt: new Date() })
-      .where(eq(settings.key, 'site_domain'));
+    await db.update(settings).set({ value: siteDomain, updatedAt: new Date() }).where(eq(settings.key, 'site_domain'));
   } else {
     await db.insert(settings).values({
       key: 'site_domain',
@@ -4558,10 +4803,7 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const existingSiteRegion = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
 
   if (existingSiteRegion) {
-    await db
-      .update(settings)
-      .set({ value: siteRegion, updatedAt: new Date() })
-      .where(eq(settings.key, 'site_region'));
+    await db.update(settings).set({ value: siteRegion, updatedAt: new Date() }).where(eq(settings.key, 'site_region'));
   } else {
     await db.insert(settings).values({
       key: 'site_region',
@@ -4802,23 +5044,25 @@ app.get('*', async (c) => {
 // Custom 404 handler
 app.notFound((c) => {
   const errorId = generateErrorId();
-  
+
   // Check if it's an API request
-  const isApiRequest = c.req.path.startsWith('/api/') || 
-                      c.req.header('Accept')?.includes('application/json');
-  
+  const isApiRequest = c.req.path.startsWith('/api/') || c.req.header('Accept')?.includes('application/json');
+
   if (isApiRequest) {
-    return c.json({
-      error: 'Not Found',
-      message: 'The requested API endpoint does not exist.',
-      errorId,
-      statusCode: 404
-    }, 404);
+    return c.json(
+      {
+        error: 'Not Found',
+        message: 'The requested API endpoint does not exist.',
+        errorId,
+        statusCode: 404,
+      },
+      404
+    );
   }
-  
+
   return c.html(
     <Layout currentPath="/error" hideFooter={true}>
-      <ErrorPage 
+      <ErrorPage
         error="The requested page could not be found."
         errorType="Not Found"
         errorDetails="The page you are looking for may have been moved or deleted."

@@ -4,7 +4,7 @@ import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import { getLogoUrl } from '../../utils/settings';
 import { getNavbarPages } from '../../utils/pages';
 import { createDbWithContext } from '../../db';
-import { comments, churches } from '../../db/schema';
+import { comments, churches, churchSuggestions } from '../../db/schema';
 import { users } from '../../db/auth-schema';
 import { desc, eq } from 'drizzle-orm';
 import type { Bindings } from '../../types';
@@ -25,31 +25,56 @@ adminFeedbackRoutes.get('/', async (c) => {
   const logoUrl = await getLogoUrl(c.env);
   const navbarPages = await getNavbarPages(c.env);
 
-  // Get all comments with related data
+  // Get all user comments (excluding system activity)
   const allCommentsRaw = await db
     .select()
     .from(comments)
     .leftJoin(churches, eq(comments.churchId, churches.id))
     .leftJoin(users, eq(comments.userId, users.id))
+    .where(eq(comments.type, 'user'))
     .orderBy(desc(comments.createdAt))
     .all();
 
   // Transform the data to a cleaner format
-  const allComments = allCommentsRaw.map(row => ({
-    id: row.comments.id,
-    content: row.comments.content,
-    userId: row.comments.userId,
-    churchId: row.comments.churchId,
-    createdAt: row.comments.createdAt,
-    type: row.comments.type,
-    isPublic: row.comments.isPublic,
-    status: row.comments.status,
-    metadata: row.comments.metadata,
-    churchName: row.churches?.name || null,
-    churchPath: row.churches?.path || null,
-    userName: row.users?.username || null,
-    userEmail: row.users?.email || null,
-  }));
+  const allComments = allCommentsRaw.map(row => {
+    let feedbackType = 'general';
+    if (row.comments.metadata) {
+      try {
+        const meta = JSON.parse(row.comments.metadata);
+        feedbackType = meta.feedbackType || 'general';
+      } catch {}
+    }
+    
+    return {
+      id: row.comments.id,
+      content: row.comments.content,
+      userId: row.comments.userId,
+      churchId: row.comments.churchId,
+      createdAt: row.comments.createdAt,
+      type: row.comments.type,
+      feedbackType: feedbackType,
+      isPublic: row.comments.isPublic,
+      status: row.comments.status,
+      metadata: row.comments.metadata,
+      churchName: row.churches?.name || null,
+      churchPath: row.churches?.path || null,
+      userName: row.users?.name || null,
+      userEmail: row.users?.email || null,
+    };
+  });
+
+  // Get church suggestions
+  const suggestions = await db
+    .select()
+    .from(churchSuggestions)
+    .leftJoin(users, eq(churchSuggestions.userId, users.id))
+    .orderBy(desc(churchSuggestions.createdAt))
+    .all();
+
+  // Count feedback by type
+  const generalFeedback = allComments.filter(c => c.feedbackType === 'general').length;
+  const churchFeedback = allComments.filter(c => c.feedbackType === 'church').length;
+  const totalSuggestions = suggestions.length;
 
   return c.html(
     <Layout
@@ -81,7 +106,7 @@ adminFeedbackRoutes.get('/', async (c) => {
           {/* Header */}
           <div class="mb-8">
             <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-              User Feedback & Comments
+              Feedback
             </h1>
             <p class="mt-2 text-sm text-gray-600">
               View and manage all user comments and feedback across the site
@@ -89,7 +114,7 @@ adminFeedbackRoutes.get('/', async (c) => {
           </div>
 
           {/* Stats */}
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
             <div class="bg-white overflow-hidden shadow rounded-lg">
               <div class="p-5">
                 <div class="flex items-center">
@@ -100,8 +125,26 @@ adminFeedbackRoutes.get('/', async (c) => {
                   </div>
                   <div class="ml-5 w-0 flex-1">
                     <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Total Comments</dt>
-                      <dd class="text-lg font-medium text-gray-900">{allComments.length}</dd>
+                      <dt class="text-sm font-medium text-gray-500 truncate">All Feedback</dt>
+                      <dd class="text-lg font-medium text-gray-900">{allComments.length + totalSuggestions}</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+              <div class="p-5">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <div class="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt class="text-sm font-medium text-gray-500 truncate">General</dt>
+                      <dd class="text-lg font-medium text-gray-900">{generalFeedback}</dd>
                     </dl>
                   </div>
                 </div>
@@ -118,10 +161,8 @@ adminFeedbackRoutes.get('/', async (c) => {
                   </div>
                   <div class="ml-5 w-0 flex-1">
                     <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">Church Comments</dt>
-                      <dd class="text-lg font-medium text-gray-900">
-                        {allComments.filter(c => c.churchId).length}
-                      </dd>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Churches</dt>
+                      <dd class="text-lg font-medium text-gray-900">{churchFeedback}</dd>
                     </dl>
                   </div>
                 </div>
@@ -133,15 +174,13 @@ adminFeedbackRoutes.get('/', async (c) => {
                 <div class="flex items-center">
                   <div class="flex-shrink-0">
                     <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
                   <div class="ml-5 w-0 flex-1">
                     <dl>
-                      <dt class="text-sm font-medium text-gray-500 truncate">System Comments</dt>
-                      <dd class="text-lg font-medium text-gray-900">
-                        {allComments.filter(c => c.type === 'system').length}
-                      </dd>
+                      <dt class="text-sm font-medium text-gray-500 truncate">Suggestions</dt>
+                      <dd class="text-lg font-medium text-gray-900">{totalSuggestions}</dd>
                     </dl>
                   </div>
                 </div>
