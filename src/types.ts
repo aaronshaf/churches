@@ -1,7 +1,6 @@
 // Environment bindings
 export interface Bindings {
-  TURSO_DATABASE_URL: string;
-  TURSO_AUTH_TOKEN: string;
+  DB: D1Database;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   GOOGLE_CLIENT_ID: string;

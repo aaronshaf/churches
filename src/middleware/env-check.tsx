@@ -3,8 +3,7 @@ import { Layout } from '../components/Layout';
 
 // All required environment variables
 const REQUIRED_ENV_VARS = [
-  'TURSO_DATABASE_URL',
-  'TURSO_AUTH_TOKEN',
+  'DB',
   'BETTER_AUTH_SECRET',
   'BETTER_AUTH_URL',
   'GOOGLE_CLIENT_ID',
