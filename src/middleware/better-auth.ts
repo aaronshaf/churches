@@ -59,8 +59,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const sessionId = sessionMatch[1];
 
   // Look up session in database
-  const { createClient } = await import('@libsql/client');
-  const { drizzle } = await import('drizzle-orm/libsql');
+  const { drizzle } = await import('drizzle-orm/d1');
   const { eq } = await import('drizzle-orm');
   const { users, sessions } = await import('../db/auth-schema');
   const { validateDatabaseEnvVars } = await import('../utils/env-validation');
@@ -68,11 +67,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   // Validate environment variables
   validateDatabaseEnvVars(c.env);
 
-  const client = createClient({
-    url: c.env.TURSO_DATABASE_URL,
-    authToken: c.env.TURSO_AUTH_TOKEN,
-  });
-  const db = drizzle(client, { schema: { users, sessions } });
+  const db = drizzle(c.env.DB, { schema: { users, sessions } });
 
   const session = await db
     .select({
@@ -179,8 +174,7 @@ export const getUser = async (c: Context): Promise<any | null> => {
 
   try {
     // Look up session in database
-    const { createClient } = await import('@libsql/client');
-    const { drizzle } = await import('drizzle-orm/libsql');
+    const { drizzle } = await import('drizzle-orm/d1');
     const { eq } = await import('drizzle-orm');
     const { users, sessions } = await import('../db/auth-schema');
     const { validateDatabaseEnvVars } = await import('../utils/env-validation');
@@ -188,11 +182,7 @@ export const getUser = async (c: Context): Promise<any | null> => {
     // Validate environment variables
     validateDatabaseEnvVars(c.env);
 
-    const client = createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    });
-    const db = drizzle(client, { schema: { users, sessions } });
+    const db = drizzle(c.env.DB, { schema: { users, sessions } });
 
     const session = await db
       .select({

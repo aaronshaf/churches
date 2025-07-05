@@ -1,6 +1,5 @@
-import { createClient } from '@libsql/client';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { Layout } from '../components/Layout';
@@ -229,11 +228,7 @@ betterAuthApp.get('/callback/google', async (c) => {
     }
 
     // Simple manual user/session creation
-    const client = createClient({
-      url: c.env.TURSO_DATABASE_URL,
-      authToken: c.env.TURSO_AUTH_TOKEN,
-    });
-    const db = drizzle(client, { schema: { users } });
+    const db = drizzle(c.env.DB, { schema: { users } });
 
     // Check if user exists
     let user = await db.select().from(users).where(eq(users.email, googleUser.email)).get();

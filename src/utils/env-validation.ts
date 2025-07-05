@@ -76,8 +76,6 @@ export function getEnvVarStatus(env: any): {
   allRequired: boolean;
 } {
   const requiredVars: (keyof RequiredEnvVars)[] = [
-    'TURSO_DATABASE_URL',
-    'TURSO_AUTH_TOKEN',
     'BETTER_AUTH_SECRET',
     'BETTER_AUTH_URL',
     'GOOGLE_CLIENT_ID',
@@ -87,6 +85,13 @@ export function getEnvVarStatus(env: any): {
 
   const missing = requiredVars.filter((varName) => !env[varName]);
   const present = requiredVars.filter((varName) => env[varName]);
+
+  // Check DB binding separately
+  if (!env.DB) {
+    missing.push('DB');
+  } else {
+    present.push('DB');
+  }
 
   return {
     missing,

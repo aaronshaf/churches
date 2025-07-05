@@ -1,7 +1,6 @@
-import { createClient } from '@libsql/client';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../db/auth-schema';
 import { validateAuthEnvVars } from '../utils/env-validation';
 
@@ -9,12 +8,7 @@ export function createAuth(env: any) {
   // Validate required environment variables
   validateAuthEnvVars(env);
 
-  const client = createClient({
-    url: env.TURSO_DATABASE_URL,
-    authToken: env.TURSO_AUTH_TOKEN,
-  });
-
-  const db = drizzle(client, { schema });
+  const db = drizzle(env.DB, { schema });
 
   return betterAuth({
     database: drizzleAdapter(db, {

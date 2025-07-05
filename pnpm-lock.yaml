@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@libsql/client':
-        specifier: ^0.15.9
-        version: 0.15.9
       better-auth:
         specifier: ^1.2.12
         version: 1.2.12
@@ -2414,10 +2411,12 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    optional: true
 
   '@libsql/core@0.15.9':
     dependencies:
       js-base64: 3.7.7
+    optional: true
 
   '@libsql/darwin-arm64@0.5.13':
     optional: true
@@ -2434,8 +2433,10 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    optional: true
 
-  '@libsql/isomorphic-fetch@0.3.1': {}
+  '@libsql/isomorphic-fetch@0.3.1':
+    optional: true
 
   '@libsql/isomorphic-ws@0.1.5':
     dependencies:
@@ -2444,6 +2445,7 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    optional: true
 
   '@libsql/linux-arm-gnueabihf@0.5.13':
     optional: true
@@ -2466,7 +2468,8 @@ snapshots:
   '@libsql/win32-x64-msvc@0.5.13':
     optional: true
 
-  '@neon-rs/load@0.0.4': {}
+  '@neon-rs/load@0.0.4':
+    optional: true
 
   '@noble/ciphers@0.6.0': {}
 
@@ -2546,6 +2549,7 @@ snapshots:
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 24.0.10
+    optional: true
 
   acorn-walk@8.3.2: {}
 
@@ -2734,7 +2738,8 @@ snapshots:
 
   data-uri-to-buffer@2.0.2: {}
 
-  data-uri-to-buffer@4.0.1: {}
+  data-uri-to-buffer@4.0.1:
+    optional: true
 
   debug@4.4.1:
     dependencies:
@@ -2744,7 +2749,8 @@ snapshots:
 
   defu@6.1.4: {}
 
-  detect-libc@2.0.2: {}
+  detect-libc@2.0.2:
+    optional: true
 
   detect-libc@2.0.4: {}
 
@@ -2913,6 +2919,7 @@ snapshots:
     dependencies:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
+    optional: true
 
   fill-range@7.1.1:
     dependencies:
@@ -2926,6 +2933,7 @@ snapshots:
   formdata-polyfill@4.0.10:
     dependencies:
       fetch-blob: 3.2.0
+    optional: true
 
   frac@1.1.2: {}
 
@@ -3031,7 +3039,8 @@ snapshots:
 
   jose@6.0.11: {}
 
-  js-base64@3.7.7: {}
+  js-base64@3.7.7:
+    optional: true
 
   js-yaml@4.1.0:
     dependencies:
@@ -3055,6 +3064,7 @@ snapshots:
       '@libsql/linux-x64-gnu': 0.5.13
       '@libsql/linux-x64-musl': 0.5.13
       '@libsql/win32-x64-msvc': 0.5.13
+    optional: true
 
   lilconfig@3.1.3: {}
 
@@ -3149,13 +3159,15 @@ snapshots:
 
   nanostores@0.11.4: {}
 
-  node-domexception@1.0.0: {}
+  node-domexception@1.0.0:
+    optional: true
 
   node-fetch@3.3.2:
     dependencies:
       data-uri-to-buffer: 4.0.1
       fetch-blob: 3.2.0
       formdata-polyfill: 4.0.10
+    optional: true
 
   node-releases@2.0.19: {}
 
@@ -3249,7 +3261,8 @@ snapshots:
 
   printable-characters@1.0.42: {}
 
-  promise-limit@2.7.0: {}
+  promise-limit@2.7.0:
+    optional: true
 
   pvtsutils@1.3.6:
     dependencies:
@@ -3502,7 +3515,8 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  web-streams-polyfill@3.3.3: {}
+  web-streams-polyfill@3.3.3:
+    optional: true
 
   which@2.0.2:
     dependencies:
@@ -3557,7 +3571,8 @@ snapshots:
 
   ws@8.18.0: {}
 
-  ws@8.18.3: {}
+  ws@8.18.3:
+    optional: true
 
   xlsx@0.18.5:
     dependencies:
