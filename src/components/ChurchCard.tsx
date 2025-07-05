@@ -194,7 +194,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
       </div>
 
       {/* Hover effect border */}
-      <div class="absolute inset-0 rounded-lg ring-1 ring-inset ring-gray-200 group-hover:ring-primary-500 transition-all duration-200 pointer-events-none"></div>
+      <div class="absolute inset-0 rounded-lg ring-1 ring-inset ring-gray-200 group-hover:ring-gray-300 transition-all duration-200 pointer-events-none"></div>
     </div>
   );
 };
