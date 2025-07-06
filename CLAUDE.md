@@ -298,6 +298,18 @@ wrangler secret put GOOGLE_CLIENT_SECRET
   - Import statements, variable declarations
   - Any code with specific structure
 
+### TypeScript Code Quality Enforcement
+
+#### Pre-commit Hook Policies
+- **No `any` type usage**: Enforced via ast-grep in pre-commit hook (`scripts/check-no-any.js`)
+  - Prohibits: `as any`, explicit `any` type annotations, `ZodObject<any>`, `Record<_, any>`, etc.
+  - Allows: Comments, HTML attributes, external API objects, TODO-marked instances
+  - **IMPORTANT**: Avoid using `--no-verify` to bypass pre-commit checks
+  - Only use `--no-verify` in emergencies with team lead approval
+- **File size limits**: Enforced to prevent large files from bloating the repository
+- **TypeScript compilation**: All code must compile without errors (`tsc --noEmit`)
+- **Code formatting**: Enforced via Biome (`biome check --write`)
+
 ## Important Implementation Notes
 
 - Always use pnpm commands instead of npm or yarn

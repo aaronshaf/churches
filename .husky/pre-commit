@@ -4,4 +4,7 @@
 # Check file sizes before running other checks
 node scripts/check-file-sizes.js
 
+# Enforce "no any" TypeScript policy using ast-grep
+node scripts/check-no-any.js
+
 pnpm lint-staged
