@@ -291,6 +291,20 @@ app.onError((err, c) => {
   );
 });
 
+// Debug endpoint to check environment (no auth required for debugging)
+app.get('/api/debug/env-check', async (c) => {
+  // Simple check that doesn't require database
+  return c.json({
+    hasDB: !!c.env.DB,
+    hasBetterAuthSecret: !!c.env.BETTER_AUTH_SECRET,
+    hasBetterAuthURL: !!c.env.BETTER_AUTH_URL,
+    hasGoogleClientId: !!c.env.GOOGLE_CLIENT_ID,
+    hasGoogleClientSecret: !!c.env.GOOGLE_CLIENT_SECRET,
+    hostname: new URL(c.req.url).hostname,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // .well-known/traffic-advice endpoint
 app.get('/.well-known/traffic-advice', async (c) => {
   const db = createDbWithContext(c);
