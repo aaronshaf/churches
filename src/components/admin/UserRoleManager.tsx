@@ -3,7 +3,7 @@ import type { FC } from 'hono/jsx';
 interface BetterAuthUser {
   id: string;
   email: string;
-  name?: string;
+  name: string | null;
   role: 'admin' | 'contributor' | 'user';
   createdAt: Date;
   updatedAt: Date;

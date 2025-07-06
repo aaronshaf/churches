@@ -7,6 +7,7 @@ type AffiliationFormProps = {
   allChurches?: any[];
   error?: string;
   isNew?: boolean;
+  cancelUrl?: string;
 };
 
 export const AffiliationForm: FC<AffiliationFormProps> = ({

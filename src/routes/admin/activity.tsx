@@ -89,7 +89,7 @@ adminActivityRoutes.get('/', async (c) => {
     metadata: row.comments.metadata,
     churchName: row.churches?.name || null,
     churchPath: row.churches?.path || null,
-    userName: row.users?.username || null,
+    userName: row.users?.name || null,
     userEmail: row.users?.email || null,
   }));
 
@@ -98,7 +98,7 @@ adminActivityRoutes.get('/', async (c) => {
   const stats = {
     total: count,
     churchRelated: allActivity.filter((a) => a.churchId).length,
-    last24h: allActivity.filter((a) => a.createdAt > last24h / 1000).length,
+    last24h: allActivity.filter((a) => a.createdAt.getTime() > last24h).length,
   };
 
   return c.html(

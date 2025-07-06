@@ -4,13 +4,14 @@ import { getGravatarUrl } from '../utils/crypto';
 type Comment = {
   id: number;
   content: string;
-  type?: 'user' | 'system';
-  metadata?: string;
-  createdAt: Date;
-  userName?: string;
+  type?: 'user' | 'system' | null;
+  metadata?: string | null;
+  createdAt: Date | string | number;
+  userName?: string | null;
   userEmail: string;
-  userImage?: string;
-  userId: string;
+  userImage?: string | null;
+  userId: string | null;
+  churchId: number;
   isOwn: boolean;
 };
 
@@ -21,7 +22,7 @@ type ChurchCommentsProps = {
   comments: Comment[];
   user?: {
     id: string;
-    name?: string;
+    name: string | null;
     email: string;
     role: 'admin' | 'contributor' | 'user';
   };

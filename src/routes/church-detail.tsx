@@ -4,6 +4,7 @@ import { ChurchComments } from '../components/ChurchComments';
 import { ErrorPage } from '../components/ErrorPage';
 import { Layout } from '../components/Layout';
 import { createDbWithContext } from '../db';
+import { users } from '../db/auth-schema';
 import {
   affiliations,
   churchAffiliations,
@@ -120,7 +121,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .orderBy(churchImages.displayOrder)
       .all();
 
-    // Get comments for this church
+    // Get comments for this church with user info
     const allComments = await db
       .select({
         id: comments.id,
@@ -129,8 +130,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         userId: comments.userId,
         churchId: comments.churchId,
         createdAt: comments.createdAt,
+        userName: users.name,
+        userEmail: users.email,
+        userImage: users.image,
       })
       .from(comments)
+      .leftJoin(users, eq(comments.userId, users.id))
       .where(eq(comments.churchId, church.id))
       .orderBy(comments.createdAt)
       .all();
@@ -139,9 +144,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     const processedComments = allComments.map((comment) => ({
       ...comment,
       isOwn: user && comment.userId === user.id,
-      userImage: user?.image || null,
-      userName: user?.name || null,
-      userEmail: user?.email || '',
+      userName: comment.userName || null,
+      userEmail: comment.userEmail || '',
+      userImage: comment.userImage || null,
     }));
 
     // Get site settings for JSON-LD
@@ -756,7 +761,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       <Layout title="Error">
         <ErrorPage error={details || message} errorType={type} statusCode={statusCode} errorId={errorId} />
       </Layout>,
-      statusCode
+      statusCode as any
     );
   }
 });

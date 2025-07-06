@@ -65,7 +65,11 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const { validateDatabaseEnvVars } = await import('../utils/env-validation');
 
   // Validate environment variables
-  validateDatabaseEnvVars(c.env);
+  try {
+    validateDatabaseEnvVars(c.env);
+  } catch (error) {
+    throw error;
+  }
 
   const db = drizzle(c.env.DB, { schema: { users, sessions } });
 
@@ -180,7 +184,11 @@ export const getUser = async (c: Context): Promise<any | null> => {
     const { validateDatabaseEnvVars } = await import('../utils/env-validation');
 
     // Validate environment variables
-    validateDatabaseEnvVars(c.env);
+    try {
+      validateDatabaseEnvVars(c.env);
+    } catch (error) {
+      throw error;
+    }
 
     const db = drizzle(c.env.DB, { schema: { users, sessions } });
 

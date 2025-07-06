@@ -86,12 +86,7 @@ export function getEnvVarStatus(env: any): {
   const missing = requiredVars.filter((varName) => !env[varName]);
   const present = requiredVars.filter((varName) => env[varName]);
 
-  // Check DB binding separately
-  if (!env.DB) {
-    missing.push('DB');
-  } else {
-    present.push('DB');
-  }
+  // DB is a D1 binding, not an env var - checked separately
 
   return {
     missing,

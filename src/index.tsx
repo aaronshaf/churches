@@ -49,7 +49,7 @@ import {
 import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
-import { getSiteTitle } from './utils/settings';
+import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
 type Variables = {
@@ -260,7 +260,7 @@ app.onError((err, c) => {
     err.message?.includes('Failed query') ||
     (err as any).cause?.message?.includes('Network connection lost');
 
-  const statusCode = 'status' in err ? err.status : 500;
+  const statusCode = 'status' in err && typeof err.status === 'number' ? err.status : 500;
 
   return c.html(
     <Layout title="Error">
@@ -3973,10 +3973,12 @@ app.post('/admin/pages', requireAdminBetter, async (c) => {
       console.log('Cloudflare Account ID:', c.env.CLOUDFLARE_ACCOUNT_ID);
       console.log('Has API Token:', !!c.env.CLOUDFLARE_IMAGES_API_TOKEN);
 
+      const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         featuredImage,
-        c.env.CLOUDFLARE_ACCOUNT_ID,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        c.env.CLOUDFLARE_ACCOUNT_ID!,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
@@ -4097,10 +4099,12 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
         );
       }
 
+      const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         featuredImage,
-        c.env.CLOUDFLARE_ACCOUNT_ID,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        c.env.CLOUDFLARE_ACCOUNT_ID!,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
@@ -4185,7 +4189,7 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
     ]);
 
   return c.html(
-    <Layout title="Settings" user={user} {...layoutProps}>
+    <Layout title="Settings" {...layoutProps}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav class="flex mb-8" aria-label="Breadcrumb">
@@ -4342,10 +4346,12 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
         );
       }
 
+      const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         favicon,
-        c.env.CLOUDFLARE_ACCOUNT_ID,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        c.env.CLOUDFLARE_ACCOUNT_ID!,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
@@ -4407,10 +4413,12 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
         );
       }
 
+      const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         logo,
-        c.env.CLOUDFLARE_ACCOUNT_ID,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        c.env.CLOUDFLARE_ACCOUNT_ID!,
+        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {

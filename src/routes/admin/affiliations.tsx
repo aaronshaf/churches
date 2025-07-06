@@ -12,6 +12,7 @@ import { affiliationSchema, parseFormBody, validateFormData } from '../../utils/
 
 type Variables = {
   user: any;
+  betterUser?: any;
 };
 
 export const adminAffiliationsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -135,7 +136,23 @@ adminAffiliationsRoutes.post('/', async (c) => {
   try {
     const body = await c.req.parseBody();
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(affiliationSchema, parsedBody);
+    const validationResult = validateFormData(affiliationSchema, parsedBody);
+
+    if (!validationResult.success) {
+      const logoUrl = await getLogoUrl(c.env);
+      return c.html(
+        <Layout title="Create Affiliation - Admin" user={user} logoUrl={logoUrl}>
+          <AffiliationForm 
+            action="/admin/affiliations" 
+            error={validationResult.message} 
+            affiliation={parsedBody} 
+            isNew={true} 
+          />
+        </Layout>
+      );
+    }
+
+    const validatedData = validationResult.data;
 
     await db.insert(affiliations).values({
       name: validatedData.name,
@@ -205,7 +222,34 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
   try {
     const body = await c.req.parseBody();
     const parsedBody = parseFormBody(body);
-    const validatedData = await validateFormData(affiliationSchema, parsedBody);
+    const validationResult = validateFormData(affiliationSchema, parsedBody);
+
+    if (!validationResult.success) {
+      const logoUrl = await getLogoUrl(c.env);
+      const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
+      
+      if (!affiliation) {
+        return c.html(<NotFound />, 404);
+      }
+      
+      return c.html(
+        <Layout title={`Edit ${affiliation.name}`} user={user} logoUrl={logoUrl}>
+          <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div class="mb-8">
+              <h1 class="text-2xl font-semibold text-gray-900">Edit Affiliation</h1>
+            </div>
+            <AffiliationForm
+              affiliation={{ ...affiliation, ...parsedBody }}
+              action={`/admin/affiliations/${id}`}
+              cancelUrl="/admin/affiliations"
+              error={validationResult.message}
+            />
+          </div>
+        </Layout>
+      );
+    }
+
+    const validatedData = validationResult.data;
 
     await db
       .update(affiliations)

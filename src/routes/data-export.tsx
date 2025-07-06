@@ -52,7 +52,14 @@ dataExportRoutes.get('/churches.json', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData = [];
+  let churchAffiliationData: Array<{ 
+    churchId: number; 
+    affiliationId: number;
+    affiliationName: string | null;
+    affiliationWebsite: string | null;
+    affiliationPublicNotes: string | null;
+    order: number | null;
+  }> = [];
 
   if (churchIds.length > 0) {
     churchAffiliationData = await db
@@ -140,7 +147,14 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData = [];
+  let churchAffiliationData: Array<{ 
+    churchId: number; 
+    affiliationId: number;
+    affiliationName: string | null;
+    affiliationWebsite: string | null;
+    affiliationPublicNotes: string | null;
+    order: number | null;
+  }> = [];
 
   if (churchIds.length > 0) {
     churchAffiliationData = await db
@@ -245,7 +259,14 @@ dataExportRoutes.get('/churches.csv', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData = [];
+  let churchAffiliationData: Array<{ 
+    churchId: number; 
+    affiliationId: number;
+    affiliationName: string | null;
+    affiliationWebsite: string | null;
+    affiliationPublicNotes: string | null;
+    order: number | null;
+  }> = [];
 
   if (churchIds.length > 0) {
     churchAffiliationData = await db
@@ -388,7 +409,14 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData = [];
+  let churchAffiliationData: Array<{ 
+    churchId: number; 
+    affiliationId: number;
+    affiliationName: string | null;
+    affiliationWebsite: string | null;
+    affiliationPublicNotes: string | null;
+    order: number | null;
+  }> = [];
 
   if (churchIds.length > 0) {
     churchAffiliationData = await db
