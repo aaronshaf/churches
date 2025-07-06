@@ -38,7 +38,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                       type="text"
                       id="quick-search-input"
                       class="w-full pl-10 pr-4 py-2 border-0 focus:ring-0 focus:outline-none text-lg"
-                      placeholder="Search for a church..."
+                      placeholder="Search for a church, county, or network..."
                       autocomplete="off"
                       oninput="performQuickSearch(this.value)"
                       onkeydown="handleQuickSearchKeydown(event)"
@@ -93,8 +93,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
 
             // Initialize quick search
             document.addEventListener('DOMContentLoaded', function() {
-              // Preload church data
-              loadChurchData();
+              // Preload all data
+              loadAllData();
               
               // Listen for forward slash key
               document.addEventListener('keydown', function(e) {
@@ -109,18 +109,34 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               });
             });
 
-            async function loadChurchData() {
-              if (churchDataLoaded) return;
+            async function loadAllData() {
+              if (dataLoaded) return;
               
               try {
-                const response = await fetch('/api/churches?limit=1000');
-                if (response.ok) {
-                  const data = await response.json();
+                const [churchesResponse, countiesResponse, affiliationsResponse] = await Promise.all([
+                  fetch('/api/churches?limit=1000'),
+                  fetch('/api/counties'),
+                  fetch('/api/networks')
+                ]);
+                
+                if (churchesResponse.ok) {
+                  const data = await churchesResponse.json();
                   allChurches = data.churches || [];
-                  churchDataLoaded = true;
                 }
+                
+                if (countiesResponse.ok) {
+                  const data = await countiesResponse.json();
+                  allCounties = data || [];
+                }
+                
+                if (affiliationsResponse.ok) {
+                  const data = await affiliationsResponse.json();
+                  allAffiliations = data || [];
+                }
+                
+                dataLoaded = true;
               } catch (error) {
-                console.error('Failed to load church data:', error);
+                console.error('Failed to load data:', error);
               }
             }
 
@@ -168,25 +184,108 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
 
               // Instant client-side filtering
               const searchQuery = query.toLowerCase();
-              quickSearchResults = allChurches
+              const results = [];
+              
+              // Search churches
+              const churchResults = allChurches
                 .filter(church => church.name && church.name.toLowerCase().includes(searchQuery))
+                .map(church => ({ ...church, type: 'church' }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
                   const aStartsWith = aName.startsWith(searchQuery);
                   const bStartsWith = bName.startsWith(searchQuery);
                   
-                  // Prioritize exact matches and starts-with matches
                   if (aStartsWith && !bStartsWith) return -1;
                   if (!aStartsWith && bStartsWith) return 1;
                   
-                  // Then sort alphabetically
                   return a.name.localeCompare(b.name);
-                })
-                .slice(0, 10); // Limit to 10 results
+                });
+              
+              // Search counties
+              const countyResults = allCounties
+                .filter(county => county.name && county.name.toLowerCase().includes(searchQuery))
+                .map(county => ({ ...county, type: 'county' }))
+                .sort((a, b) => {
+                  const aName = a.name.toLowerCase();
+                  const bName = b.name.toLowerCase();
+                  const aStartsWith = aName.startsWith(searchQuery);
+                  const bStartsWith = bName.startsWith(searchQuery);
+                  
+                  if (aStartsWith && !bStartsWith) return -1;
+                  if (!aStartsWith && bStartsWith) return 1;
+                  
+                  return a.name.localeCompare(b.name);
+                });
+              
+              // Search affiliations
+              const affiliationResults = allAffiliations
+                .filter(affiliation => affiliation.name && affiliation.name.toLowerCase().includes(searchQuery))
+                .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
+                .sort((a, b) => {
+                  const aName = a.name.toLowerCase();
+                  const bName = b.name.toLowerCase();
+                  const aStartsWith = aName.startsWith(searchQuery);
+                  const bStartsWith = bName.startsWith(searchQuery);
+                  
+                  if (aStartsWith && !bStartsWith) return -1;
+                  if (!aStartsWith && bStartsWith) return 1;
+                  
+                  return a.name.localeCompare(b.name);
+                });
+              
+              // Combine results - churches first, then counties, then affiliations
+              quickSearchResults = [
+                ...churchResults.slice(0, 5),
+                ...countyResults.slice(0, 3),
+                ...affiliationResults.slice(0, 2)
+              ].slice(0, 10);
+              
+              // If no results found, try fuzzy search
+              if (quickSearchResults.length === 0) {
+                quickSearchResults = performFuzzySearch(searchQuery);
+              }
               
               selectedIndex = -1;
               displayQuickSearchResults();
+            }
+            
+            function performFuzzySearch(query) {
+              const results = [];
+              const searchWords = query.toLowerCase().split(/\s+/);
+              
+              // Fuzzy search churches
+              const churchResults = allChurches
+                .filter(church => {
+                  if (!church.name) return false;
+                  const name = church.name.toLowerCase();
+                  // Check if all search words appear anywhere in the name
+                  return searchWords.every(word => name.includes(word));
+                })
+                .map(church => ({ ...church, type: 'church' }))
+                .slice(0, 5);
+              
+              // Fuzzy search counties
+              const countyResults = allCounties
+                .filter(county => {
+                  if (!county.name) return false;
+                  const name = county.name.toLowerCase();
+                  return searchWords.every(word => name.includes(word));
+                })
+                .map(county => ({ ...county, type: 'county' }))
+                .slice(0, 3);
+              
+              // Fuzzy search affiliations
+              const affiliationResults = allAffiliations
+                .filter(affiliation => {
+                  if (!affiliation.name) return false;
+                  const name = affiliation.name.toLowerCase();
+                  return searchWords.every(word => name.includes(word));
+                })
+                .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
+                .slice(0, 2);
+              
+              return [...churchResults, ...countyResults, ...affiliationResults].slice(0, 10);
             }
 
             function displayQuickSearchResults() {
@@ -202,86 +301,65 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 return;
               }
 
-              resultsContainer.innerHTML = quickSearchResults.map((church, index) => \`
-                <a
-                  href="/churches/\${church.path}"
-                  class="quick-search-result group block px-4 py-3 transition-all duration-150 ease-in-out border-b border-gray-100 last:border-0 \${index === selectedIndex ? 'bg-blue-50 border-l-4 border-l-blue-500 text-blue-900' : 'hover:bg-gray-50 hover:border-l-4 hover:border-l-gray-300'}"
-                  data-index="\${index}"
-                  onmouseover="handleResultHover(\${index}, '\${church.path}')"
-                  onmouseout="handleResultMouseOut()"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium truncate \${index === selectedIndex ? 'text-blue-900' : 'text-gray-900 group-hover:text-gray-900'}">\${church.name}</p>
-                      <p class="text-xs truncate \${index === selectedIndex ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-600'}">\${church.gatheringAddress || ''}</p>
+              resultsContainer.innerHTML = quickSearchResults.map((result, index) => {
+                const isSelected = index === selectedIndex;
+                let href, title, subtitle, typeLabel, typeColor;
+                
+                if (result.type === 'church') {
+                  href = \`/churches/\${result.path}\`;
+                  title = result.name;
+                  subtitle = result.gatheringAddress || '';
+                  typeLabel = result.status || 'Church';
+                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                } else if (result.type === 'county') {
+                  href = \`/counties/\${result.path}\`;
+                  title = result.name + ' County';
+                  subtitle = result.description || 'View all churches';
+                  typeLabel = 'County';
+                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                } else if (result.type === 'affiliation') {
+                  href = \`/networks/\${result.id}\`;
+                  title = result.name;
+                  subtitle = result.publicNotes || 'Church network';
+                  typeLabel = 'Network';
+                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+                }
+                
+                return \`
+                  <a
+                    href="\${href}"
+                    class="quick-search-result group block transition-colors duration-150 ease-in-out border-b border-gray-100 last:border-0 \${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}"
+                    style="padding: 12px 16px 12px \${isSelected ? '12px' : '16px'}; border-left: \${isSelected ? '4px solid #3b82f6' : 'none'};"
+                    data-index="\${index}"
+                    onmouseover="handleResultHover(\${index}, '\${result.path || result.id}')"
+                    onmouseout="handleResultMouseOut()"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate \${isSelected ? 'text-blue-900' : 'text-gray-900 group-hover:text-gray-900'}">\${title}</p>
+                        <p class="text-xs truncate \${isSelected ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-600'}">\${subtitle}</p>
+                      </div>
+                      <div class="flex items-center ml-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium \${typeColor}">\${typeLabel}</span>
+                        \${isSelected ? '<svg class="ml-2 h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
+                      </div>
                     </div>
-                    <div class="flex items-center ml-3">
-                      \${church.status ? \`<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium \${index === selectedIndex ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}">\${church.status}</span>\` : ''}
-                      \${index === selectedIndex ? '<svg class="ml-2 h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
-                    </div>
-                  </div>
-                </a>
-              \`).join('');
+                  </a>
+                \`;
+              }).join('');
             }
 
             function updateSelectedResult() {
-              const results = document.querySelectorAll('.quick-search-result');
-              results.forEach((result, index) => {
-                if (index === selectedIndex) {
-                  result.classList.remove('hover:bg-gray-50', 'hover:border-l-4', 'hover:border-l-gray-300');
-                  result.classList.add('bg-blue-50', 'border-l-4', 'border-l-blue-500', 'text-blue-900');
-                  
-                  // Update text colors for selected state
-                  const nameEl = result.querySelector('.text-gray-900, .text-blue-900');
-                  const addressEl = result.querySelector('.text-gray-500, .text-blue-700');
-                  const statusEl = result.querySelector('.bg-gray-100, .bg-blue-100');
-                  
-                  if (nameEl) {
-                    nameEl.classList.remove('text-gray-900');
-                    nameEl.classList.add('text-blue-900');
-                  }
-                  if (addressEl) {
-                    addressEl.classList.remove('text-gray-500');
-                    addressEl.classList.add('text-blue-700');
-                  }
-                  if (statusEl) {
-                    statusEl.classList.remove('bg-gray-100', 'text-gray-700');
-                    statusEl.classList.add('bg-blue-100', 'text-blue-800');
-                  }
-                  
-                  // Prefetch the selected church page
-                  if (quickSearchResults[selectedIndex]) {
-                    prefetchChurch(quickSearchResults[selectedIndex].path);
-                  }
-                } else {
-                  result.classList.remove('bg-blue-50', 'border-l-4', 'border-l-blue-500', 'text-blue-900');
-                  result.classList.add('hover:bg-gray-50', 'hover:border-l-4', 'hover:border-l-gray-300');
-                  
-                  // Reset text colors
-                  const nameEl = result.querySelector('.text-blue-900, .text-gray-900');
-                  const addressEl = result.querySelector('.text-blue-700, .text-gray-500');
-                  const statusEl = result.querySelector('.bg-blue-100, .bg-gray-100');
-                  
-                  if (nameEl) {
-                    nameEl.classList.remove('text-blue-900');
-                    nameEl.classList.add('text-gray-900');
-                  }
-                  if (addressEl) {
-                    addressEl.classList.remove('text-blue-700');
-                    addressEl.classList.add('text-gray-500');
-                  }
-                  if (statusEl) {
-                    statusEl.classList.remove('bg-blue-100', 'text-blue-800');
-                    statusEl.classList.add('bg-gray-100', 'text-gray-700');
-                  }
-                }
-              });
+              // Re-render results to update selection state
+              displayQuickSearchResults();
             }
 
-            function handleResultHover(index, churchPath) {
+            function handleResultHover(index, pathOrId) {
               selectedIndex = index;
               updateSelectedResult();
-              prefetchChurch(churchPath);
+              if (quickSearchResults[index]) {
+                prefetchResult(quickSearchResults[index]);
+              }
             }
 
             function handleResultMouseOut() {
@@ -289,10 +367,19 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               // This allows keyboard navigation to work properly after mouse interaction
             }
 
-            function prefetchChurch(churchPath) {
-              if (!churchPath) return;
+            function prefetchResult(result) {
+              if (!result) return;
               
-              const url = \`/churches/\${churchPath}\`;
+              let url;
+              if (result.type === 'church') {
+                url = \`/churches/\${result.path}\`;
+              } else if (result.type === 'county') {
+                url = \`/counties/\${result.path}\`;
+              } else if (result.type === 'affiliation') {
+                url = \`/networks/\${result.id}\`;
+              }
+              
+              if (!url) return;
               
               // Check if already prefetched
               if (document.querySelector(\`link[href="\${url}"][rel="prefetch"]\`)) {
@@ -333,7 +420,18 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
                 if (selectedIndex >= 0 && quickSearchResults[selectedIndex]) {
-                  window.location.href = \`/churches/\${quickSearchResults[selectedIndex].path}\`;
+                  const result = quickSearchResults[selectedIndex];
+                  let url;
+                  if (result.type === 'church') {
+                    url = \`/churches/\${result.path}\`;
+                  } else if (result.type === 'county') {
+                    url = \`/counties/\${result.path}\`;
+                  } else if (result.type === 'affiliation') {
+                    url = \`/networks/\${result.id}\`;
+                  }
+                  if (url) {
+                    window.location.href = url;
+                  }
                 }
                 return;
               }
