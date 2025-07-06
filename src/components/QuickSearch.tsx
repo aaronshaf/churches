@@ -200,39 +200,73 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               
               // Search churches
               const churchResults = allChurches
-                .filter(church => church.name && church.name.toLowerCase().includes(searchQuery))
+                .filter(church => {
+                  if (!church.name) return false;
+                  const name = church.name.toLowerCase();
+                  const path = (church.path || '').toLowerCase();
+                  return name.includes(searchQuery) || path.includes(searchQuery);
+                })
                 .map(church => ({ ...church, type: 'church' }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
-                  const aStartsWith = aName.startsWith(searchQuery);
-                  const bStartsWith = bName.startsWith(searchQuery);
+                  const aPath = (a.path || '').toLowerCase();
+                  const bPath = (b.path || '').toLowerCase();
                   
-                  if (aStartsWith && !bStartsWith) return -1;
-                  if (!aStartsWith && bStartsWith) return 1;
+                  // Prioritize exact name matches
+                  const aNameStartsWith = aName.startsWith(searchQuery);
+                  const bNameStartsWith = bName.startsWith(searchQuery);
+                  if (aNameStartsWith && !bNameStartsWith) return -1;
+                  if (!aNameStartsWith && bNameStartsWith) return 1;
+                  
+                  // Then prioritize exact path matches
+                  const aPathStartsWith = aPath.startsWith(searchQuery);
+                  const bPathStartsWith = bPath.startsWith(searchQuery);
+                  if (aPathStartsWith && !bPathStartsWith) return -1;
+                  if (!aPathStartsWith && bPathStartsWith) return 1;
                   
                   return a.name.localeCompare(b.name);
                 });
               
               // Search counties
               const countyResults = allCounties
-                .filter(county => county.name && county.name.toLowerCase().includes(searchQuery))
+                .filter(county => {
+                  if (!county.name) return false;
+                  const name = county.name.toLowerCase();
+                  const path = (county.path || '').toLowerCase();
+                  return name.includes(searchQuery) || path.includes(searchQuery);
+                })
                 .map(county => ({ ...county, type: 'county' }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
-                  const aStartsWith = aName.startsWith(searchQuery);
-                  const bStartsWith = bName.startsWith(searchQuery);
+                  const aPath = (a.path || '').toLowerCase();
+                  const bPath = (b.path || '').toLowerCase();
                   
-                  if (aStartsWith && !bStartsWith) return -1;
-                  if (!aStartsWith && bStartsWith) return 1;
+                  // Prioritize exact name matches
+                  const aNameStartsWith = aName.startsWith(searchQuery);
+                  const bNameStartsWith = bName.startsWith(searchQuery);
+                  if (aNameStartsWith && !bNameStartsWith) return -1;
+                  if (!aNameStartsWith && bNameStartsWith) return 1;
+                  
+                  // Then prioritize exact path matches
+                  const aPathStartsWith = aPath.startsWith(searchQuery);
+                  const bPathStartsWith = bPath.startsWith(searchQuery);
+                  if (aPathStartsWith && !bPathStartsWith) return -1;
+                  if (!aPathStartsWith && bPathStartsWith) return 1;
                   
                   return a.name.localeCompare(b.name);
                 });
               
               // Search affiliations
               const affiliationResults = allAffiliations
-                .filter(affiliation => affiliation.name && affiliation.name.toLowerCase().includes(searchQuery))
+                .filter(affiliation => {
+                  if (!affiliation.name) return false;
+                  const name = affiliation.name.toLowerCase();
+                  // For affiliations, also search by ID since that's used in URLs
+                  const idString = (affiliation.id || '').toString();
+                  return name.includes(searchQuery) || idString.includes(searchQuery);
+                })
                 .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
@@ -278,8 +312,9 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 .filter(church => {
                   if (!church.name) return false;
                   const name = church.name.toLowerCase();
-                  // Check if all search words appear anywhere in the name
-                  return searchWords.every(word => name.includes(word));
+                  const path = (church.path || '').toLowerCase();
+                  // Check if all search words appear anywhere in the name or path
+                  return searchWords.every(word => name.includes(word) || path.includes(word));
                 })
                 .map(church => ({ ...church, type: 'church' }))
                 .slice(0, 5);
@@ -289,7 +324,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 .filter(county => {
                   if (!county.name) return false;
                   const name = county.name.toLowerCase();
-                  return searchWords.every(word => name.includes(word));
+                  const path = (county.path || '').toLowerCase();
+                  return searchWords.every(word => name.includes(word) || path.includes(word));
                 })
                 .map(county => ({ ...county, type: 'county' }))
                 .slice(0, 3);
@@ -299,7 +335,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 .filter(affiliation => {
                   if (!affiliation.name) return false;
                   const name = affiliation.name.toLowerCase();
-                  return searchWords.every(word => name.includes(word));
+                  const idString = (affiliation.id || '').toString();
+                  return searchWords.every(word => name.includes(word) || idString.includes(word));
                 })
                 .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
                 .slice(0, 2);
