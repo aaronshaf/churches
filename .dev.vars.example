@@ -15,6 +15,6 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 
 # Better-Auth Authentication
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
-BETTER_AUTH_URL=http://localhost:8787
+BETTER_AUTH_URL=http://utahchurches.localhost:8787
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here

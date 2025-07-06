@@ -54,7 +54,7 @@ TURSO_DATABASE_URL=your_database_url
 TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
-BETTER_AUTH_URL=http://localhost:8787
+BETTER_AUTH_URL=http://utahchurches.localhost:8787
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 ```
@@ -65,7 +65,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 # Install dependencies
 pnpm install
 
-# Start development server
+# Start development server (runs at http://utahchurches.localhost:8787)
 pnpm dev
 
 # Deploy to Cloudflare Workers
