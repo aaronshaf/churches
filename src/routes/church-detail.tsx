@@ -511,7 +511,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                           href={church.facebook}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                          class="flex items-center text-sm text-gray-600 hover:text-[#1877f2] focus:text-[#1877f2] transition-colors"
                         >
                           <span class="mr-2">📘</span>
                           Facebook
@@ -522,7 +522,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                           href={church.instagram}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                          class="flex items-center text-sm text-gray-600 hover:text-[#E4405F] focus:text-[#E4405F] transition-colors"
                         >
                           <span class="mr-2">📷</span>
                           Instagram
@@ -533,7 +533,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                           href={church.youtube}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                          class="flex items-center text-sm text-gray-600 hover:text-[#FF0000] focus:text-[#FF0000] transition-colors"
                         >
                           <span class="mr-2">📺</span>
                           YouTube
@@ -544,7 +544,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                           href={church.spotify}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                          class="flex items-center text-sm text-gray-600 hover:text-[#1DB954] focus:text-[#1DB954] transition-colors"
                         >
                           <span class="mr-2">🎵</span>
                           Spotify

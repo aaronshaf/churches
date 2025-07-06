@@ -671,13 +671,17 @@ adminChurchesRoutes.post('/', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
-    // Redirect with success message
-    const params = new URLSearchParams({
-      success: 'created',
-      churchName: church.name,
-      ...(church.path && { churchPath: church.path }),
-    });
-    return c.redirect(`/admin/churches?${params.toString()}`);
+    // Redirect to the church page
+    if (church.path) {
+      return c.redirect(`/churches/${church.path}`);
+    } else {
+      // Fallback to admin list if no path
+      const params = new URLSearchParams({
+        success: 'created',
+        churchName: church.name,
+      });
+      return c.redirect(`/admin/churches?${params.toString()}`);
+    }
   } catch (error) {
     console.error('Error creating church:', error);
     return c.html(
@@ -966,13 +970,17 @@ adminChurchesRoutes.post('/:id', async (c) => {
       return c.redirect(`/admin/churches/${id}/edit?${params.toString()}`);
     }
 
-    // Redirect with success message
-    const params = new URLSearchParams({
-      success: 'updated',
-      churchName: updatedChurch?.name || 'Church',
-      churchPath: updatedChurch?.path || '',
-    });
-    return c.redirect(`/admin/churches?${params.toString()}`);
+    // Redirect to the church page
+    if (updatedChurch?.path) {
+      return c.redirect(`/churches/${updatedChurch.path}`);
+    } else {
+      // Fallback to admin list if no path
+      const params = new URLSearchParams({
+        success: 'updated',
+        churchName: updatedChurch?.name || 'Church',
+      });
+      return c.redirect(`/admin/churches?${params.toString()}`);
+    }
   } catch (error) {
     console.error('Error updating church:', error);
     return c.html(

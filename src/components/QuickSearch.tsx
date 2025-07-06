@@ -85,9 +85,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
         dangerouslySetInnerHTML={{
           __html: `
             let allChurches = [];
+            let allCounties = [];
+            let allAffiliations = [];
             let quickSearchResults = [];
             let selectedIndex = -1;
-            let churchDataLoaded = false;
+            let dataLoaded = false;
 
             // Initialize quick search
             document.addEventListener('DOMContentLoaded', function() {

@@ -1,7 +1,7 @@
 import { eq, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
-import { churches, comments, counties } from '../db/schema';
+import { affiliations, churches, comments, counties } from '../db/schema';
 import { requireAdminBetter } from '../middleware/better-auth';
 import type { Bindings } from '../types';
 
@@ -112,4 +112,44 @@ apiRoutes.post('/comments/:id/delete', requireAdminBetter, async (c) => {
     console.error('Error deleting comment:', error);
     return c.json({ error: 'Failed to delete comment' }, 500);
   }
+});
+
+// Get all counties
+apiRoutes.get('/counties', async (c) => {
+  const db = createDbWithContext(c);
+
+  const allCounties = await db
+    .select({
+      id: counties.id,
+      name: counties.name,
+      path: counties.path,
+      description: counties.description,
+      population: counties.population,
+    })
+    .from(counties)
+    .orderBy(counties.name)
+    .all();
+
+  return c.json(allCounties);
+});
+
+// Get all networks/affiliations
+apiRoutes.get('/networks', async (c) => {
+  const db = createDbWithContext(c);
+
+  const allNetworks = await db
+    .select({
+      id: affiliations.id,
+      name: affiliations.name,
+      path: affiliations.path,
+      status: affiliations.status,
+      website: affiliations.website,
+      publicNotes: affiliations.publicNotes,
+    })
+    .from(affiliations)
+    .where(eq(affiliations.status, 'Listed'))
+    .orderBy(affiliations.name)
+    .all();
+
+  return c.json(allNetworks);
 });
