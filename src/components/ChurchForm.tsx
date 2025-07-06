@@ -10,6 +10,7 @@ type ChurchFormProps = {
   images?: any[];
   error?: string;
   isNew?: boolean;
+  cancelUrl?: string;
 };
 
 export const ChurchForm: FC<ChurchFormProps> = ({
@@ -22,6 +23,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   images = [],
   error,
   isNew = false,
+  cancelUrl,
 }) => {
   const statusOptions = ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed'];
   const selectedAffiliationIds = churchAffiliations.map((ca) => ca.affiliationId);

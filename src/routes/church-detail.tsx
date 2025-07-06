@@ -144,6 +144,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     // Process comments to add ownership info
     const processedComments = allComments.map((comment) => ({
       ...comment,
+      churchId: comment.churchId as number, // Safe since we filter by churchId
       isOwn: user && comment.userId === user.id,
       userName: comment.userName || null,
       userEmail: comment.userEmail || '',

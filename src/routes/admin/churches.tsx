@@ -77,7 +77,10 @@ adminChurchesRoutes.get('/', async (c) => {
   }
 
   if (conditions.length > 0) {
-    query = query.where(sql`${conditions.reduce((acc, cond) => (acc ? sql`${acc} AND ${cond}` : cond), null)}`);
+    const combinedConditions = conditions.reduce((acc, cond) => 
+      acc ? sql`${acc} AND ${cond}` : cond
+    );
+    query = query.where(combinedConditions);
   }
 
   const results = await query.orderBy(desc(churches.updatedAt)).all();
@@ -92,7 +95,7 @@ adminChurchesRoutes.get('/', async (c) => {
             affiliationId: churchAffiliations.affiliationId,
           })
           .from(churchAffiliations)
-          .where(sql`${churchAffiliations.churchId} IN (${churchIds.map(() => '?').join(',')})`, ...churchIds)
+          .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
           .all()
       : [];
 
@@ -184,7 +187,7 @@ adminChurchesRoutes.get('/', async (c) => {
               </div>
               <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                 <form
-                  method="GET"
+                  method="get"
                   action="/admin/churches"
                   id="church-filters-form"
                   class="col-span-full grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6"
@@ -672,7 +675,7 @@ adminChurchesRoutes.post('/', async (c) => {
     const params = new URLSearchParams({
       success: 'created',
       churchName: church.name,
-      churchPath: church.path,
+      ...(church.path && { churchPath: church.path }),
     });
     return c.redirect(`/admin/churches?${params.toString()}`);
   } catch (error) {
@@ -1052,7 +1055,7 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
       );
     }
 
-    const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY);
+    const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY!);
     return c.json(extractedData);
   } catch (error) {
     console.error('Error extracting website data:', error);

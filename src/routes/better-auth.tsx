@@ -212,7 +212,10 @@ betterAuthApp.get('/callback/google', async (c) => {
       }),
     });
 
-    const tokens = await tokenResponse.json();
+    const tokens = await tokenResponse.json() as {
+      access_token?: string;
+      [key: string]: any;
+    };
     if (!tokens.access_token) {
       throw new Error('No access token received');
     }
@@ -222,7 +225,12 @@ betterAuthApp.get('/callback/google', async (c) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
 
-    const googleUser = await userResponse.json();
+    const googleUser = await userResponse.json() as {
+      email?: string;
+      name?: string;
+      picture?: string;
+      [key: string]: any;
+    };
     if (!googleUser.email) {
       throw new Error('No email received from Google');
     }
@@ -239,11 +247,11 @@ betterAuthApp.get('/callback/google', async (c) => {
 
       const newUser = {
         id: crypto.randomUUID(),
-        email: googleUser.email,
+        email: googleUser.email as string,
         name: googleUser.name || null,
         image: googleUser.picture || null,
         emailVerified: true,
-        role: isFirstUser ? 'admin' : 'user',
+        role: (isFirstUser ? 'admin' : 'user') as 'admin' | 'contributor' | 'user',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -256,12 +264,16 @@ betterAuthApp.get('/callback/google', async (c) => {
         await db
           .update(users)
           .set({
-            image: googleUser.picture,
+            image: googleUser.picture as string,
             updatedAt: new Date(),
           })
           .where(eq(users.id, user.id));
-        user.image = googleUser.picture;
+        user.image = googleUser.picture as string;
       }
+    }
+
+    if (!user) {
+      throw new Error('Failed to create or retrieve user');
     }
 
     // Create session
@@ -338,7 +350,7 @@ betterAuthApp.get('/test-session', async (c) => {
   const cookies = c.req.header('Cookie') || '';
   return c.json({
     cookies: cookies,
-    headers: Object.fromEntries(c.req.raw.headers.entries()),
+    headers: Object.fromEntries(Array.from(c.req.raw.headers.entries())),
   });
 });
 

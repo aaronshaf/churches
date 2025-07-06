@@ -273,7 +273,11 @@ dataExportRoutes.get('/churches.csv', async (c) => {
     churchAffiliationData = await db
       .select({
         churchId: churchAffiliations.churchId,
+        affiliationId: churchAffiliations.affiliationId,
         affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
+        order: churchAffiliations.order,
       })
       .from(churchAffiliations)
       .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
@@ -293,7 +297,7 @@ dataExportRoutes.get('/churches.csv', async (c) => {
       if (!acc[item.churchId]) {
         acc[item.churchId] = [];
       }
-      acc[item.churchId].push(item.affiliationName);
+      acc[item.churchId].push(item.affiliationName || '');
       return acc;
     },
     {} as Record<number, string[]>
@@ -425,6 +429,8 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
         churchId: churchAffiliations.churchId,
         affiliationId: churchAffiliations.affiliationId,
         affiliationName: affiliations.name,
+        affiliationWebsite: affiliations.website,
+        affiliationPublicNotes: affiliations.publicNotes,
         order: churchAffiliations.order,
       })
       .from(churchAffiliations)
@@ -445,7 +451,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
       if (!acc[item.churchId]) {
         acc[item.churchId] = [];
       }
-      acc[item.churchId].push(item.affiliationName);
+      acc[item.churchId].push(item.affiliationName || '');
       return acc;
     },
     {} as Record<number, string[]>
@@ -750,7 +756,7 @@ dataExportRoutes.get('/data', async (c) => {
     console.error('Error loading data page:', error);
     return c.html(
       <Layout title="Error">
-        <ErrorPage error={error.message || 'Failed to load data'} statusCode={500} />
+        <ErrorPage error={(error as Error)?.message || 'Failed to load data'} statusCode={500} />
       </Layout>,
       500
     );
