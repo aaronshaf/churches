@@ -331,8 +331,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                     class="quick-search-result group block transition-colors duration-150 ease-in-out border-b border-gray-100 last:border-0 \${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}"
                     style="padding: 12px 16px 12px \${isSelected ? '12px' : '16px'}; border-left: \${isSelected ? '4px solid #3b82f6' : 'none'};"
                     data-index="\${index}"
-                    onmouseover="handleResultHover(\${index}, '\${result.path || result.id}')"
-                    onmouseout="handleResultMouseOut()"
                   >
                     <div class="flex items-center justify-between">
                       <div class="flex-1 min-w-0">
@@ -354,18 +352,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               displayQuickSearchResults();
             }
 
-            function handleResultHover(index, pathOrId) {
-              selectedIndex = index;
-              updateSelectedResult();
-              if (quickSearchResults[index]) {
-                prefetchResult(quickSearchResults[index]);
-              }
-            }
-
-            function handleResultMouseOut() {
-              // Keep the selection but don't change selectedIndex
-              // This allows keyboard navigation to work properly after mouse interaction
-            }
 
             function prefetchResult(result) {
               if (!result) return;
@@ -419,8 +405,14 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
 
               if (event.key === 'Enter') {
                 event.preventDefault();
-                if (selectedIndex >= 0 && quickSearchResults[selectedIndex]) {
-                  const result = quickSearchResults[selectedIndex];
+                // If no item is selected but there are results, select the first one
+                let targetIndex = selectedIndex;
+                if (selectedIndex === -1 && quickSearchResults.length > 0) {
+                  targetIndex = 0;
+                }
+                
+                if (targetIndex >= 0 && quickSearchResults[targetIndex]) {
+                  const result = quickSearchResults[targetIndex];
                   let url;
                   if (result.type === 'church') {
                     url = \`/churches/\${result.path}\`;
