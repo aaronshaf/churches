@@ -1,10 +1,11 @@
 import type { FC } from 'hono/jsx';
+import type { Affiliation, Church } from '../types';
 
 type AffiliationFormProps = {
   action: string;
-  affiliation?: any;
-  affiliatedChurches?: any[];
-  allChurches?: any[];
+  affiliation?: Affiliation;
+  affiliatedChurches?: Church[];
+  allChurches?: Church[];
   error?: string;
   isNew?: boolean;
   cancelUrl?: string;

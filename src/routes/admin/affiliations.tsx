@@ -116,7 +116,7 @@ adminAffiliationsRoutes.get('/new', async (c) => {
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Add Affiliation</h1>
         </div>
-        <AffiliationForm affiliation={null} action="/admin/affiliations" cancelUrl="/admin/affiliations" />
+        <AffiliationForm affiliation={undefined} action="/admin/affiliations" cancelUrl="/admin/affiliations" />
       </div>
     </Layout>
   );
@@ -142,7 +142,7 @@ adminAffiliationsRoutes.post('/', async (c) => {
           <AffiliationForm
             action="/admin/affiliations"
             error={validationResult.message}
-            affiliation={parsedBody}
+            affiliation={undefined}
             isNew={true}
           />
         </Layout>

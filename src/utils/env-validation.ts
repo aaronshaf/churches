@@ -56,15 +56,16 @@ export const validateDatabaseEnvVars: (env: Bindings) => asserts env is Bindings
 };
 
 export const validateAuthEnvVars: (
-  env: any
+  env: unknown
 ) => asserts env is Pick<
   EnvVars,
   'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'
 > & { DB: D1Database } = (env) => {
+  const envObj = env as Record<string, unknown>;
   const requiredVars = ['BETTER_AUTH_SECRET', 'BETTER_AUTH_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
-  const missingVars = requiredVars.filter((varName) => !env[varName]);
+  const missingVars = requiredVars.filter((varName) => !envObj[varName]);
 
-  if (!env.DB) {
+  if (!envObj.DB) {
     missingVars.push('DB');
   }
 
@@ -105,11 +106,12 @@ export function hasCloudflareImageEnvVars(env: Bindings): boolean {
 
 // Validate Cloudflare image vars only when needed
 export const validateCloudflareImageEnvVars: (
-  env: any
+  env: unknown
 ) => asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> =
   (env) => {
+    const envObj = env as Record<string, unknown>;
     const requiredVars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_HASH', 'CLOUDFLARE_IMAGES_API_TOKEN'];
-    const missingVars = requiredVars.filter((varName) => !env[varName]);
+    const missingVars = requiredVars.filter((varName) => !envObj[varName]);
 
     if (missingVars.length > 0) {
       throw new EnvironmentError(missingVars);

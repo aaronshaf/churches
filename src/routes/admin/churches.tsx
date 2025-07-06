@@ -575,7 +575,7 @@ adminChurchesRoutes.get('/new', async (c) => {
           <h1 class="text-2xl font-semibold text-gray-900">Add Church</h1>
         </div>
         <ChurchForm
-          church={null}
+          church={undefined}
           gatherings={[]}
           churchAffiliations={[]}
           images={[]}

@@ -10,7 +10,7 @@ type LayoutProps = {
   children: any;
   user?: BetterAuthUser | null;
   currentPath?: string;
-  jsonLd?: any;
+  jsonLd?: Record<string, unknown>;
   churchId?: string;
   countyId?: string;
   affiliationId?: string;

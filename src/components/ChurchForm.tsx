@@ -1,13 +1,14 @@
 import type { FC } from 'hono/jsx';
+import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, ChurchImage, County } from '../types';
 
 type ChurchFormProps = {
   action: string;
-  church?: any;
-  gatherings?: any[];
-  affiliations?: any[];
-  churchAffiliations?: any[];
-  counties?: any[];
-  images?: any[];
+  church?: Church;
+  gatherings?: ChurchGathering[];
+  affiliations?: Affiliation[];
+  churchAffiliations?: ChurchAffiliation[];
+  counties?: County[];
+  images?: ChurchImage[];
   error?: string;
   isNew?: boolean;
   cancelUrl?: string;

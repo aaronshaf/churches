@@ -57,7 +57,7 @@ export function compareObjects(
 export function formatChangesAsYaml(changes: ChangeRecord[]): string {
   if (changes.length === 0) return 'No changes detected';
 
-  const changeObj: Record<string, { from: any; to: any }> = {};
+  const changeObj: Record<string, { from: unknown; to: unknown }> = {};
 
   for (const change of changes) {
     changeObj[change.field] = {
@@ -87,12 +87,12 @@ export function createAuditComment(userName: string, action: string, changes: Ch
  * Compare church data including related entities
  */
 export function compareChurchData(
-  oldChurch: any,
-  newChurch: any,
-  oldGatherings: any[] = [],
-  newGatherings: any[] = [],
-  oldAffiliations: any[] = [],
-  newAffiliations: any[] = []
+  oldChurch: Record<string, unknown>,
+  newChurch: Record<string, unknown>,
+  oldGatherings: Array<Record<string, unknown>> = [],
+  newGatherings: Array<Record<string, unknown>> = [],
+  oldAffiliations: Array<Record<string, unknown>> = [],
+  newAffiliations: Array<Record<string, unknown>> = []
 ): ChangeRecord[] {
   const changes: ChangeRecord[] = [];
 

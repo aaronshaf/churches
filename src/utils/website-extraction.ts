@@ -76,7 +76,7 @@ Important:
 - If a church mentions they have YouTube but no URL is given, DO NOT include it`;
 
 // Zod schemas for validation
-const serviceTimeSchema: ZodObject<any> = z.object({
+const serviceTimeSchema = z.object({
   time: z
     .string()
     .regex(
@@ -85,7 +85,7 @@ const serviceTimeSchema: ZodObject<any> = z.object({
   notes: z.string().optional(),
 });
 
-const extractedChurchDataSchema: ZodObject<any> = z.object({
+const extractedChurchDataSchema = z.object({
   phone: z
     .string()
     .regex(/^\(\d{3}\)\s\d{3}-\d{4}$/)
@@ -274,7 +274,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     }
 
     // Parse the text format response
-    const rawData: any = {};
+    const rawData: Record<string, unknown> = {};
     const lines = responseContent.trim().split('\n');
 
     const serviceTimes: Array<{ time: string; notes?: string }> = [];
@@ -331,7 +331,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     }
 
     // Pre-process data before validation
-    const processedData: any = { ...rawData };
+    const processedData: Record<string, unknown> = { ...rawData };
 
     // Fix phone formatting if needed
     if (processedData.phone && typeof processedData.phone === 'string') {
@@ -428,7 +428,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     // Process service times
     if (Array.isArray(processedData.service_times)) {
       processedData.service_times = processedData.service_times
-        .map((item: any) => {
+        .map((item: unknown) => {
           // Handle string format
           if (typeof item === 'string') {
             return { time: normalizeTimeFormat(item.trim()) };
@@ -436,8 +436,9 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
 
           // Handle object format
           if (typeof item === 'object' && item !== null && 'time' in item) {
+            const itemObj = item as { time: unknown; notes?: unknown };
             // Normalize notes capitalization
-            let notes = item.notes ? item.notes.trim() : undefined;
+            let notes = itemObj.notes ? String(itemObj.notes).trim() : undefined;
             if (notes) {
               // Convert ALL CAPS to sentence case
               if (notes === notes.toUpperCase() && notes.length > 3) {
@@ -451,14 +452,14 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
             }
 
             return {
-              time: normalizeTimeFormat(item.time.trim()),
+              time: normalizeTimeFormat(String(itemObj.time).trim()),
               notes: notes,
             };
           }
 
           return null;
         })
-        .filter((item: any) => item !== null);
+        .filter((item: unknown) => item !== null);
     }
 
     // Filter out generic social media URLs
@@ -519,12 +520,12 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
 
       // Clean up any double slashes (except after protocol)
       // This regex replaces multiple slashes with a single slash, except after ://
-      processedData.statement_of_faith_url = processedData.statement_of_faith_url.replace(/([^:]\/)\/+/g, '$1');
+      processedData.statement_of_faith_url = String(processedData.statement_of_faith_url).replace(/([^:]\/)\/+/g, '$1');
 
       // Also filter out invalid statement of faith URLs
       const invalidPatterns = [/example/i, /actualchurch/i, /yourchurch/i, /placeholder/i, /sample/i, /test/i];
 
-      if (invalidPatterns.some((pattern) => pattern.test(processedData.statement_of_faith_url))) {
+      if (invalidPatterns.some((pattern) => pattern.test(String(processedData.statement_of_faith_url)))) {
         delete processedData.statement_of_faith_url;
       }
     }

@@ -1,5 +1,6 @@
 import type { ZodEffects, ZodObject, ZodType } from 'zod';
 import { z } from 'zod';
+import type { ChurchStatus } from '../types';
 
 // Helper schemas for common validations
 const websiteBuilderPatterns = [
@@ -26,7 +27,7 @@ const _optionalString: ZodType<string | undefined> = z.string().optional().or(z.
 const phoneRegex = /^(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 
 // Church validation schema
-export const churchSchema: ZodEffects<ZodObject<any>> = z
+export const churchSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(255, 'Name too long'),
     path: z
@@ -102,7 +103,7 @@ export const affiliationSchema = z.object({
 });
 
 // County validation schema
-export const countySchema: ZodObject<any> = z.object({
+export const countySchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100, 'Name too long'),
   path: z
     .string()
@@ -116,7 +117,7 @@ export const countySchema: ZodObject<any> = z.object({
 });
 
 // User validation schema
-export const userSchema: ZodObject<any> = z.object({
+export const userSchema = z.object({
   email: z.string().trim().email('Invalid email').min(1, 'Email is required').max(255, 'Email too long'),
   username: z
     .string()
@@ -129,7 +130,7 @@ export const userSchema: ZodObject<any> = z.object({
 });
 
 // Login validation schema
-export const loginSchema: ZodObject<any> = z.object({
+export const loginSchema = z.object({
   username: z.string().trim().min(1, 'Username is required').max(50, 'Username too long'),
   password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
 });
@@ -151,7 +152,7 @@ const RESERVED_PATHS = [
   'churches.csv',
 ];
 
-export const pageSchema: ZodObject<any> = z.object({
+export const pageSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(255, 'Title too long'),
   path: z
     .string()
@@ -165,7 +166,7 @@ export const pageSchema: ZodObject<any> = z.object({
 });
 
 // Password update schema
-export const passwordUpdateSchema: ZodEffects<ZodObject<any>> = z
+export const passwordUpdateSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
     newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128, 'Password too long'),
@@ -188,7 +189,7 @@ export type ValidationResult<T> =
       message: string;
     };
 
-export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<string, any>): ValidationResult<T> {
+export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<string, unknown>): ValidationResult<T> {
   const result = schema.safeParse(formData);
 
   if (result.success) {
@@ -232,7 +233,7 @@ export function parseFormBody(
 }
 
 // Helper to parse gatherings from form data
-export function parseGatheringsFromForm(body: Record<string, any>) {
+export function parseGatheringsFromForm(body: Record<string, unknown>) {
   const gatherings = [];
   let index = 0;
 
@@ -250,7 +251,7 @@ export function parseGatheringsFromForm(body: Record<string, any>) {
 }
 
 // Helper to parse affiliations from form data
-export function parseAffiliationsFromForm(body: Record<string, any>) {
+export function parseAffiliationsFromForm(body: Record<string, unknown>) {
   if (!body.affiliations) return [];
 
   // When using parseBody({ all: true }), multiple values come as an array
@@ -290,25 +291,25 @@ export function formatPhoneNumber(phone: string | undefined): string | undefined
 }
 
 // Helper to sanitize and prepare church data from form
-export function prepareChurchDataFromForm(body: Record<string, any>) {
+export function prepareChurchDataFromForm(body: Record<string, unknown>) {
   return {
-    name: body.name,
-    path: body.path || undefined,
-    status: body.status || undefined,
-    gatheringAddress: body.gatheringAddress || undefined,
-    latitude: body.latitude ? parseFloat(body.latitude) : undefined,
-    longitude: body.longitude ? parseFloat(body.longitude) : undefined,
+    name: body.name as string,
+    path: (body.path as string) || undefined,
+    status: (body.status as ChurchStatus) || undefined,
+    gatheringAddress: (body.gatheringAddress as string) || undefined,
+    latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
+    longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
     countyId: body.countyId ? Number(body.countyId) : undefined,
-    website: body.website || undefined,
-    statementOfFaith: body.statementOfFaith || undefined,
-    phone: formatPhoneNumber(body.phone) || undefined,
-    email: body.email || undefined,
-    facebook: body.facebook || undefined,
-    instagram: body.instagram || undefined,
-    youtube: body.youtube || undefined,
-    spotify: body.spotify || undefined,
-    language: body.language || 'English',
-    privateNotes: body.privateNotes || undefined,
-    publicNotes: body.publicNotes || undefined,
+    website: (body.website as string) || undefined,
+    statementOfFaith: (body.statementOfFaith as string) || undefined,
+    phone: formatPhoneNumber(body.phone as string) || undefined,
+    email: (body.email as string) || undefined,
+    facebook: (body.facebook as string) || undefined,
+    instagram: (body.instagram as string) || undefined,
+    youtube: (body.youtube as string) || undefined,
+    spotify: (body.spotify as string) || undefined,
+    language: (body.language as string) || 'English',
+    privateNotes: (body.privateNotes as string) || undefined,
+    publicNotes: (body.publicNotes as string) || undefined,
   };
 }

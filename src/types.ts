@@ -102,3 +102,82 @@ export interface Comment {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Database entity types based on Drizzle schema
+export interface Church {
+  id: number;
+  name: string;
+  path: string | null;
+  status: ChurchStatus | null;
+  privateNotes: string | null;
+  publicNotes: string | null;
+  lastUpdated: Date | null;
+  gatheringAddress: string | null;
+  mailingAddress: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  countyId: number | null;
+  website: string | null;
+  statementOfFaith: string | null;
+  phone: string | null;
+  email: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  youtube: string | null;
+  spotify: string | null;
+  language: string;
+  imageId: string | null;
+  imageUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Optional joined fields
+  countyName?: string | null;
+}
+
+export interface County {
+  id: number;
+  name: string;
+  path: string | null;
+  description: string | null;
+  population: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Affiliation {
+  id: number;
+  name: string;
+  path: string | null;
+  status: AffiliationStatus | null;
+  website: string | null;
+  privateNotes: string | null;
+  publicNotes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChurchGathering {
+  id: number;
+  churchId: number;
+  time: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChurchAffiliation {
+  churchId: number;
+  affiliationId: number;
+  order: number;
+}
+
+export interface ChurchImage {
+  id: number;
+  churchId: number;
+  imageId: string;
+  imageUrl: string;
+  caption: string | null;
+  displayOrder: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
