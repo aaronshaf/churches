@@ -18,6 +18,7 @@ import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { Bindings } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
+import { getCloudflareImageEnvVars } from '../../utils/env-validation';
 import { getLogoUrl } from '../../utils/settings';
 import {
   churchWithGatheringsSchema,
@@ -31,6 +32,7 @@ import { extractChurchDataFromWebsite } from '../../utils/website-extraction';
 
 type Variables = {
   user: any;
+  betterUser?: any;
 };
 
 export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -801,13 +803,16 @@ adminChurchesRoutes.post('/:id', async (c) => {
       }
 
       try {
+        // Get validated Cloudflare environment variables
+        const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
+        
         const { getImagePrefix } = await import('../../utils/settings');
         const imagePrefix = await getImagePrefix(c.env);
 
         const uploadResult = await uploadToCloudflareImages(
           body.image,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN,
+          accountId,
+          apiToken,
           imagePrefix
         );
 
@@ -817,11 +822,17 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
         const imageId = uploadResult.result.id;
 
-        // Save image record
+        // Save image record with proper URL
+        const { getCloudflareImageUrl, IMAGE_VARIANTS } = await import('../../utils/cloudflare-images');
+        const { accountHash } = getCloudflareImageEnvVars(c.env);
+        const imageUrl = getCloudflareImageUrl(imageId, accountHash, IMAGE_VARIANTS.LARGE);
+        
         await db.insert(churchImages).values({
           churchId: id,
-          cloudflareId: imageId,
+          imageId: imageId,
+          imageUrl: imageUrl,
           createdAt: new Date(),
+          updatedAt: new Date(),
         });
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -838,10 +849,12 @@ adminChurchesRoutes.post('/:id', async (c) => {
         .get();
 
       if (imageToDelete) {
+        // Get validated Cloudflare environment variables
+        const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
         await deleteFromCloudflareImages(
-          imageToDelete.cloudflareId,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          imageToDelete.imageId,
+          accountId,
+          apiToken
         );
         await db.delete(churchImages).where(eq(churchImages.id, Number(deleteImageId)));
       }
@@ -996,12 +1009,16 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
 
   // Delete images
   const images = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
-  for (const image of images) {
-    await deleteFromCloudflareImages(
-      image.cloudflareId,
-      c.env.CLOUDFLARE_ACCOUNT_ID,
-      c.env.CLOUDFLARE_IMAGES_API_TOKEN
-    );
+  if (images.length > 0) {
+    // Get validated Cloudflare environment variables
+    const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
+    for (const image of images) {
+      await deleteFromCloudflareImages(
+        image.imageId,
+        accountId,
+        apiToken
+      );
+    }
   }
   await db.delete(churchImages).where(eq(churchImages.churchId, id));
 

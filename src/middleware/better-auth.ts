@@ -1,6 +1,9 @@
 import type { Context, MiddlewareHandler } from 'hono';
+import type { D1Database } from '@cloudflare/workers-types';
 import { createAuth } from '../lib/auth';
 import { EnvironmentError } from '../utils/env-validation';
+
+type ValidateDatabaseEnvVars = (env: any) => asserts env is { DB: D1Database };
 
 export const betterAuthMiddleware: MiddlewareHandler = async (c, next) => {
   try {
@@ -62,11 +65,12 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const { drizzle } = await import('drizzle-orm/d1');
   const { eq } = await import('drizzle-orm');
   const { users, sessions } = await import('../db/auth-schema');
-  const { validateDatabaseEnvVars } = await import('../utils/env-validation');
+  const envValidation = await import('../utils/env-validation');
+  const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
 
   // Validate environment variables
   try {
-    validateDatabaseEnvVars(c.env);
+    validateDb(c.env);
   } catch (error) {
     throw error;
   }
@@ -181,11 +185,12 @@ export const getUser = async (c: Context): Promise<any | null> => {
     const { drizzle } = await import('drizzle-orm/d1');
     const { eq } = await import('drizzle-orm');
     const { users, sessions } = await import('../db/auth-schema');
-    const { validateDatabaseEnvVars } = await import('../utils/env-validation');
+    const envValidation = await import('../utils/env-validation');
+    const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
 
     // Validate environment variables
     try {
-      validateDatabaseEnvVars(c.env);
+      validateDb(c.env);
     } catch (error) {
       throw error;
     }

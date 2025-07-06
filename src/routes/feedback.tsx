@@ -10,6 +10,7 @@ import { getLogoUrl } from '../utils/settings';
 
 type Variables = {
   user: any;
+  betterUser?: any;
 };
 
 export const feedbackRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();

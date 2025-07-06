@@ -13,6 +13,7 @@ import { getFaviconUrl, getLogoUrl } from '../utils/settings';
 
 type Variables = {
   user: any;
+  betterUser?: any;
 };
 
 export const dataExportRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();

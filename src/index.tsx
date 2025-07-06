@@ -47,7 +47,7 @@ import {
   uploadToCloudflareImages,
 } from './utils/cloudflare-images';
 import { getGravatarUrl } from './utils/crypto';
-import { EnvironmentError } from './utils/env-validation';
+import { EnvironmentError, getCloudflareImageEnvVars } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
@@ -4090,26 +4090,29 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
   const featuredImage = body.featuredImage as File;
   if (featuredImage && featuredImage.size > 0) {
     try {
+      // Get validated Cloudflare environment variables
+      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
+      
       // Delete old image if exists
       if (currentPage?.featuredImageId) {
         await deleteFromCloudflareImages(
           currentPage.featuredImageId,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          accountId,
+          apiToken
         );
       }
 
       const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         featuredImage,
-        c.env.CLOUDFLARE_ACCOUNT_ID!,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        accountId,
+        apiToken,
         imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
         featuredImageId = uploadResult.result.id;
-        featuredImageUrl = getCloudflareImageUrl(featuredImageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
+        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, IMAGE_VARIANTS.LARGE);
       } else {
         console.error('Image upload failed:', uploadResult.errors);
         return c.text('Failed to upload image', 500);
@@ -4152,10 +4155,12 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
   // Delete image from Cloudflare if exists
   if (page?.featuredImageId) {
     try {
+      // Get validated Cloudflare environment variables
+      const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
       await deleteFromCloudflareImages(
         page.featuredImageId,
-        c.env.CLOUDFLARE_ACCOUNT_ID,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN
+        accountId,
+        apiToken
       );
     } catch (error) {
       console.error('Failed to delete image:', error);
@@ -4334,6 +4339,9 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const favicon = body.favicon as File;
   if (favicon && favicon.size > 0) {
     try {
+      // Get validated Cloudflare environment variables
+      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
+      
       // Get current favicon to delete if exists
       const existingFaviconId = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
 
@@ -4341,22 +4349,22 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
       if (existingFaviconId?.value) {
         await deleteFromCloudflareImages(
           existingFaviconId.value,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          accountId,
+          apiToken
         );
       }
 
       const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         favicon,
-        c.env.CLOUDFLARE_ACCOUNT_ID!,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        accountId,
+        apiToken,
         imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
         const faviconId = uploadResult.result.id;
-        const faviconUrl = getCloudflareImageUrl(faviconId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.FAVICON);
+        const faviconUrl = getCloudflareImageUrl(faviconId, accountHash, IMAGE_VARIANTS.FAVICON);
 
         // Save favicon ID
         const existingFaviconIdSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
@@ -4401,6 +4409,9 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   const logo = body.logo as File;
   if (logo && logo.size > 0) {
     try {
+      // Get validated Cloudflare environment variables
+      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
+      
       // Get current logo to delete if exists
       const existingLogoId = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
 
@@ -4408,22 +4419,22 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
       if (existingLogoId?.value) {
         await deleteFromCloudflareImages(
           existingLogoId.value,
-          c.env.CLOUDFLARE_ACCOUNT_ID,
-          c.env.CLOUDFLARE_IMAGES_API_TOKEN
+          accountId,
+          apiToken
         );
       }
 
       const imagePrefix = await getImagePrefix(c.env);
       const uploadResult = await uploadToCloudflareImages(
         logo,
-        c.env.CLOUDFLARE_ACCOUNT_ID!,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
+        accountId,
+        apiToken,
         imagePrefix
       );
 
       if (uploadResult.success && uploadResult.result) {
         const logoId = uploadResult.result.id;
-        const logoUrl = getCloudflareImageUrl(logoId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.SMALL);
+        const logoUrl = getCloudflareImageUrl(logoId, accountHash, IMAGE_VARIANTS.SMALL);
 
         // Save logo ID
         const existingLogoIdSetting = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();

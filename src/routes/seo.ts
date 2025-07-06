@@ -170,7 +170,9 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       const lastMod = church.updatedAt || church.createdAt;
       if (lastMod) {
         // Check if timestamp is already in milliseconds (very large number) or seconds
-        const timestamp = lastMod > 10000000000 ? lastMod : lastMod * 1000;
+        const timestamp = typeof lastMod === 'number' 
+          ? (lastMod > 10000000000 ? lastMod : lastMod * 1000)
+          : lastMod.getTime();
         const date = new Date(timestamp);
         // Only include lastmod if it's a valid date between 2020 and 2030
         if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {

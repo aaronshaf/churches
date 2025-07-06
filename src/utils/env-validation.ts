@@ -1,5 +1,7 @@
 // Environment variable validation utility
 
+import type { D1Database } from '@cloudflare/workers-types';
+
 export interface RequiredEnvVars {
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
@@ -30,7 +32,7 @@ export class EnvironmentError extends Error {
   }
 }
 
-export function validateRequiredEnvVars(env: any): asserts env is EnvVars {
+export const validateRequiredEnvVars: (env: any) => asserts env is EnvVars = (env) => {
   const requiredVars: (keyof RequiredEnvVars)[] = [
     'BETTER_AUTH_SECRET',
     'BETTER_AUTH_URL',
@@ -46,18 +48,18 @@ export function validateRequiredEnvVars(env: any): asserts env is EnvVars {
   }
 }
 
-export function validateDatabaseEnvVars(env: any): asserts env is { DB: D1Database } {
+export const validateDatabaseEnvVars: (env: any) => asserts env is { DB: D1Database } = (env) => {
   if (!env.DB) {
     throw new EnvironmentError(['DB']);
   }
 }
 
-export function validateAuthEnvVars(
+export const validateAuthEnvVars: (
   env: any
-): asserts env is Pick<
+) => asserts env is Pick<
   EnvVars,
   'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'
-> & { DB: D1Database } {
+> & { DB: D1Database } = (env) => {
   const requiredVars = ['BETTER_AUTH_SECRET', 'BETTER_AUTH_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
   const missingVars = requiredVars.filter((varName) => !env[varName]);
 
@@ -101,9 +103,9 @@ export function hasCloudflareImageEnvVars(env: any): boolean {
 }
 
 // Validate Cloudflare image vars only when needed
-export function validateCloudflareImageEnvVars(
+export const validateCloudflareImageEnvVars: (
   env: any
-): asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> {
+) => asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> = (env) => {
   const requiredVars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_HASH', 'CLOUDFLARE_IMAGES_API_TOKEN'];
   const missingVars = requiredVars.filter((varName) => !env[varName]);
 
@@ -120,4 +122,18 @@ export function hasGoogleMapsApiKey(env: any): boolean {
 // Check if OpenRouter API key is available
 export function hasOpenRouterApiKey(env: any): boolean {
   return !!env.OPENROUTER_API_KEY;
+}
+
+// Get Cloudflare image env vars with validation
+export const getCloudflareImageEnvVars = (env: any): {
+  accountId: string;
+  accountHash: string;
+  apiToken: string;
+} => {
+  validateCloudflareImageEnvVars(env);
+  return {
+    accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    accountHash: env.CLOUDFLARE_ACCOUNT_HASH,
+    apiToken: env.CLOUDFLARE_IMAGES_API_TOKEN,
+  };
 }
