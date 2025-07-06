@@ -21,15 +21,15 @@ export class AppError extends Error {
 
 // Common error factories
 export const errors = {
-  notFound: (resource: string = 'Resource') => new AppError(`${resource} not found`, 404, 'Not Found'),
+  notFound: (resource: string = 'Resource'): AppError => new AppError(`${resource} not found`, 404, 'Not Found'),
 
-  unauthorized: (message: string = 'Authentication required') => new AppError(message, 401, 'Authentication Error'),
+  unauthorized: (message: string = 'Authentication required'): AppError => new AppError(message, 401, 'Authentication Error'),
 
-  forbidden: (message: string = 'Access denied') => new AppError(message, 403, 'Permission Error'),
+  forbidden: (message: string = 'Access denied'): AppError => new AppError(message, 403, 'Permission Error'),
 
-  validation: (message: string) => new AppError(message, 400, 'Validation Error'),
+  validation: (message: string): AppError => new AppError(message, 400, 'Validation Error'),
 
-  database: (message: string = 'Database operation failed') => new AppError(message, 500, 'Database Error'),
+  database: (message: string = 'Database operation failed'): AppError => new AppError(message, 500, 'Database Error'),
 
-  network: (message: string = 'Network request failed') => new AppError(message, 500, 'Network Error'),
+  network: (message: string = 'Network request failed'): AppError => new AppError(message, 500, 'Network Error'),
 };

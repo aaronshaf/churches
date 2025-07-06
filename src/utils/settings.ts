@@ -39,7 +39,12 @@ export async function getSiteTitle(env: Bindings): Promise<string> {
   }
 }
 
-export async function getSiteSettings(env: Bindings) {
+export async function getSiteSettings(env: Bindings): Promise<{
+  siteTitle: string;
+  tagline: string;
+  frontPageTitle: string;
+  faviconUrl: string | undefined;
+}> {
   try {
     const db = createDb(env.DB);
 

@@ -4,7 +4,13 @@ import { hasGoogleMapsApiKey } from './env-validation';
 import { getNavbarPages } from './pages';
 import { getFaviconUrl, getLogoUrl } from './settings';
 
-export async function getCommonLayoutProps(c: Context) {
+export async function getCommonLayoutProps(c: Context): Promise<{
+  faviconUrl: string | undefined;
+  logoUrl: string | undefined;
+  pages: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
+  user: any;
+  showMap: boolean;
+}> {
   const [faviconUrl, logoUrl, navbarPages, user] = await Promise.all([
     getFaviconUrl(c.env),
     getLogoUrl(c.env),
