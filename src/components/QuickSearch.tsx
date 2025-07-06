@@ -5,10 +5,8 @@ type QuickSearchProps = {
 };
 
 export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
-  // Only show for admins and contributors
-  if (!userRole || (userRole !== 'admin' && userRole !== 'contributor')) {
-    return null;
-  }
+  // Quick search is available for all users
+  // userRole determines which churches are searchable
 
   return (
     <>
@@ -91,6 +89,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
             let selectedIndex = -1;
             let dataLoaded = false;
             let searchDebounceTimer = null;
+            const userRole = '${userRole || ''}';
 
             // Initialize quick search
             document.addEventListener('DOMContentLoaded', function() {
@@ -202,6 +201,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               const churchResults = allChurches
                 .filter(church => {
                   if (!church.name) return false;
+                  
+                  // Filter out heretical churches for non-admin/contributor users
+                  if (userRole !== 'admin' && userRole !== 'contributor' && church.status === 'Heretical') {
+                    return false;
+                  }
+                  
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
                   return name.includes(searchQuery) || path.includes(searchQuery);
@@ -311,6 +316,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               const churchResults = allChurches
                 .filter(church => {
                   if (!church.name) return false;
+                  
+                  // Filter out heretical churches for non-admin/contributor users
+                  if (userRole !== 'admin' && userRole !== 'contributor' && church.status === 'Heretical') {
+                    return false;
+                  }
+                  
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
                   // Check if all search words appear anywhere in the name or path
