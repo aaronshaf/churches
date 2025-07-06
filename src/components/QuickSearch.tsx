@@ -90,6 +90,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
             let quickSearchResults = [];
             let selectedIndex = -1;
             let dataLoaded = false;
+            let searchDebounceTimer = null;
 
             // Initialize quick search
             document.addEventListener('DOMContentLoaded', function() {
@@ -158,6 +159,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 modal.classList.add('hidden');
                 resetQuickSearch();
               }
+              // Clear any pending debounce timer
+              if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = null;
+              }
             }
 
             function resetQuickSearch() {
@@ -177,6 +183,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
             }
 
             function performQuickSearch(query) {
+              // Clear any existing debounce timer
+              if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = null;
+              }
+
               if (!query || query.length < 1) {
                 resetQuickSearch();
                 return;
@@ -248,6 +260,13 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               
               selectedIndex = -1;
               displayQuickSearchResults();
+              
+              // Set up debounce timer to prefetch first result after 200ms
+              if (quickSearchResults.length > 0) {
+                searchDebounceTimer = setTimeout(() => {
+                  prefetchResult(quickSearchResults[0]);
+                }, 200);
+              }
             }
             
             function performFuzzySearch(query) {
