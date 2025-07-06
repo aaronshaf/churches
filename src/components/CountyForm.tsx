@@ -2,8 +2,8 @@ import type { FC } from 'hono/jsx';
 
 interface County {
   id?: number;
-  name: string;
-  path: string | null;
+  name?: string;
+  path?: string | null;
   population?: number | null;
   description?: string | null;
 }

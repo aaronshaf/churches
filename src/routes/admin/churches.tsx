@@ -15,7 +15,7 @@ import {
   counties,
 } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import type { AuthenticatedVariables, Bindings } from '../../types';
+import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
 import { getCloudflareImageEnvVars } from '../../utils/env-validation';
@@ -52,8 +52,8 @@ adminChurchesRoutes.get('/', async (c) => {
   const churchName = c.req.query('churchName');
   const churchPath = c.req.query('churchPath');
 
-  // Build query
-  let query = db
+  // Build base query
+  const baseQuery = db
     .select({
       church: churches,
       county: counties,
@@ -70,13 +70,13 @@ adminChurchesRoutes.get('/', async (c) => {
     conditions.push(eq(churches.countyId, Number(countyId)));
   }
   if (status) {
-    conditions.push(eq(churches.status, status as any));
+    conditions.push(eq(churches.status, status as ChurchStatus));
   }
 
-  if (conditions.length > 0) {
-    const combinedCondition = conditions.reduce((acc, cond) => (acc ? sql`${acc} AND ${cond}` : cond), null as any);
-    query = (query as any).where(combinedCondition);
-  }
+  const query =
+    conditions.length > 0
+      ? baseQuery.where(conditions.reduce((acc, cond) => (acc ? sql`${acc} AND ${cond}` : cond), undefined)!)
+      : baseQuery;
 
   const results = await query.orderBy(desc(churches.updatedAt)).all();
 

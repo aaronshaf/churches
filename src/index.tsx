@@ -98,7 +98,7 @@ app.onError((err, c) => {
         errorId,
         statusCode,
       },
-      statusCode as any
+      statusCode
     );
   }
 
@@ -107,7 +107,7 @@ app.onError((err, c) => {
     <Layout currentPath="/error" hideFooter={true}>
       <ErrorPage error={message} errorType={type} errorDetails={details} statusCode={statusCode} errorId={errorId} />
     </Layout>,
-    statusCode as any
+    statusCode
   );
 });
 
@@ -262,15 +262,23 @@ app.onError((err, c) => {
   const isDatabaseError =
     err.message?.includes('Network connection lost') ||
     err.message?.includes('Failed query') ||
-    (err as any).cause?.message?.includes('Network connection lost');
+    ('cause' in err &&
+      err.cause &&
+      typeof err.cause === 'object' &&
+      'message' in err.cause &&
+      typeof err.cause.message === 'string' &&
+      err.cause.message.includes('Network connection lost'));
 
-  const statusCode = 'status' in err && typeof err.status === 'number' ? err.status : 500;
+  const rawStatus = 'status' in err && typeof err.status === 'number' ? err.status : 500;
+  const statusCode: 400 | 401 | 403 | 404 | 408 | 429 | 500 = [400, 401, 403, 404, 408, 429, 500].includes(rawStatus)
+    ? (rawStatus as 400 | 401 | 403 | 404 | 408 | 429 | 500)
+    : 500;
 
   return c.html(
     <Layout title="Error">
       <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={statusCode} />
     </Layout>,
-    statusCode as any
+    statusCode
   );
 });
 
@@ -584,7 +592,7 @@ app.get('/', async (c) => {
       <Layout title="Error">
         <ErrorPage error={errorMessage} statusCode={500} />
       </Layout>,
-      500 as any
+      500
     );
   }
 });
@@ -2060,7 +2068,7 @@ app.get('/debug/login', async (c) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500 as any);
+    return c.json({ error: errorMessage }, 500);
   }
 });
 
@@ -2230,7 +2238,7 @@ app.get('/admin/monitoring', requireAdminBetter, async (c) => {
       <Layout title="Error">
         <ErrorPage error={errorMessage} statusCode={500} />
       </Layout>,
-      500 as any
+      500
     );
   }
 });
@@ -3670,7 +3678,19 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
             <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
             <p class="text-red-700">{validation.message}</p>
           </div>
-          <CountyForm action="/admin/counties" isNew={true} county={parsedBody as any} />
+          <CountyForm
+            action="/admin/counties"
+            isNew={true}
+            county={
+              parsedBody as {
+                id?: number;
+                name?: string;
+                path?: string | null;
+                population?: number | null;
+                description?: string | null;
+              }
+            }
+          />
         </div>
       </Layout>
     );

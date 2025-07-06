@@ -16,6 +16,12 @@ export interface Bindings {
 // User role types (matches auth schema)
 export type UserRole = 'admin' | 'contributor' | 'user';
 
+// Church status types (matches database schema)
+export type ChurchStatus = 'Listed' | 'Ready to list' | 'Assess' | 'Needs data' | 'Unlisted' | 'Heretical' | 'Closed';
+
+// Affiliation status types (matches database schema)
+export type AffiliationStatus = 'Listed' | 'Unlisted' | 'Heretical';
+
 // Better Auth user interface (from our database schema)
 export interface BetterAuthUser {
   id: string;

@@ -14,7 +14,7 @@ export const requireAuthWithRedirect: MiddlewareHandler = async (c, next) => {
   }
 
   c.set('betterUser', user);
-  await next();
+  return await next();
 };
 
 /**
@@ -44,7 +44,7 @@ export const requireAdminWithRedirect: MiddlewareHandler = async (c, next) => {
   }
 
   c.set('betterUser', user);
-  await next();
+  return await next();
 };
 
 /**
@@ -74,5 +74,5 @@ export const requireContributorWithRedirect: MiddlewareHandler = async (c, next)
   }
 
   c.set('betterUser', user);
-  await next();
+  return await next();
 };

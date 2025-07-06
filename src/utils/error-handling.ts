@@ -71,7 +71,7 @@ export function generateErrorId(): string {
 }
 
 // Determine appropriate HTTP status code from error
-export function getErrorStatusCode(error: Error | unknown): number {
+export function getErrorStatusCode(error: Error | unknown): 400 | 401 | 403 | 404 | 408 | 429 | 500 {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
 

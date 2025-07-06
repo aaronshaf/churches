@@ -543,7 +543,8 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
         if (fieldSchema) {
           const fieldResult = fieldSchema.safeParse(value);
           if (fieldResult.success) {
-            (partialData as any)[key] = fieldResult.data;
+            // Safe assignment - we've validated the key exists in the schema and the value is valid
+            (partialData as Record<string, unknown>)[key] = fieldResult.data;
           }
         }
       }

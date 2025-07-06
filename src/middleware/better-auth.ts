@@ -39,7 +39,7 @@ export const requireAuthBetter: MiddlewareHandler = async (c, next) => {
 
   c.set('betterUser', session.user);
   c.set('betterSession', session.session);
-  await next();
+  return await next();
 };
 
 export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
@@ -134,7 +134,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
     role: session.userRole,
   });
 
-  await next();
+  return await next();
 };
 
 export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
@@ -168,7 +168,7 @@ export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
 
   c.set('betterUser', session.user);
   c.set('betterSession', session.session);
-  await next();
+  return await next();
 };
 
 export const getUser = async (c: {

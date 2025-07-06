@@ -19,7 +19,7 @@ const _OPTIONAL_ENV_VARS = [
   'OPENROUTER_API_KEY', // Required for AI features
 ] as const;
 
-export async function envCheckMiddleware(c: Context, next: Next) {
+export async function envCheckMiddleware(c: Context, next: Next): Promise<Response | void> {
   const missingRequired = REQUIRED_ENV_VARS.filter((varName) => !c.env[varName]);
 
   if (missingRequired.length > 0) {
@@ -65,5 +65,5 @@ export async function envCheckMiddleware(c: Context, next: Next) {
     );
   }
 
-  await next();
+  return await next();
 }

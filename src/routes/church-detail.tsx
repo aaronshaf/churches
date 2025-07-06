@@ -770,7 +770,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       <Layout title="Error">
         <ErrorPage error={details || message} errorType={type} statusCode={statusCode} errorId={errorId} />
       </Layout>,
-      statusCode as any
+      statusCode
     );
   }
 });

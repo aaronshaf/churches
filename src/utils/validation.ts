@@ -213,8 +213,10 @@ export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<str
 type FormDataEntryValue = string | File;
 
 // Helper to parse form body with proper type conversion
-export function parseFormBody(body: Record<string, FormDataEntryValue | FormDataEntryValue[]>) {
-  const parsed: Record<string, any> = {};
+export function parseFormBody(
+  body: Record<string, FormDataEntryValue | FormDataEntryValue[]>
+): Record<string, string | string[] | undefined> {
+  const parsed: Record<string, string | string[] | undefined> = {};
 
   for (const [key, value] of Object.entries(body)) {
     if (Array.isArray(value)) {
