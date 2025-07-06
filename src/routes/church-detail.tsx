@@ -321,7 +321,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 data-testid="google-maps-link"
                               >
                                 <svg
-                                  class="w-5 h-5 mr-1.5 group-hover:text-[#4285F4] group-focus:text-[#4285F4] transition-colors"
+                                  class="w-5 h-5 mr-1.5 group-hover:text-[#0F9D58] group-focus:text-[#0F9D58] transition-colors"
                                   viewBox="0 0 24 24"
                                   fill="currentColor"
                                 >
