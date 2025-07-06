@@ -101,6 +101,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .select({
         affiliationId: churchAffiliations.affiliationId,
         name: affiliations.name,
+        path: affiliations.path,
         website: affiliations.website,
         publicNotes: affiliations.publicNotes,
       })
@@ -504,7 +505,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                             {churchAffiliationsList.map((affiliation) => (
                               <div key={affiliation.affiliationId}>
                                 <a
-                                  href={`/networks/${affiliation.affiliationId}`}
+                                  href={`/networks/${affiliation.path}`}
                                   class="text-base text-primary-600 hover:text-primary-500"
                                 >
                                   {affiliation.name}

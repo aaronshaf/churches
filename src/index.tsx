@@ -1484,7 +1484,7 @@ app.get('/networks/:id', async (c) => {
           )}
         </div>
 
-        {/* JavaScript for showing unlisted churches */}
+        {/* JavaScript for showing unlisted churches and quick edit */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -1497,6 +1497,24 @@ app.get('/networks/:id', async (c) => {
               
               // Hide the button
               button.style.display = 'none';
+            }
+            
+            // Edit hotkey for admins and contributors
+            ${
+              user && (user.role === 'admin' || user.role === 'contributor')
+                ? `
+            document.addEventListener('keydown', function(e) {
+              // Check if user is not in an input field
+              const tagName = e.target.tagName.toLowerCase();
+              const isInputField = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || e.target.contentEditable === 'true';
+              
+              if (e.key === 'e' && !isInputField && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                window.location.href = '/admin/affiliations/${affiliation.id}/edit';
+              }
+            });
+            `
+                : ''
             }
           `,
           }}
