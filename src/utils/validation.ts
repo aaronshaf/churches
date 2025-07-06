@@ -198,7 +198,7 @@ export function validateFormData<T>(schema: z.ZodSchema<T>, formData: Record<str
   }
 
   const errors = result.error.flatten().fieldErrors;
-  const firstErrorArray = Object.values(errors)[0];
+  const firstErrorArray = Object.values(errors)[0] as string[] | undefined;
   const firstError = firstErrorArray?.[0] || 'Validation failed';
 
   return {

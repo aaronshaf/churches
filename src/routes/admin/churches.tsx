@@ -77,10 +77,8 @@ adminChurchesRoutes.get('/', async (c) => {
   }
 
   if (conditions.length > 0) {
-    const combinedConditions = conditions.reduce((acc, cond) => 
-      acc ? sql`${acc} AND ${cond}` : cond
-    );
-    query = query.where(combinedConditions);
+    const combinedCondition = conditions.reduce((acc, cond) => (acc ? sql`${acc} AND ${cond}` : cond), null as any);
+    query = (query as any).where(combinedCondition);
   }
 
   const results = await query.orderBy(desc(churches.updatedAt)).all();

@@ -131,10 +131,10 @@ export const getCloudflareImageEnvVars = (env: any): {
   apiToken: string;
 } => {
   validateCloudflareImageEnvVars(env);
-  const validatedEnv = env as Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'>;
+  // After validation, we know these values exist
   return {
-    accountId: validatedEnv.CLOUDFLARE_ACCOUNT_ID,
-    accountHash: validatedEnv.CLOUDFLARE_ACCOUNT_HASH,
-    apiToken: validatedEnv.CLOUDFLARE_IMAGES_API_TOKEN,
+    accountId: env.CLOUDFLARE_ACCOUNT_ID as string,
+    accountHash: env.CLOUDFLARE_ACCOUNT_HASH as string,
+    apiToken: env.CLOUDFLARE_IMAGES_API_TOKEN as string,
   };
 }

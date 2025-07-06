@@ -236,16 +236,15 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       // Allow up to 500k HTML
       wordwrap: false,
       selectors: [
-        { selector: 'script', format: 'skip' },
-        { selector: 'style', format: 'skip' },
-        { selector: 'noscript', format: 'skip' },
-        { selector: 'img', format: 'skip' },
-        { selector: 'a', options: { ignoreHref: false, hideLinkHrefIfSameAsText: false } },
+        { selector: 'script', options: { uppercase: false } },
+        { selector: 'style', options: { uppercase: false } },
+        { selector: 'noscript', options: { uppercase: false } },
+        { selector: 'img', options: { uppercase: false } },
+        { selector: 'a', options: { uppercase: false } },
         // Don't skip nav/header/footer with Gemini - they might contain service times
       ],
       limits: {
         maxInputLength: 500000,
-        ellipsis: '...',
       },
     }).slice(0, 100000); // Allow up to 100k chars for Gemini
 

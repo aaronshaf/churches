@@ -350,7 +350,7 @@ betterAuthApp.get('/test-session', async (c) => {
   const cookies = c.req.header('Cookie') || '';
   return c.json({
     cookies: cookies,
-    headers: Object.fromEntries(Array.from(c.req.raw.headers.entries())),
+    headers: {},
   });
 });
 
