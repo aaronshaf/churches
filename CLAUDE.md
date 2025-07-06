@@ -331,6 +331,7 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - Admin topnav is shown on /data page for authenticated admins
 - 404 pages implement smart redirects for church URLs
 - Networks page shows unlisted churches if only unlisted exist
+- **Church Detail Page Layout**: MUST preserve the 2-column grid layout for church information. Do NOT attempt major redesigns of this page. The clean, simple 2-column grid is the preferred design.
 
 ## SEO & Structured Data
 
