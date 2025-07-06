@@ -266,12 +266,17 @@ app.onError((err, c) => {
   const isDatabaseError =
     err.message?.includes('Network connection lost') ||
     err.message?.includes('Failed query') ||
+    err.message?.includes('D1_ERROR') ||
+    err.message?.includes('Database is not defined') ||
+    err.message?.includes('Cannot read properties of undefined') ||
     ('cause' in err &&
       err.cause &&
       typeof err.cause === 'object' &&
       'message' in err.cause &&
       typeof err.cause.message === 'string' &&
-      err.cause.message.includes('Network connection lost'));
+      (err.cause.message.includes('Network connection lost') ||
+        err.cause.message.includes('D1_ERROR') ||
+        err.cause.message.includes('Database is not defined')));
 
   const rawStatus = 'status' in err && typeof err.status === 'number' ? err.status : 500;
   const statusCode: 400 | 401 | 403 | 404 | 408 | 429 | 500 = [400, 401, 403, 404, 408, 429, 500].includes(rawStatus)
