@@ -211,7 +211,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   const path = (church.path || '').toLowerCase();
                   // Extract domain from website URL
                   const website = (church.website || '').toLowerCase();
-                  const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+                  const domain = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];
                   
                   return name.includes(searchQuery) || path.includes(searchQuery) || domain.includes(searchQuery);
                 })
@@ -330,7 +330,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   const path = (church.path || '').toLowerCase();
                   // Extract domain from website URL
                   const website = (church.website || '').toLowerCase();
-                  const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+                  const domain = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];
                   
                   // Check if all search words appear anywhere in the name, path, or domain
                   return searchWords.every(word => name.includes(word) || path.includes(word) || domain.includes(word));
