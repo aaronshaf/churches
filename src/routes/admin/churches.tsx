@@ -18,6 +18,7 @@ import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
+import { batchedInQuery, createInClause } from '../../utils/db-helpers';
 import { getCloudflareImageEnvVars } from '../../utils/env-validation';
 import { getLogoUrl } from '../../utils/settings';
 import {
@@ -83,31 +84,20 @@ adminChurchesRoutes.get('/', async (c) => {
   // Get all church affiliations for the filtered churches
   const churchIds = results.map((r) => r.church.id);
 
-  // Batch church IDs to avoid SQLite's "too many SQL variables" error
-  const BATCH_SIZE = 100; // Safe batch size well below SQLite's limit
-  const allChurchAffils: Array<{ churchId: number; affiliationId: number }> = [];
-
-  if (churchIds.length > 0) {
-    // Process in batches
-    for (let i = 0; i < churchIds.length; i += BATCH_SIZE) {
-      const batchIds = churchIds.slice(i, i + BATCH_SIZE);
-      const batchResults = await db
+  // Use batched query to avoid SQLite's "too many SQL variables" error
+  const allChurchAffils = await batchedInQuery(
+    churchIds,
+    100, // Safe batch size well below SQLite's limit
+    async (batchIds) =>
+      db
         .select({
           churchId: churchAffiliations.churchId,
           affiliationId: churchAffiliations.affiliationId,
         })
         .from(churchAffiliations)
-        .where(
-          sql`${churchAffiliations.churchId} IN (${sql.join(
-            batchIds.map((id) => sql`${id}`),
-            sql`, `
-          )})`
-        )
-        .all();
-
-      allChurchAffils.push(...batchResults);
-    }
-  }
+        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .all()
+  );
 
   // Filter by affiliation if needed
   let filteredResults = results;
