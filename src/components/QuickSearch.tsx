@@ -310,7 +310,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   title = result.name;
                   subtitle = result.gatheringAddress || '';
                   typeLabel = result.status || 'Church';
-                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                  if (result.status === 'Listed') {
+                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
+                  } else {
+                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                  }
                 } else if (result.type === 'county') {
                   href = \`/counties/\${result.path}\`;
                   title = result.name + ' County';
