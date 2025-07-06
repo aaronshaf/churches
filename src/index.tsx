@@ -27,6 +27,7 @@ import {
 } from './db/schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
+import { domainRedirectMiddleware } from './middleware/domain-redirect';
 import { envCheckMiddleware } from './middleware/env-check';
 import { adminActivityRoutes } from './routes/admin/activity';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
@@ -59,6 +60,9 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Apply environment check middleware globally
 app.use('*', envCheckMiddleware);
+
+// Apply domain redirect middleware globally (but after env check)
+app.use('*', domainRedirectMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
@@ -280,6 +284,27 @@ app.onError((err, c) => {
     </Layout>,
     statusCode
   );
+});
+
+// .well-known/traffic-advice endpoint
+app.get('/.well-known/traffic-advice', async (c) => {
+  const db = createDbWithContext(c);
+
+  // Get configured domain from settings
+  const siteDomainSetting = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(eq(settings.key, 'site_domain'))
+    .get();
+
+  const configuredDomain = siteDomainSetting?.value || 'utahchurches.org';
+
+  return c.json([
+    {
+      user_agent: '*',
+      canonical_domain: configuredDomain,
+    },
+  ]);
 });
 
 // Mount better-auth routes
@@ -4520,6 +4545,13 @@ app.get('*', async (c) => {
 
     if (church) {
       return c.redirect(`/churches/${slug}`, 301);
+    }
+
+    // Check if it's a county redirect
+    const county = await db.select({ id: counties.id }).from(counties).where(eq(counties.path, slug)).get();
+
+    if (county) {
+      return c.redirect(`/counties/${slug}`, 301);
     }
   }
 
