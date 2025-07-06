@@ -1,4 +1,5 @@
 import { desc, eq, isNotNull, sql } from 'drizzle-orm';
+import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { ChurchCard } from './components/ChurchCard';
@@ -39,7 +40,7 @@ import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { seoRoutes } from './routes/seo';
-import type { Bindings } from './types';
+import type { AuthVariables, BetterAuthUser, Bindings } from './types';
 import {
   deleteFromCloudflareImages,
   getCloudflareImageUrl,
@@ -52,12 +53,7 @@ import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './uti
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-  betterSession?: any;
-  betterAuth?: any;
-};
+type Variables = AuthVariables;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -197,14 +193,22 @@ app.use('/api/*', cors());
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   const db = createDb(env.DB);
-  const faviconUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'favicon_url')).get();
+  const faviconUrlSetting = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(eq(settings.key, 'favicon_url'))
+    .get();
   return faviconUrlSetting?.value || undefined;
 }
 
 // Helper function to fetch logo URL
 async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   const db = createDb(env.DB);
-  const logoUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'logo_url')).get();
+  const logoUrlSetting = await db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(eq(settings.key, 'logo_url'))
+    .get();
   return logoUrlSetting?.value || undefined;
 }
 
@@ -228,8 +232,8 @@ async function getNavbarPages(
 }
 
 // Helper function to gather all common Layout props
-async function getLayoutProps(c: any): Promise<{
-  user: any;
+async function getLayoutProps(c: { env: Bindings } & Pick<Context, 'req'>): Promise<{
+  user: BetterAuthUser | null;
   faviconUrl?: string;
   logoUrl?: string;
   siteTitle: string;
@@ -3666,7 +3670,7 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
             <h3 class="text-lg font-medium text-red-800 mb-2">Validation Error</h3>
             <p class="text-red-700">{validation.message}</p>
           </div>
-          <CountyForm action="/admin/counties" isNew={true} county={parsedBody} />
+          <CountyForm action="/admin/counties" isNew={true} county={parsedBody as any} />
         </div>
       </Layout>
     );
@@ -3684,7 +3688,7 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
             action="/admin/counties"
             isNew={true}
             error="A county with this name already exists"
-            county={{ name, description, population }}
+            county={{ name, path, description, population }}
           />
         </div>
       </Layout>
@@ -4092,23 +4096,14 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
     try {
       // Get validated Cloudflare environment variables
       const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-      
+
       // Delete old image if exists
       if (currentPage?.featuredImageId) {
-        await deleteFromCloudflareImages(
-          currentPage.featuredImageId,
-          accountId,
-          apiToken
-        );
+        await deleteFromCloudflareImages(currentPage.featuredImageId, accountId, apiToken);
       }
 
       const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(
-        featuredImage,
-        accountId,
-        apiToken,
-        imagePrefix
-      );
+      const uploadResult = await uploadToCloudflareImages(featuredImage, accountId, apiToken, imagePrefix);
 
       if (uploadResult.success && uploadResult.result) {
         featuredImageId = uploadResult.result.id;
@@ -4157,11 +4152,7 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
     try {
       // Get validated Cloudflare environment variables
       const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
-      await deleteFromCloudflareImages(
-        page.featuredImageId,
-        accountId,
-        apiToken
-      );
+      await deleteFromCloudflareImages(page.featuredImageId, accountId, apiToken);
     } catch (error) {
       console.error('Failed to delete image:', error);
     }
@@ -4341,26 +4332,17 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
     try {
       // Get validated Cloudflare environment variables
       const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-      
+
       // Get current favicon to delete if exists
       const existingFaviconId = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
 
       // Delete old favicon if exists
       if (existingFaviconId?.value) {
-        await deleteFromCloudflareImages(
-          existingFaviconId.value,
-          accountId,
-          apiToken
-        );
+        await deleteFromCloudflareImages(existingFaviconId.value, accountId, apiToken);
       }
 
       const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(
-        favicon,
-        accountId,
-        apiToken,
-        imagePrefix
-      );
+      const uploadResult = await uploadToCloudflareImages(favicon, accountId, apiToken, imagePrefix);
 
       if (uploadResult.success && uploadResult.result) {
         const faviconId = uploadResult.result.id;
@@ -4411,26 +4393,17 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
     try {
       // Get validated Cloudflare environment variables
       const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-      
+
       // Get current logo to delete if exists
       const existingLogoId = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
 
       // Delete old logo if exists
       if (existingLogoId?.value) {
-        await deleteFromCloudflareImages(
-          existingLogoId.value,
-          accountId,
-          apiToken
-        );
+        await deleteFromCloudflareImages(existingLogoId.value, accountId, apiToken);
       }
 
       const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(
-        logo,
-        accountId,
-        apiToken,
-        imagePrefix
-      );
+      const uploadResult = await uploadToCloudflareImages(logo, accountId, apiToken, imagePrefix);
 
       if (uploadResult.success && uploadResult.result) {
         const logoId = uploadResult.result.id;
@@ -4471,7 +4444,6 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
 
   return c.redirect('/admin/settings');
 });
-
 
 // 404 catch-all route
 app.get('*', async (c) => {

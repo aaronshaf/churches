@@ -16,16 +16,13 @@ import {
   settings,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
-import type { Bindings } from '../types';
+import type { AuthVariables, Bindings } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
 import { getNavbarPages } from '../utils/pages';
 import { getFaviconUrl, getLogoUrl } from '../utils/settings';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-};
+type Variables = AuthVariables;
 
 export const churchDetailRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -91,7 +88,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       );
     }
 
-
     // Get church gatherings (services)
     const churchGatheringsList = await db
       .select()
@@ -145,15 +141,23 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     const processedComments = allComments.map((comment) => ({
       ...comment,
       churchId: comment.churchId as number, // Safe since we filter by churchId
-      isOwn: user && comment.userId === user.id,
+      isOwn: user ? comment.userId === user.id : false,
       userName: comment.userName || null,
       userEmail: comment.userEmail || '',
       userImage: comment.userImage || null,
     }));
 
     // Get site settings for JSON-LD
-    const siteDomainSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get();
-    const siteRegionSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_region')).get();
+    const siteDomainSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'site_domain'))
+      .get();
+    const siteRegionSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'site_region'))
+      .get();
 
     const siteDomain = siteDomainSetting?.value || 'utahchurches.org';
     const siteRegion = siteRegionSetting?.value || 'UT';
@@ -343,7 +347,8 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                 </div>
 
                 {/* Church Information */}
-                {(church.publicNotes || (church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor'))) && (
+                {(church.publicNotes ||
+                  (church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor'))) && (
                   <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
                     <h2 class="text-lg font-semibold text-gray-900 mb-4">Church Information</h2>
                     {church.publicNotes && (
@@ -355,7 +360,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     {church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor') && (
                       <div>
                         <h3 class="text-sm font-medium text-gray-700 mb-2">Private Notes (Admin Only)</h3>
-                        <p class="text-sm text-gray-600 whitespace-pre-wrap bg-yellow-50 p-3 rounded-md border border-yellow-200">{church.privateNotes}</p>
+                        <p class="text-sm text-gray-600 whitespace-pre-wrap bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                          {church.privateNotes}
+                        </p>
                       </div>
                     )}
                   </div>

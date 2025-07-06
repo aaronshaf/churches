@@ -4,14 +4,11 @@ import { Layout } from '../components/Layout';
 import { createDbWithContext } from '../db';
 import { churches, churchSuggestions, comments } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
-import type { Bindings } from '../types';
+import type { AuthVariables, Bindings } from '../types';
 import { getNavbarPages } from '../utils/pages';
 import { getLogoUrl } from '../utils/settings';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-};
+type Variables = AuthVariables;
 
 export const feedbackRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

@@ -1,5 +1,6 @@
 import { convert } from 'html-to-text';
 import OpenAI from 'openai';
+import type { ZodObject } from 'zod';
 import { z } from 'zod';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return it in a SIMPLE TEXT FORMAT (not JSON):
@@ -75,7 +76,7 @@ Important:
 - If a church mentions they have YouTube but no URL is given, DO NOT include it`;
 
 // Zod schemas for validation
-const serviceTimeSchema = z.object({
+const serviceTimeSchema: ZodObject<any> = z.object({
   time: z
     .string()
     .regex(
@@ -84,7 +85,7 @@ const serviceTimeSchema = z.object({
   notes: z.string().optional(),
 });
 
-const extractedChurchDataSchema = z.object({
+const extractedChurchDataSchema: ZodObject<any> = z.object({
   phone: z
     .string()
     .regex(/^\(\d{3}\)\s\d{3}-\d{4}$/)
@@ -551,7 +552,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       if (partialData.service_times) {
         // Deduplicate based on time
         const uniqueTimes = new Map<string, ServiceTime>();
-        partialData.service_times.forEach((service) => {
+        partialData.service_times.forEach((service: ServiceTime) => {
           const existing = uniqueTimes.get(service.time);
           if (!existing || (service.notes && !existing.notes)) {
             uniqueTimes.set(service.time, service);
@@ -568,7 +569,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
     if (parseResult.data.service_times) {
       // Deduplicate based on time
       const uniqueTimes = new Map<string, ServiceTime>();
-      parseResult.data.service_times.forEach((service) => {
+      parseResult.data.service_times.forEach((service: ServiceTime) => {
         const existing = uniqueTimes.get(service.time);
         if (!existing || (service.notes && !existing.notes)) {
           // Keep the one with notes if duplicate times exist

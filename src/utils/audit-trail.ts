@@ -2,14 +2,18 @@ import yaml from 'js-yaml';
 
 type ChangeRecord = {
   field: string;
-  from: any;
-  to: any;
+  from: unknown;
+  to: unknown;
 };
 
 /**
  * Compare two objects and return the differences
  */
-export function compareObjects(oldObj: any, newObj: any, prefix = ''): ChangeRecord[] {
+export function compareObjects(
+  oldObj: Record<string, unknown> | null,
+  newObj: Record<string, unknown> | null,
+  prefix = ''
+): ChangeRecord[] {
   const changes: ChangeRecord[] = [];
   const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
 
@@ -30,7 +34,9 @@ export function compareObjects(oldObj: any, newObj: any, prefix = ''): ChangeRec
     } else if (typeof oldValue === 'object' && oldValue !== null && newValue !== null) {
       // Recurse for nested objects (but not arrays)
       if (!Array.isArray(oldValue) && !Array.isArray(newValue)) {
-        changes.push(...compareObjects(oldValue, newValue, fieldName));
+        changes.push(
+          ...compareObjects(oldValue as Record<string, unknown>, newValue as Record<string, unknown>, fieldName)
+        );
       } else {
         // For arrays, just compare as values
         if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {

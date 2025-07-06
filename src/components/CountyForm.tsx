@@ -1,8 +1,16 @@
 import type { FC } from 'hono/jsx';
 
+interface County {
+  id?: number;
+  name: string;
+  path: string | null;
+  population?: number | null;
+  description?: string | null;
+}
+
 type CountyFormProps = {
   action: string;
-  county?: any;
+  county?: County;
   error?: string;
   isNew?: boolean;
 };

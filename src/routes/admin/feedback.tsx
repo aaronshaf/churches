@@ -5,13 +5,11 @@ import { createDbWithContext } from '../../db';
 import { users } from '../../db/auth-schema';
 import { churches, churchSuggestions, comments } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import type { Bindings } from '../../types';
+import type { AuthenticatedVariables, Bindings } from '../../types';
 import { getNavbarPages } from '../../utils/pages';
 import { getLogoUrl } from '../../utils/settings';
 
-type Variables = {
-  betterUser: any;
-};
+type Variables = AuthenticatedVariables;
 
 export const adminFeedbackRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

@@ -6,14 +6,11 @@ import { NotFound } from '../../components/NotFound';
 import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import type { Bindings } from '../../types';
+import type { AuthenticatedVariables, Bindings } from '../../types';
 import { getLogoUrl } from '../../utils/settings';
 import { affiliationSchema, parseFormBody, validateFormData } from '../../utils/validation';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-};
+type Variables = AuthenticatedVariables;
 
 export const adminAffiliationsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -142,11 +139,11 @@ adminAffiliationsRoutes.post('/', async (c) => {
       const logoUrl = await getLogoUrl(c.env);
       return c.html(
         <Layout title="Create Affiliation - Admin" user={user} logoUrl={logoUrl}>
-          <AffiliationForm 
-            action="/admin/affiliations" 
-            error={validationResult.message} 
-            affiliation={parsedBody} 
-            isNew={true} 
+          <AffiliationForm
+            action="/admin/affiliations"
+            error={validationResult.message}
+            affiliation={parsedBody}
+            isNew={true}
           />
         </Layout>
       );
@@ -227,11 +224,11 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     if (!validationResult.success) {
       const logoUrl = await getLogoUrl(c.env);
       const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
-      
+
       if (!affiliation) {
         return c.html(<NotFound />, 404);
       }
-      
+
       return c.html(
         <Layout title={`Edit ${affiliation.name}`} user={user} logoUrl={logoUrl}>
           <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

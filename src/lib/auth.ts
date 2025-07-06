@@ -2,9 +2,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../db/auth-schema';
+import type { Bindings } from '../types';
 import { validateAuthEnvVars } from '../utils/env-validation';
 
-export function createAuth(env: any) {
+export function createAuth(env: Bindings) {
   // Validate required environment variables
   validateAuthEnvVars(env);
 

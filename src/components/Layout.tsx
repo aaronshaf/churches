@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import type { BetterAuthUser } from '../types';
 import { Footer } from './Footer';
 import { Navbar } from './Navbar';
 import { QuickSearch } from './QuickSearch';
@@ -7,7 +8,7 @@ type LayoutProps = {
   title?: string;
   siteTitle?: string;
   children: any;
-  user?: any;
+  user?: BetterAuthUser | null;
   currentPath?: string;
   jsonLd?: any;
   churchId?: string;

@@ -3,17 +3,17 @@ import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { Layout } from '../components/Layout';
 import { churchSuggestions, comments } from '../db/schema';
-import { getUser, requireContributorBetter } from '../middleware/better-auth';
-import type { Bindings } from '../types';
+import { requireContributorBetter } from '../middleware/better-auth';
+import type { AuthenticatedVariables, Bindings } from '../types';
 
-const contributorApp = new Hono<{ Bindings: Bindings }>();
+const contributorApp = new Hono<{ Bindings: Bindings; Variables: AuthenticatedVariables }>();
 
 // Apply contributor middleware to all routes
 contributorApp.use('*', requireContributorBetter);
 
 // Dashboard for contributors
 contributorApp.get('/dashboard', async (c) => {
-  const user = await getUser(c);
+  const user = c.get('betterUser');
   const db = drizzle(c.env.DB);
 
   // Get user's suggestions
@@ -93,7 +93,7 @@ contributorApp.get('/dashboard', async (c) => {
 
 // Suggest a church form
 contributorApp.get('/suggest', async (c) => {
-  const user = await getUser(c);
+  const user = c.get('betterUser');
 
   return c.html(
     <Layout title="Suggest a Church" user={user} currentPath="/contributor/suggest">
@@ -230,7 +230,7 @@ contributorApp.get('/suggest', async (c) => {
 
 // Handle church suggestion submission
 contributorApp.post('/suggest', async (c) => {
-  const user = await getUser(c);
+  const user = c.get('betterUser');
   const formData = await c.req.formData();
 
   const db = drizzle(c.env.DB);
@@ -268,7 +268,7 @@ contributorApp.post('/suggest', async (c) => {
 
 // Add comment to a church
 contributorApp.post('/churches/:id/comment', async (c) => {
-  const user = await getUser(c);
+  const user = c.get('betterUser');
   const churchId = parseInt(c.req.param('id'));
   const formData = await c.req.formData();
 

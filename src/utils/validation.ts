@@ -1,3 +1,4 @@
+import type { ZodEffects, ZodObject, ZodType } from 'zod';
 import { z } from 'zod';
 
 // Helper schemas for common validations
@@ -11,7 +12,7 @@ const websiteBuilderPatterns = [
   /websitebuilder\.com/i,
 ];
 
-const optionalUrl = z
+const optionalUrl: ZodType<string | undefined> = z
   .string()
   .url('Invalid URL')
   .refine((url) => {
@@ -20,12 +21,12 @@ const optionalUrl = z
   }, 'Website builder URLs are not valid church websites')
   .optional()
   .or(z.literal(''));
-const optionalEmail = z.string().email('Invalid email').optional().or(z.literal(''));
-const _optionalString = z.string().optional().or(z.literal(''));
+const optionalEmail: ZodType<string | undefined> = z.string().email('Invalid email').optional().or(z.literal(''));
+const _optionalString: ZodType<string | undefined> = z.string().optional().or(z.literal(''));
 const phoneRegex = /^(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 
 // Church validation schema
-export const churchSchema = z
+export const churchSchema: ZodEffects<ZodObject<any>> = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(255, 'Name too long'),
     path: z
@@ -101,7 +102,7 @@ export const affiliationSchema = z.object({
 });
 
 // County validation schema
-export const countySchema = z.object({
+export const countySchema: ZodObject<any> = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100, 'Name too long'),
   path: z
     .string()
@@ -115,7 +116,7 @@ export const countySchema = z.object({
 });
 
 // User validation schema
-export const userSchema = z.object({
+export const userSchema: ZodObject<any> = z.object({
   email: z.string().trim().email('Invalid email').min(1, 'Email is required').max(255, 'Email too long'),
   username: z
     .string()
@@ -128,7 +129,7 @@ export const userSchema = z.object({
 });
 
 // Login validation schema
-export const loginSchema = z.object({
+export const loginSchema: ZodObject<any> = z.object({
   username: z.string().trim().min(1, 'Username is required').max(50, 'Username too long'),
   password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
 });
@@ -150,7 +151,7 @@ const RESERVED_PATHS = [
   'churches.csv',
 ];
 
-export const pageSchema = z.object({
+export const pageSchema: ZodObject<any> = z.object({
   title: z.string().trim().min(1, 'Title is required').max(255, 'Title too long'),
   path: z
     .string()
@@ -164,7 +165,7 @@ export const pageSchema = z.object({
 });
 
 // Password update schema
-export const passwordUpdateSchema = z
+export const passwordUpdateSchema: ZodEffects<ZodObject<any>> = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
     newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128, 'Password too long'),

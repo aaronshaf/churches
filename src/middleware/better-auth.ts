@@ -1,9 +1,10 @@
-import type { Context, MiddlewareHandler } from 'hono';
 import type { D1Database } from '@cloudflare/workers-types';
+import type { Context, MiddlewareHandler } from 'hono';
 import { createAuth } from '../lib/auth';
+import type { BetterAuthUser, Bindings } from '../types';
 import { EnvironmentError } from '../utils/env-validation';
 
-type ValidateDatabaseEnvVars = (env: any) => asserts env is { DB: D1Database };
+type ValidateDatabaseEnvVars = (env: Bindings) => asserts env is Bindings & { DB: D1Database };
 
 export const betterAuthMiddleware: MiddlewareHandler = async (c, next) => {
   try {
@@ -170,7 +171,10 @@ export const requireContributorBetter: MiddlewareHandler = async (c, next) => {
   await next();
 };
 
-export const getUser = async (c: Context): Promise<any | null> => {
+export const getUser = async (c: {
+  env: Bindings;
+  req: { header: (name: string) => string | undefined };
+}): Promise<BetterAuthUser | null> => {
   const cookies = c.req.header('Cookie') || '';
   const sessionMatch = cookies.match(/session=([^;]+)/);
 

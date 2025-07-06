@@ -1,7 +1,8 @@
 import type { FC } from 'hono/jsx';
+import type { BetterAuthUser } from '../types';
 
 type FooterProps = {
-  user?: any;
+  user?: BetterAuthUser | null;
   churchId?: string;
   countyId?: string;
   affiliationId?: string;

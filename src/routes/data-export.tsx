@@ -7,14 +7,11 @@ import { Layout } from '../components/Layout';
 import { createDbWithContext } from '../db';
 import { affiliations, churchAffiliations, churches, counties } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
-import type { Bindings } from '../types';
+import type { AuthVariables, Bindings } from '../types';
 import { getNavbarPages } from '../utils/pages';
 import { getFaviconUrl, getLogoUrl } from '../utils/settings';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-};
+type Variables = AuthVariables;
 
 export const dataExportRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -53,8 +50,8 @@ dataExportRoutes.get('/churches.json', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData: Array<{ 
-    churchId: number; 
+  let churchAffiliationData: Array<{
+    churchId: number;
     affiliationId: number;
     affiliationName: string | null;
     affiliationWebsite: string | null;
@@ -98,7 +95,15 @@ dataExportRoutes.get('/churches.json', async (c) => {
       });
       return acc;
     },
-    {} as Record<number, any[]>
+    {} as Record<
+      number,
+      Array<{
+        id: number;
+        name: string | null;
+        website: string | null;
+        notes: string | null;
+      }>
+    >
   );
 
   // Combine church data with affiliations
@@ -148,8 +153,8 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData: Array<{ 
-    churchId: number; 
+  let churchAffiliationData: Array<{
+    churchId: number;
     affiliationId: number;
     affiliationName: string | null;
     affiliationWebsite: string | null;
@@ -185,7 +190,12 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
       if (!acc[item.churchId]) {
         acc[item.churchId] = [];
       }
-      const affiliation: any = {
+      const affiliation: {
+        id: number;
+        name: string | null;
+        website?: string;
+        notes?: string;
+      } = {
         id: item.affiliationId,
         name: item.affiliationName,
       };
@@ -194,12 +204,20 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
       acc[item.churchId].push(affiliation);
       return acc;
     },
-    {} as Record<number, any[]>
+    {} as Record<
+      number,
+      Array<{
+        id: number;
+        name: string | null;
+        website?: string;
+        notes?: string;
+      }>
+    >
   );
 
   // Helper function to remove null values from objects
-  const removeNulls = (obj: any): any => {
-    const cleaned: any = {};
+  const removeNulls = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       if (value !== null && value !== undefined) {
         cleaned[key] = value;
@@ -260,8 +278,8 @@ dataExportRoutes.get('/churches.csv', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData: Array<{ 
-    churchId: number; 
+  let churchAffiliationData: Array<{
+    churchId: number;
     affiliationId: number;
     affiliationName: string | null;
     affiliationWebsite: string | null;
@@ -304,7 +322,7 @@ dataExportRoutes.get('/churches.csv', async (c) => {
   );
 
   // Helper function to escape CSV values
-  const escapeCSV = (value: any): string => {
+  const escapeCSV = (value: unknown): string => {
     if (value === null || value === undefined) return '';
     const str = String(value);
     // Escape quotes and wrap in quotes if contains comma, quote, or newline
@@ -414,8 +432,8 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
 
   // Get affiliations for each church
   const churchIds = allChurches.map((c) => c.id);
-  let churchAffiliationData: Array<{ 
-    churchId: number; 
+  let churchAffiliationData: Array<{
+    churchId: number;
     affiliationId: number;
     affiliationName: string | null;
     affiliationWebsite: string | null;

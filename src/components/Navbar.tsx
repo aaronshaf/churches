@@ -1,8 +1,9 @@
 import type { FC } from 'hono/jsx';
+import type { BetterAuthUser } from '../types';
 import { BetterAuthUserMenu } from './BetterAuthUserMenu';
 
 type NavbarProps = {
-  user?: any;
+  user?: BetterAuthUser | null;
   currentPath?: string;
   logoUrl?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;

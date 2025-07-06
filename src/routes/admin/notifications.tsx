@@ -1,14 +1,12 @@
+import { desc, eq, gt, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../../db';
-import { comments, churchSuggestions } from '../../db/schema';
 import { users } from '../../db/auth-schema';
+import { churchSuggestions, comments } from '../../db/schema';
 import { requireAdminBetter } from '../../middleware/better-auth';
-import type { Bindings } from '../../types';
-import { desc, eq, gt, sql } from 'drizzle-orm';
+import type { AuthenticatedVariables, Bindings } from '../../types';
 
-type Variables = {
-  betterUser: any;
-};
+type Variables = AuthenticatedVariables;
 
 const adminNotificationsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

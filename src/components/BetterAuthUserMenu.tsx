@@ -1,8 +1,9 @@
 import type { FC } from 'hono/jsx';
+import type { BetterAuthUser } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 
 type BetterAuthUserMenuProps = {
-  user?: any;
+  user?: BetterAuthUser | null;
 };
 
 export const BetterAuthUserMenu: FC<BetterAuthUserMenuProps> = ({ user }) => {

@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import type { BetterAuthUser } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 
 type Comment = {
@@ -20,12 +21,7 @@ type ChurchCommentsProps = {
   churchName: string;
   churchPath: string;
   comments: Comment[];
-  user?: {
-    id: string;
-    name: string | null;
-    email: string;
-    role: 'admin' | 'contributor' | 'user';
-  };
+  user?: BetterAuthUser | null;
 };
 
 export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, comments, user }) => {

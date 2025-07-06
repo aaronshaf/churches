@@ -13,10 +13,22 @@ export interface Bindings {
   OPENROUTER_API_KEY?: string;
 }
 
-// User role types
-export type UserRole = 'admin' | 'contributor';
+// User role types (matches auth schema)
+export type UserRole = 'admin' | 'contributor' | 'user';
 
-// User type for context
+// Better Auth user interface (from our database schema)
+export interface BetterAuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  role: UserRole;
+  emailVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Legacy user interface (deprecated - use BetterAuthUser instead)
 export interface User {
   id: string;
   email?: string;
@@ -24,6 +36,31 @@ export interface User {
   role: UserRole;
   firstName?: string;
   lastName?: string;
+}
+
+// Auth session interface
+export interface BetterAuthSession {
+  id: string;
+  userId: string;
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
+// Context variables that get set by auth middleware
+export interface AuthVariables {
+  betterUser?: BetterAuthUser;
+  betterSession?: BetterAuthSession;
+  betterAuth?: any; // Better-auth instance - will be typed properly later
+}
+
+// Context variables for authenticated routes (where user is guaranteed to exist)
+export interface AuthenticatedVariables {
+  betterUser: BetterAuthUser;
+  betterSession?: BetterAuthSession;
+  betterAuth?: any; // Better-auth instance - will be typed properly later
 }
 
 // Church suggestion type

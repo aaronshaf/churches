@@ -1,8 +1,17 @@
 import type { FC } from 'hono/jsx';
 
+interface Page {
+  id?: number;
+  title: string;
+  path: string;
+  navbarOrder?: number | null;
+  content?: string | null;
+  featuredImageUrl?: string | null;
+}
+
 type PageFormProps = {
   action: string;
-  page?: any;
+  page?: Page;
   error?: string;
   isNew?: boolean;
 };

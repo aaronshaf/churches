@@ -15,7 +15,7 @@ import {
   counties,
 } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
-import type { Bindings } from '../../types';
+import type { AuthenticatedVariables, Bindings } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
 import { getCloudflareImageEnvVars } from '../../utils/env-validation';
@@ -30,10 +30,7 @@ import {
 } from '../../utils/validation';
 import { extractChurchDataFromWebsite } from '../../utils/website-extraction';
 
-type Variables = {
-  user: any;
-  betterUser?: any;
-};
+type Variables = AuthenticatedVariables;
 
 export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -93,7 +90,12 @@ adminChurchesRoutes.get('/', async (c) => {
             affiliationId: churchAffiliations.affiliationId,
           })
           .from(churchAffiliations)
-          .where(sql`${churchAffiliations.churchId} IN (${sql.join(churchIds.map(id => sql`${id}`), sql`, `)})`)
+          .where(
+            sql`${churchAffiliations.churchId} IN (${sql.join(
+              churchIds.map((id) => sql`${id}`),
+              sql`, `
+            )})`
+          )
           .all()
       : [];
 
@@ -806,16 +808,11 @@ adminChurchesRoutes.post('/:id', async (c) => {
       try {
         // Get validated Cloudflare environment variables
         const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
-        
+
         const { getImagePrefix } = await import('../../utils/settings');
         const imagePrefix = await getImagePrefix(c.env);
 
-        const uploadResult = await uploadToCloudflareImages(
-          body.image,
-          accountId,
-          apiToken,
-          imagePrefix
-        );
+        const uploadResult = await uploadToCloudflareImages(body.image, accountId, apiToken, imagePrefix);
 
         if (!uploadResult.success || !uploadResult.result) {
           throw new Error('Failed to upload image');
@@ -827,7 +824,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
         const { getCloudflareImageUrl, IMAGE_VARIANTS } = await import('../../utils/cloudflare-images');
         const { accountHash } = getCloudflareImageEnvVars(c.env);
         const imageUrl = getCloudflareImageUrl(imageId, accountHash, IMAGE_VARIANTS.LARGE);
-        
+
         await db.insert(churchImages).values({
           churchId: id,
           imageId: imageId,
@@ -852,11 +849,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
       if (imageToDelete) {
         // Get validated Cloudflare environment variables
         const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
-        await deleteFromCloudflareImages(
-          imageToDelete.imageId,
-          accountId,
-          apiToken
-        );
+        await deleteFromCloudflareImages(imageToDelete.imageId, accountId, apiToken);
         await db.delete(churchImages).where(eq(churchImages.id, Number(deleteImageId)));
       }
     }
@@ -1014,11 +1007,7 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
     // Get validated Cloudflare environment variables
     const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
     for (const image of images) {
-      await deleteFromCloudflareImages(
-        image.imageId,
-        accountId,
-        apiToken
-      );
+      await deleteFromCloudflareImages(image.imageId, accountId, apiToken);
     }
   }
   await db.delete(churchImages).where(eq(churchImages.churchId, id));
