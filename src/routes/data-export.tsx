@@ -8,6 +8,7 @@ import { createDbWithContext } from '../db';
 import { affiliations, churchAffiliations, churches, counties } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
 import type { AuthVariables, Bindings } from '../types';
+import { batchedInQuery, createInClause } from '../utils/db-helpers';
 import { getNavbarPages } from '../utils/pages';
 import { getFaviconUrl, getLogoUrl } from '../utils/settings';
 
@@ -60,25 +61,22 @@ dataExportRoutes.get('/churches.json', async (c) => {
   }> = [];
 
   if (churchIds.length > 0) {
-    churchAffiliationData = await db
-      .select({
-        churchId: churchAffiliations.churchId,
-        affiliationId: churchAffiliations.affiliationId,
-        affiliationName: affiliations.name,
-        affiliationWebsite: affiliations.website,
-        affiliationPublicNotes: affiliations.publicNotes,
-        order: churchAffiliations.order,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(
-        sql`${churchAffiliations.churchId} IN (${sql.join(
-          churchIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      )
-      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
-      .all();
+    churchAffiliationData = await batchedInQuery(churchIds, 100, async (batchIds) => {
+      return await db
+        .select({
+          churchId: churchAffiliations.churchId,
+          affiliationId: churchAffiliations.affiliationId,
+          affiliationName: affiliations.name,
+          affiliationWebsite: affiliations.website,
+          affiliationPublicNotes: affiliations.publicNotes,
+          order: churchAffiliations.order,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .all();
+    });
   }
 
   // Group affiliations by church
@@ -163,25 +161,22 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
   }> = [];
 
   if (churchIds.length > 0) {
-    churchAffiliationData = await db
-      .select({
-        churchId: churchAffiliations.churchId,
-        affiliationId: churchAffiliations.affiliationId,
-        affiliationName: affiliations.name,
-        affiliationWebsite: affiliations.website,
-        affiliationPublicNotes: affiliations.publicNotes,
-        order: churchAffiliations.order,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(
-        sql`${churchAffiliations.churchId} IN (${sql.join(
-          churchIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      )
-      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
-      .all();
+    churchAffiliationData = await batchedInQuery(churchIds, 100, async (batchIds) => {
+      return await db
+        .select({
+          churchId: churchAffiliations.churchId,
+          affiliationId: churchAffiliations.affiliationId,
+          affiliationName: affiliations.name,
+          affiliationWebsite: affiliations.website,
+          affiliationPublicNotes: affiliations.publicNotes,
+          order: churchAffiliations.order,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .all();
+    });
   }
 
   // Group affiliations by church
@@ -288,25 +283,22 @@ dataExportRoutes.get('/churches.csv', async (c) => {
   }> = [];
 
   if (churchIds.length > 0) {
-    churchAffiliationData = await db
-      .select({
-        churchId: churchAffiliations.churchId,
-        affiliationId: churchAffiliations.affiliationId,
-        affiliationName: affiliations.name,
-        affiliationWebsite: affiliations.website,
-        affiliationPublicNotes: affiliations.publicNotes,
-        order: churchAffiliations.order,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(
-        sql`${churchAffiliations.churchId} IN (${sql.join(
-          churchIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      )
-      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
-      .all();
+    churchAffiliationData = await batchedInQuery(churchIds, 100, async (batchIds) => {
+      return await db
+        .select({
+          churchId: churchAffiliations.churchId,
+          affiliationId: churchAffiliations.affiliationId,
+          affiliationName: affiliations.name,
+          affiliationWebsite: affiliations.website,
+          affiliationPublicNotes: affiliations.publicNotes,
+          order: churchAffiliations.order,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .all();
+    });
   }
 
   // Group affiliations by church
@@ -442,25 +434,22 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
   }> = [];
 
   if (churchIds.length > 0) {
-    churchAffiliationData = await db
-      .select({
-        churchId: churchAffiliations.churchId,
-        affiliationId: churchAffiliations.affiliationId,
-        affiliationName: affiliations.name,
-        affiliationWebsite: affiliations.website,
-        affiliationPublicNotes: affiliations.publicNotes,
-        order: churchAffiliations.order,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(
-        sql`${churchAffiliations.churchId} IN (${sql.join(
-          churchIds.map((id) => sql`${id}`),
-          sql`, `
-        )})`
-      )
-      .orderBy(churchAffiliations.churchId, churchAffiliations.order)
-      .all();
+    churchAffiliationData = await batchedInQuery(churchIds, 100, async (batchIds) => {
+      return await db
+        .select({
+          churchId: churchAffiliations.churchId,
+          affiliationId: churchAffiliations.affiliationId,
+          affiliationName: affiliations.name,
+          affiliationWebsite: affiliations.website,
+          affiliationPublicNotes: affiliations.publicNotes,
+          order: churchAffiliations.order,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .all();
+    });
   }
 
   // Group affiliations by church
