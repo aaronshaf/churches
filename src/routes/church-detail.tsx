@@ -443,7 +443,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 href={church.facebook}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:text-[#1877f2] focus:text-[#1877f2] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                 data-testid="facebook-link"
                               >
                                 <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
@@ -457,7 +457,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 href={church.instagram}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:text-[#E4405F] focus:text-[#E4405F] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                 data-testid="instagram-link"
                               >
                                 <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
@@ -471,7 +471,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 href={church.youtube}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:text-[#FF0000] focus:text-[#FF0000] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                 data-testid="youtube-link"
                               >
                                 <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
@@ -485,7 +485,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 href={church.spotify}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:text-[#1DB954] focus:text-[#1DB954] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                                 data-testid="spotify-link"
                               >
                                 <svg class="w-5 h-5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
