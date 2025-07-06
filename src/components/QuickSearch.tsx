@@ -341,7 +341,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                       </div>
                       <div class="flex items-center ml-3">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium \${typeColor}">\${typeLabel}</span>
-                        \${isSelected ? '<svg class="ml-2 h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
+                        <svg class="ml-2 h-4 w-4 \${isSelected ? 'text-blue-500' : 'text-transparent'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                       </div>
                     </div>
                   </a>
@@ -401,7 +401,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
 
               if (event.key === 'ArrowDown') {
                 event.preventDefault();
-                if (selectedIndex < quickSearchResults.length - 1) {
+                if (quickSearchResults.length > 0 && selectedIndex < quickSearchResults.length - 1) {
                   selectedIndex++;
                   updateSelectedResult();
                 }
@@ -410,7 +410,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
 
               if (event.key === 'ArrowUp') {
                 event.preventDefault();
-                if (selectedIndex > 0) {
+                if (selectedIndex > -1) {
                   selectedIndex--;
                   updateSelectedResult();
                 }
