@@ -55,6 +55,7 @@ apiRoutes.get('/churches', async (c) => {
       path: churches.path,
       status: churches.status,
       gatheringAddress: churches.gatheringAddress,
+      website: churches.website,
     })
     .from(churches)
     .limit(limit)

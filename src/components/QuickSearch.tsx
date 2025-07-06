@@ -209,7 +209,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
-                  return name.includes(searchQuery) || path.includes(searchQuery);
+                  // Extract domain from website URL
+                  const website = (church.website || '').toLowerCase();
+                  const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+                  
+                  return name.includes(searchQuery) || path.includes(searchQuery) || domain.includes(searchQuery);
                 })
                 .map(church => ({ ...church, type: 'church' }))
                 .sort((a, b) => {
@@ -324,8 +328,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
-                  // Check if all search words appear anywhere in the name or path
-                  return searchWords.every(word => name.includes(word) || path.includes(word));
+                  // Extract domain from website URL
+                  const website = (church.website || '').toLowerCase();
+                  const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+                  
+                  // Check if all search words appear anywhere in the name, path, or domain
+                  return searchWords.every(word => name.includes(word) || path.includes(word) || domain.includes(word));
                 })
                 .map(church => ({ ...church, type: 'church' }))
                 .slice(0, 5);
