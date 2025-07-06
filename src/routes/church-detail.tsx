@@ -320,12 +320,21 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 group transition-colors"
                                 data-testid="google-maps-link"
                               >
-                                <svg
-                                  class="w-5 h-5 mr-1.5 group-hover:text-[#4285F4] group-focus:text-[#4285F4] transition-colors"
-                                  viewBox="0 0 24 24"
-                                  fill="currentColor"
-                                >
-                                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                                <svg class="w-5 h-5 mr-1.5 transition-colors" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M12 2C8.14 2 5 5.14 5 9c0 3.17 2.58 7.47 6.24 10.93.21.2.51.2.72 0C15.62 16.47 19 12.17 19 9c0-3.86-3.14-7-7-7z"
+                                    class="fill-gray-500 group-hover:fill-[#EA4335] group-focus:fill-[#EA4335] transition-colors"
+                                  />
+                                  <path
+                                    d="M12 4c2.76 0 5 2.24 5 5 0 2.05-1.67 5.12-4.32 7.72-.43.42-1.17.42-1.6 0C8.43 14.12 7 11.05 7 9c0-2.76 2.24-5 5-5z"
+                                    class="fill-gray-300 group-hover:fill-[#FBBC04] group-focus:fill-[#FBBC04] transition-colors"
+                                  />
+                                  <circle
+                                    cx="12"
+                                    cy="9"
+                                    r="2.5"
+                                    class="fill-gray-700 group-hover:fill-[#4285F4] group-focus:fill-[#4285F4] transition-colors"
+                                  />
                                 </svg>
                                 <span class="hidden sm:inline">Google Maps</span>
                                 <span class="sm:hidden">Google</span>
@@ -337,12 +346,16 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 group transition-colors"
                                 data-testid="apple-maps-link"
                               >
-                                <svg
-                                  class="w-5 h-5 mr-1.5 group-hover:text-[#007AFF] group-focus:text-[#007AFF] transition-colors"
-                                  viewBox="0 0 24 24"
-                                  fill="currentColor"
-                                >
-                                  <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+                                <svg class="w-5 h-5 mr-1.5 transition-colors" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10c0-5.52-4.48-10-10-10z"
+                                    class="fill-gray-200 group-hover:fill-[#E6F2FF] group-focus:fill-[#E6F2FF] transition-colors"
+                                  />
+                                  <path
+                                    d="M12 5c-2.76 0-5 2.24-5 5 0 3.5 5 9 5 9s5-5.5 5-9c0-2.76-2.24-5-5-5zm0 7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
+                                    class="fill-gray-700 group-hover:fill-[#007AFF] group-focus:fill-[#007AFF] transition-colors"
+                                  />
+                                  <circle cx="12" cy="10" r="1.5" class="fill-white" />
                                 </svg>
                                 <span class="hidden sm:inline">Apple Maps</span>
                                 <span class="sm:hidden">Apple</span>
