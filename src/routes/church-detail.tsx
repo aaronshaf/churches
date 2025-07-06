@@ -503,18 +503,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                           <div class="mt-1 space-y-1">
                             {churchAffiliationsList.map((affiliation) => (
                               <div key={affiliation.affiliationId}>
-                                {affiliation.website ? (
-                                  <a
-                                    href={affiliation.website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="text-base text-primary-600 hover:text-primary-500"
-                                  >
-                                    {affiliation.name}
-                                  </a>
-                                ) : (
-                                  <span class="text-base text-gray-900">{affiliation.name}</span>
-                                )}
+                                <a
+                                  href={`/networks/${affiliation.affiliationId}`}
+                                  class="text-base text-primary-600 hover:text-primary-500"
+                                >
+                                  {affiliation.name}
+                                </a>
                               </div>
                             ))}
                           </div>
