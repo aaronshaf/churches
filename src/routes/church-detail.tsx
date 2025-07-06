@@ -335,6 +335,25 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                   </dl>
                 </div>
 
+                {/* Church Information */}
+                {(church.publicNotes || (church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor'))) && (
+                  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Church Information</h2>
+                    {church.publicNotes && (
+                      <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Notes</h3>
+                        <p class="text-sm text-gray-600 whitespace-pre-wrap">{church.publicNotes}</p>
+                      </div>
+                    )}
+                    {church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor') && (
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Private Notes (Admin Only)</h3>
+                        <p class="text-sm text-gray-600 whitespace-pre-wrap bg-yellow-50 p-3 rounded-md border border-yellow-200">{church.privateNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Worship Services */}
                 {churchGatheringsList.length > 0 && (
                   <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6">
@@ -359,10 +378,10 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                         <div
                           key={image.id}
                           class="relative group cursor-pointer"
-                          onclick={`openImageModal('${image.url}', '${image.caption || ''}')`}
+                          onclick={`openImageModal('${image.imageUrl}', '${image.caption || ''}')`}
                         >
                           <img
-                            src={image.url}
+                            src={image.imageUrl}
                             alt={image.caption || `${church.name} photo`}
                             class="w-full h-48 object-cover rounded-lg group-hover:opacity-90 transition-opacity"
                           />
