@@ -7,6 +7,14 @@
  * It fetches church data from the public JSON API, finds YouTube channels,
  * and downloads transcripts with metadata stored in YAML format.
  *
+ * RATE LIMITING STRATEGY:
+ * - Conservative limits: Only 2 transcripts per run
+ * - Built-in yt-dlp delays: 2-5s between video list requests, 3-8s between downloads
+ * - Additional random delays: 5-20s between operations, 10-30s between churches
+ * - Bandwidth limiting: 1MB/s for listing, 500KB/s for downloads
+ * - Automatic retries: 3 attempts with exponential backoff
+ * - Bail on timeout/rate limit detection to avoid IP bans
+ *
  * Usage: bun scripts/download-church-transcripts.ts
  *
  * Requirements:
@@ -25,9 +33,11 @@ const TRANSCRIPT_BASE_DIR = './transcripts';
 const PROGRESS_FILE = './transcripts/progress.json';
 const DAYS_BACK = 365; // Download transcripts from past year
 const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
-const MAX_TRANSCRIPTS_PER_RUN = 3; // Global limit per script run - be very respectful
-const MIN_DELAY_MS = 3000; // Minimum delay between operations (3 seconds)
-const MAX_DELAY_MS = 15000; // Maximum delay between operations (15 seconds)
+const MAX_TRANSCRIPTS_PER_RUN = 2; // Global limit per script run - be very respectful
+const MIN_DELAY_MS = 5000; // Minimum delay between operations (5 seconds)
+const MAX_DELAY_MS = 20000; // Maximum delay between operations (20 seconds)
+const MIN_CHURCH_DELAY_MS = 10000; // Minimum delay between churches (10 seconds)
+const MAX_CHURCH_DELAY_MS = 30000; // Maximum delay between churches (30 seconds)
 
 interface ChurchData {
   id: number;
@@ -141,17 +151,18 @@ async function saveProgress(progress: ProgressTracker): Promise<void> {
 }
 
 /**
- * Generate a random delay between MIN_DELAY_MS and MAX_DELAY_MS
+ * Generate a random delay between min and max
  */
-function getRandomDelay(): number {
-  return Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1)) + MIN_DELAY_MS;
+function getRandomDelay(min: number = MIN_DELAY_MS, max: number = MAX_DELAY_MS): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
  * Sleep for a random amount of time
  */
-async function randomSleep(context?: string): Promise<void> {
-  const delay = getRandomDelay();
+async function randomSleep(context?: string, useChurchDelay = false): Promise<void> {
+  const delay = useChurchDelay ? getRandomDelay(MIN_CHURCH_DELAY_MS, MAX_CHURCH_DELAY_MS) : getRandomDelay();
+
   if (context) {
     console.log(`   ⏳ Waiting ${(delay / 1000).toFixed(1)}s ${context}...`);
   }
@@ -171,9 +182,25 @@ function isRateLimitError(error: string): boolean {
     'ERROR: This video is not available',
     'ERROR: Private video',
     'Command timed out',
+    'HTTP Error 429',
+    'quota exceeded',
+    'service unavailable',
+    'temporarily unavailable',
   ];
 
   return rateLimitIndicators.some((indicator) => error.toLowerCase().includes(indicator.toLowerCase()));
+}
+
+/**
+ * Exponential backoff delay for retries
+ */
+function getBackoffDelay(attempt: number): number {
+  const baseDelay = 60000; // 1 minute base
+  const maxDelay = 600000; // 10 minutes max
+  const delay = Math.min(baseDelay * 2 ** (attempt - 1), maxDelay);
+  // Add jitter (±25%)
+  const jitter = delay * 0.25 * (Math.random() - 0.5);
+  return Math.round(delay + jitter);
 }
 
 /**
@@ -382,6 +409,16 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
     '--playlist-end',
     MAX_VIDEOS_PER_CHANNEL.toString(),
     '--skip-download',
+    '--sleep-interval',
+    '2', // Sleep 2 seconds between downloads
+    '--max-sleep-interval',
+    '5', // Up to 5 seconds random sleep
+    '--retries',
+    '3', // Retry failed downloads
+    '--retry-sleep',
+    '60', // Wait 60 seconds before retry
+    '--limit-rate',
+    '1M', // Limit bandwidth to 1MB/s
     channelId.startsWith('@')
       ? `https://www.youtube.com/${channelId}/videos`
       : channelId.startsWith('UC')
@@ -473,6 +510,16 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
       '--skip-download', // Only download transcript, not video
       '--sub-format',
       'vtt',
+      '--sleep-interval',
+      '3', // Sleep 3 seconds (longer for actual downloads)
+      '--max-sleep-interval',
+      '8', // Up to 8 seconds random sleep
+      '--retries',
+      '3', // Retry failed downloads
+      '--retry-sleep',
+      '120', // Wait 2 minutes before retry for transcripts
+      '--limit-rate',
+      '500K', // Even more conservative rate limiting
       '--output',
       filepath.replace('.vtt', '.%(ext)s'),
       `https://www.youtube.com/watch?v=${videoId}`,
@@ -650,9 +697,9 @@ async function main() {
       // Save progress after each church
       await saveProgress(progress);
 
-      // Add delay between churches
+      // Add longer delay between churches
       if (processed < pendingChurches.length) {
-        await randomSleep('before next church');
+        await randomSleep('before next church', true);
       }
     } catch (error: any) {
       if (error.message === 'RATE_LIMITED' || error.message === 'TIMEOUT_DETECTED') {

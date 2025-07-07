@@ -41,6 +41,9 @@ backup-*.json
 TODO.md
 NOTES.md
 
+# Migration plans
+R2_IMAGE_MIGRATION_PLAN.md
+
 # Transcript files
 transcripts/
 *.vtt
