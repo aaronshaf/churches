@@ -77,10 +77,9 @@ export function formatChangesAsYaml(changes: ChangeRecord[]): string {
  * Create an audit comment content
  */
 export function createAuditComment(userName: string, action: string, changes: ChangeRecord[]): string {
-  const timestamp = new Date().toISOString();
   const yamlChanges = formatChangesAsYaml(changes);
 
-  return `${userName} ${action} at ${timestamp}\n\n\`\`\`yaml\n${yamlChanges}\n\`\`\``;
+  return `${userName} ${action}\n\n\`\`\`yaml\n${yamlChanges}\n\`\`\``;
 }
 
 /**

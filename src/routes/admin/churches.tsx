@@ -616,7 +616,22 @@ adminChurchesRoutes.post('/', async (c) => {
 
     if (!validationResult.success) {
       console.error('Validation errors:', validationResult.errors);
-      throw new Error(validationResult.message);
+
+      // Build detailed error message
+      const errorMessages = [];
+      for (const [field, errors] of Object.entries(validationResult.errors)) {
+        if (errors && errors.length > 0) {
+          const fieldName = field
+            .replace(/^church\./, '')
+            .replace(/([A-Z])/g, ' $1')
+            .trim();
+          errorMessages.push(`${fieldName}: ${errors.join(', ')}`);
+        }
+      }
+
+      const detailedMessage = errorMessages.length > 0 ? errorMessages.join('; ') : validationResult.message;
+
+      throw new Error(detailedMessage);
     }
 
     const {
@@ -876,7 +891,22 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     if (!validationResult.success) {
       console.error('Validation errors:', validationResult.errors);
-      throw new Error(validationResult.message);
+
+      // Build detailed error message
+      const errorMessages = [];
+      for (const [field, errors] of Object.entries(validationResult.errors)) {
+        if (errors && errors.length > 0) {
+          const fieldName = field
+            .replace(/^church\./, '')
+            .replace(/([A-Z])/g, ' $1')
+            .trim();
+          errorMessages.push(`${fieldName}: ${errors.join(', ')}`);
+        }
+      }
+
+      const detailedMessage = errorMessages.length > 0 ? errorMessages.join('; ') : validationResult.message;
+
+      throw new Error(detailedMessage);
     }
 
     const {
@@ -1030,7 +1060,7 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
 adminChurchesRoutes.post('/:id/extract', async (c) => {
   const _user = c.get('betterUser');
   const _id = Number(c.req.param('id'));
-  
+
   // Parse form data instead of JSON
   const body = await c.req.parseBody();
   const website = (body.websiteUrl || body.website || '') as string;
@@ -1054,7 +1084,7 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
     }
 
     const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY!);
-    
+
     // All fields are always available for update
     const fields = {
       phone: true,
@@ -1067,10 +1097,10 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
       spotify: true,
       statementOfFaith: true,
     };
-    
-    return c.json({ 
+
+    return c.json({
       extracted: extractedData || {},
-      fields: fields
+      fields: fields,
     });
   } catch (error) {
     console.error('Error extracting website data:', error);

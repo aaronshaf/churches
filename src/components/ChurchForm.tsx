@@ -80,13 +80,14 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
                 <div class="sm:col-span-4">
                   <label for="path" class="block text-sm font-medium leading-6 text-gray-900">
-                    URL Path
+                    URL Path <span class="text-red-500">*</span>
                   </label>
                   <div class="mt-2">
                     <input
                       type="text"
                       name="path"
                       id="path"
+                      required
                       value={church?.path || ''}
                       placeholder="e.g., first-baptist-church-salt-lake"
                       pattern="[a-z0-9\-]+"
