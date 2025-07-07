@@ -20,8 +20,8 @@ export class OpenRouterService {
     this.apiKey = apiKey;
   }
 
-  async analyzeSermon(transcript: string): Promise<SermonAnalysis> {
-    const prompt = this.buildSermonAnalysisPrompt(transcript);
+  async analyzeSermonMetadata(title: string, description: string, publishedAt: string): Promise<SermonAnalysis> {
+    const prompt = this.buildSermonMetadataAnalysisPrompt(title, description, publishedAt);
 
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -52,26 +52,30 @@ export class OpenRouterService {
     return this.parseAnalysisResponse(data.choices[0].message.content);
   }
 
-  private buildSermonAnalysisPrompt(transcript: string): string {
-    return `Please analyze this church sermon transcript and provide:
+  private buildSermonMetadataAnalysisPrompt(title: string, description: string, publishedAt: string): string {
+    const uploadDate = new Date(publishedAt).toLocaleDateString();
+    return `Please analyze this church sermon video metadata and provide:
 
-1. An appropriate sermon title (concise, descriptive, appropriate for a church website)
-2. The main Bible passage that was preached on (if clearly identifiable)
+1. An improved sermon title (clean, descriptive, appropriate for a church website)
+2. The main Bible passage referenced (if identifiable from title/description)
 
 IMPORTANT: 
-- Focus only on the sermon portion, ignore announcements, singing, or other non-sermon content
+- Clean up the title by removing date info, series info, and video artifacts
+- Extract the core sermon topic/theme
 - If no clear Bible passage is referenced, respond with "None identified"
 - Keep the title under 80 characters
 - Use proper Bible passage format (e.g., "Matthew 5:1-12", "Psalm 23", "Romans 8:28-39")
 
-Transcript:
-${transcript}
+Video Metadata:
+Title: ${title}
+Description: ${description}
+Uploaded: ${uploadDate}
 
 Please respond in this exact JSON format:
 {
-  "title": "Generated sermon title here",
+  "title": "Cleaned sermon title here",
   "passage": "Main Bible passage or 'None identified'",
-  "confidence": 0.85
+  "confidence": 0.75
 }`;
   }
 

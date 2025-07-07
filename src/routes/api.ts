@@ -6,7 +6,7 @@ import { requireAdminBetter } from '../middleware/better-auth';
 import { OpenRouterService } from '../services/openrouter';
 import { YouTubeService } from '../services/youtube';
 import type { AuthVariables, Bindings } from '../types';
-import { cleanTranscriptForAI, removeTimestampsFromSRT } from '../utils/transcript';
+// Transcript utilities removed - transcripts will be added via yt-dlp script
 
 export const apiRoutes = new Hono<{ Bindings: Bindings; Variables: AuthVariables }>();
 
@@ -389,17 +389,16 @@ apiRoutes.post('/churches/:id/extract-sermon', requireAdminBetter, async (c) => 
       });
     }
 
-    // 5. Get transcript
-    console.log('Downloading transcript...');
-    const rawTranscript = await youtubeService.getVideoTranscript(latestVideo.id);
-    console.log(`Transcript length: ${rawTranscript.length} characters`);
+    // 5. Analyze video metadata with AI
+    console.log('Analyzing video metadata with AI...');
+    console.log(`Video title: ${latestVideo.title}`);
+    console.log(`Description length: ${latestVideo.description.length} characters`);
 
-    const cleanTranscript = cleanTranscriptForAI(removeTimestampsFromSRT(rawTranscript));
-    console.log(`Clean transcript length: ${cleanTranscript.length} characters`);
-
-    // 6. Analyze with AI
-    console.log('Analyzing with AI...');
-    const analysis = await openrouterService.analyzeSermon(cleanTranscript);
+    const analysis = await openrouterService.analyzeSermonMetadata(
+      latestVideo.title,
+      latestVideo.description,
+      latestVideo.publishedAt
+    );
     console.log(`AI Analysis: "${analysis.aiGeneratedTitle}" - ${analysis.mainBiblePassage}`);
 
     // 7. Save to database
@@ -414,7 +413,7 @@ apiRoutes.post('/churches/:id/extract-sermon', requireAdminBetter, async (c) => 
         videoUrl: latestVideo.url,
         durationSeconds: latestVideo.durationSeconds,
         publishedAt: new Date(latestVideo.publishedAt),
-        transcriptText: rawTranscript,
+        transcriptText: null, // Will be populated later via yt-dlp script
         processedBy: user?.id || 'unknown',
         processedAt: new Date(),
       })

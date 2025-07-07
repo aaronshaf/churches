@@ -200,7 +200,7 @@ export const sermons = sqliteTable('sermons', {
   videoUrl: text('video_url').notNull(),
   durationSeconds: integer('duration_seconds'),
   publishedAt: integer('published_at', { mode: 'timestamp' }).notNull(),
-  transcriptText: text('transcript_text'),
+  transcriptText: text('transcript_text'), // Populated later via yt-dlp script
   processedAt: integer('processed_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
   processedBy: text('processed_by'), // User ID from better-auth
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),

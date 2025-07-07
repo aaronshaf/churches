@@ -1,17 +1,14 @@
 export interface YouTubeVideo {
   id: string;
   title: string;
+  description: string;
   publishedAt: string;
   duration: string; // ISO 8601 format
   durationSeconds: number;
   url: string;
 }
 
-export interface YouTubeCaption {
-  id: string;
-  language: string;
-  trackKind: 'standard' | 'ASR'; // ASR = auto-generated
-}
+// Caption interfaces removed - not downloading captions due to OAuth scope requirements
 
 interface YouTubeApiResponse {
   items?: unknown[];
@@ -46,6 +43,7 @@ interface YouTubeVideosResponse {
     id: string;
     snippet: {
       title: string;
+      description: string;
       publishedAt: string;
     };
     contentDetails: {
@@ -54,15 +52,7 @@ interface YouTubeVideosResponse {
   }>;
 }
 
-interface YouTubeCaptionsResponse {
-  items?: Array<{
-    id: string;
-    snippet: {
-      language: string;
-      trackKind: string;
-    };
-  }>;
-}
+// Caption response interface removed - not downloading captions
 
 export class YouTubeService {
   private apiKey: string;
@@ -220,71 +210,8 @@ export class YouTubeService {
       );
   }
 
-  async getVideoTranscript(videoId: string): Promise<string> {
-    // 1. List available captions
-    const captionsResponse = await fetch(`${this.baseUrl}/captions?part=snippet&videoId=${videoId}&key=${this.apiKey}`);
-
-    if (!captionsResponse.ok) {
-      throw new Error(`Failed to get captions: ${captionsResponse.status}`);
-    }
-
-    const captionsData = (await captionsResponse.json()) as YouTubeCaptionsResponse;
-    if (!captionsData.items || captionsData.items.length === 0) {
-      throw new Error('No captions available for this video');
-    }
-
-    // Log available captions for debugging
-    console.log(
-      'Available captions:',
-      captionsData.items.map((cap) => ({
-        id: cap.id,
-        language: cap.snippet.language,
-        trackKind: cap.snippet.trackKind,
-      }))
-    );
-
-    // 2. Find English captions (try multiple approaches)
-    let englishCaption = captionsData.items.find(
-      (cap) =>
-        cap.snippet.language === 'en' && (cap.snippet.trackKind === 'ASR' || cap.snippet.trackKind === 'standard')
-    );
-
-    // If strict matching fails, try more flexible matching
-    if (!englishCaption) {
-      // Try any English variant (en-US, en-GB, etc.)
-      englishCaption = captionsData.items.find((cap) => cap.snippet.language.startsWith('en'));
-    }
-
-    // If still no match, try auto-generated captions regardless of language code
-    if (!englishCaption) {
-      englishCaption = captionsData.items.find((cap) => cap.snippet.trackKind === 'ASR');
-    }
-
-    // If still no match, take the first available caption
-    if (!englishCaption) {
-      englishCaption = captionsData.items[0];
-      console.log('Using first available caption:', englishCaption.snippet);
-    }
-
-    if (!englishCaption) {
-      throw new Error('No usable captions found');
-    }
-
-    console.log('Selected caption:', {
-      id: englishCaption.id,
-      language: englishCaption.snippet.language,
-      trackKind: englishCaption.snippet.trackKind,
-    });
-
-    // 3. Download transcript
-    const transcriptResponse = await fetch(`${this.baseUrl}/captions/${englishCaption.id}?tfmt=srt&key=${this.apiKey}`);
-
-    if (!transcriptResponse.ok) {
-      throw new Error(`Failed to download transcript: ${transcriptResponse.status}`);
-    }
-
-    return await transcriptResponse.text();
-  }
+  // getVideoTranscript method removed - captions require OAuth scope that's difficult to get approved
+  // Transcripts will be obtained via yt-dlp script instead
 
   private parseDuration(duration: string): number {
     // Parse ISO 8601 duration (PT20M30S) to seconds
@@ -302,6 +229,7 @@ export class YouTubeService {
     return {
       id: video.id,
       title: video.snippet.title,
+      description: video.snippet.description,
       publishedAt: video.snippet.publishedAt,
       duration: video.contentDetails.duration,
       durationSeconds: this.parseDuration(video.contentDetails.duration),
