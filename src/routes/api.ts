@@ -458,7 +458,59 @@ apiRoutes.post('/churches/:id/extract-sermon', requireAdminBetter, async (c) => 
   }
 });
 
-// Temporary: Delete sermon record for testing (admin only)
+// Temporary: Clear all failed sermon records (admin only)
+apiRoutes.post('/admin/clear-failed-sermons', requireAdminBetter, async (c) => {
+  try {
+    const db = createDbWithContext(c);
+
+    // Find and delete all failed sermons
+    const failedSermons = await db
+      .select({
+        id: sermons.id,
+        churchId: sermons.churchId,
+        videoId: sermons.videoId,
+      })
+      .from(sermons)
+      .where(eq(sermons.aiGeneratedTitle, 'Sermon Analysis Failed'))
+      .all();
+
+    console.log(`Found ${failedSermons.length} failed sermon records`);
+
+    let deletedCount = 0;
+    for (const sermon of failedSermons) {
+      await db.delete(sermons).where(eq(sermons.id, sermon.id)).run();
+
+      // Reset church stats
+      await db
+        .update(churches)
+        .set({
+          sermonCount: sql`MAX(0, ${churches.sermonCount} - 1)`,
+          lastSermonExtractedAt: null,
+          lastSermonVideoId: null,
+        })
+        .where(eq(churches.id, sermon.churchId))
+        .run();
+
+      deletedCount++;
+    }
+
+    return c.json({
+      success: true,
+      deletedCount,
+      message: `Cleared ${deletedCount} failed sermon records`,
+    });
+  } catch (error) {
+    console.error('Clear failed sermons error:', error);
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Clear failed',
+      },
+      500
+    );
+  }
+});
+
+// Temporary: Delete specific sermon record for testing (admin only)
 apiRoutes.delete('/churches/:id/sermons/:videoId', requireAdminBetter, async (c) => {
   try {
     const churchId = parseInt(c.req.param('id'));
