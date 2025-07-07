@@ -233,15 +233,48 @@ export class YouTubeService {
       throw new Error('No captions available for this video');
     }
 
-    // 2. Find English auto-generated or manual captions
-    const englishCaption = captionsData.items.find(
+    // Log available captions for debugging
+    console.log(
+      'Available captions:',
+      captionsData.items.map((cap) => ({
+        id: cap.id,
+        language: cap.snippet.language,
+        trackKind: cap.snippet.trackKind,
+      }))
+    );
+
+    // 2. Find English captions (try multiple approaches)
+    let englishCaption = captionsData.items.find(
       (cap) =>
         cap.snippet.language === 'en' && (cap.snippet.trackKind === 'ASR' || cap.snippet.trackKind === 'standard')
     );
 
+    // If strict matching fails, try more flexible matching
     if (!englishCaption) {
-      throw new Error('No English captions available');
+      // Try any English variant (en-US, en-GB, etc.)
+      englishCaption = captionsData.items.find((cap) => cap.snippet.language.startsWith('en'));
     }
+
+    // If still no match, try auto-generated captions regardless of language code
+    if (!englishCaption) {
+      englishCaption = captionsData.items.find((cap) => cap.snippet.trackKind === 'ASR');
+    }
+
+    // If still no match, take the first available caption
+    if (!englishCaption) {
+      englishCaption = captionsData.items[0];
+      console.log('Using first available caption:', englishCaption.snippet);
+    }
+
+    if (!englishCaption) {
+      throw new Error('No usable captions found');
+    }
+
+    console.log('Selected caption:', {
+      id: englishCaption.id,
+      language: englishCaption.snippet.language,
+      trackKind: englishCaption.snippet.trackKind,
+    });
 
     // 3. Download transcript
     const transcriptResponse = await fetch(`${this.baseUrl}/captions/${englishCaption.id}?tfmt=srt&key=${this.apiKey}`);
