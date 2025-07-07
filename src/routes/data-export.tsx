@@ -731,25 +731,59 @@ dataExportRoutes.get('/data', async (c) => {
                   </a>
                 </div>
 
-                <div class="mt-10 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div class="flex">
-                    <div class="flex-shrink-0">
-                      <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+
+                {/* MCP Server Section */}
+                <div class="mt-10">
+                  <h2 class="text-2xl font-bold text-gray-900 mb-6">AI/Bot Integration (MCP)</h2>
+                  
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <div class="mb-4">
+                      <h3 class="text-lg font-semibold text-gray-900 mb-2">Model Context Protocol (MCP) Server</h3>
+                      <p class="text-sm text-gray-600 mb-4">
+                        Integrate our church data into your AI assistants and bots using the standardized MCP protocol.
+                      </p>
                     </div>
-                    <div class="ml-3">
-                      <h3 class="text-sm font-medium text-blue-800">About the data</h3>
-                      <div class="mt-2 text-sm text-blue-700">
-                        <ul class="list-disc list-inside space-y-1">
-                          <li>Data includes church details, locations, and affiliations</li>
+
+                    <div class="space-y-4">
+                      <div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">Available MCP Tools:</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                          <li class="flex items-start">
+                            <span class="text-primary-600 mr-2">•</span>
+                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_search</code> - Search churches with filters for status, county, and affiliation</span>
+                          </li>
+                          <li class="flex items-start">
+                            <span class="text-primary-600 mr-2">•</span>
+                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">county_browser</code> - Browse churches by county with statistics</span>
+                          </li>
+                          <li class="flex items-start">
+                            <span class="text-primary-600 mr-2">•</span>
+                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">network_explorer</code> - Explore church networks and affiliations</span>
+                          </li>
+                          <li class="flex items-start">
+                            <span class="text-primary-600 mr-2">•</span>
+                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_details</code> - Get comprehensive information about a specific church</span>
+                          </li>
                         </ul>
                       </div>
+
+                      <div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">MCP Endpoints:</h4>
+                        <div class="bg-white rounded border border-gray-300 p-3 font-mono text-xs">
+                          <div class="text-gray-600">GET https://utahchurches.org/mcp/tools</div>
+                          <div class="text-gray-600">POST https://utahchurches.org/mcp/tools/call</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">REST API Endpoints:</h4>
+                        <div class="bg-white rounded border border-gray-300 p-3 font-mono text-xs space-y-1">
+                          <div class="text-gray-600">GET /api/churches/search?q=&lt;query&gt;</div>
+                          <div class="text-gray-600">GET /api/counties</div>
+                          <div class="text-gray-600">GET /api/networks</div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 </div>

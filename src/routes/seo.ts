@@ -6,6 +6,26 @@ import type { Bindings } from '../types';
 
 export const seoRoutes = new Hono<{ Bindings: Bindings }>();
 
+// Helper function to format lastmod date
+function formatLastmod(updatedAt: Date | number | null, createdAt: Date | number | null): string | null {
+  const lastMod = updatedAt || createdAt;
+  if (!lastMod) return null;
+  
+  // Check if timestamp is already in milliseconds (very large number) or seconds
+  const timestamp = typeof lastMod === 'number' 
+    ? (lastMod > 10000000000 ? lastMod : lastMod * 1000)
+    : lastMod.getTime();
+  
+  const date = new Date(timestamp);
+  
+  // Only include lastmod if it's a valid date between 2020 and 2030
+  if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+    return date.toISOString();
+  }
+  
+  return null;
+}
+
 // robots.txt
 seoRoutes.get('/robots.txt', async (c) => {
   const db = createDbWithContext(c);
@@ -112,7 +132,7 @@ seoRoutes.get('/sitemap.xml', async (c) => {
   const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
 
-  // Get all churches, counties, and pages
+  // Get all churches, counties, pages, and affiliations with their dates
   const [allChurches, allCounties, allPages, listedAffiliations] = await Promise.all([
     db
       .select({
@@ -123,12 +143,28 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       .from(churches)
       .where(eq(churches.status, 'Listed'))
       .all(),
-    db.select({ path: counties.path }).from(counties).all(),
-    db.select({ path: pages.path }).from(pages).all(),
+    db
+      .select({
+        path: counties.path,
+        updatedAt: counties.updatedAt,
+        createdAt: counties.createdAt,
+      })
+      .from(counties)
+      .all(),
+    db
+      .select({
+        path: pages.path,
+        updatedAt: pages.updatedAt,
+        createdAt: pages.createdAt,
+      })
+      .from(pages)
+      .all(),
     db
       .select({
         id: affiliations.id,
         path: affiliations.path,
+        updatedAt: affiliations.updatedAt,
+        createdAt: affiliations.createdAt,
       })
       .from(affiliations)
       .where(eq(affiliations.status, 'Listed'))
@@ -157,59 +193,49 @@ seoRoutes.get('/sitemap.xml', async (c) => {
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>${allCounties
-    .map(
-      (county) => `
-  <url>
-    <loc>https://${siteDomain}/counties/${county.path}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`
-    )
-    .join('')}${allChurches
-    .map((church) => {
-      const lastMod = church.updatedAt || church.createdAt;
-      if (lastMod) {
-        // Check if timestamp is already in milliseconds (very large number) or seconds
-        const timestamp = typeof lastMod === 'number' 
-          ? (lastMod > 10000000000 ? lastMod : lastMod * 1000)
-          : lastMod.getTime();
-        const date = new Date(timestamp);
-        // Only include lastmod if it's a valid date between 2020 and 2030
-        if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
-          return `
-  <url>
-    <loc>https://${siteDomain}/churches/${church.path}</loc>
-    <lastmod>${date.toISOString()}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-        }
-      }
+    .map((county) => {
+      const lastmod = formatLastmod(county.updatedAt, county.createdAt);
       return `
   <url>
-    <loc>https://${siteDomain}/churches/${church.path}</loc>
+    <loc>https://${siteDomain}/counties/${county.path}</loc>${lastmod ? `
+    <lastmod>${lastmod}</lastmod>` : ''}
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    })
+    .join('')}${allChurches
+    .map((church) => {
+      const lastmod = formatLastmod(church.updatedAt, church.createdAt);
+      return `
+  <url>
+    <loc>https://${siteDomain}/churches/${church.path}</loc>${lastmod ? `
+    <lastmod>${lastmod}</lastmod>` : ''}
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
     })
     .join('')}${listedAffiliations
-    .map(
-      (affiliation) => `
+    .map((affiliation) => {
+      const lastmod = formatLastmod(affiliation.updatedAt, affiliation.createdAt);
+      return `
   <url>
-    <loc>https://${siteDomain}/networks/${affiliation.path || affiliation.id}</loc>
+    <loc>https://${siteDomain}/networks/${affiliation.path || affiliation.id}</loc>${lastmod ? `
+    <lastmod>${lastmod}</lastmod>` : ''}
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>`
-    )
+  </url>`;
+    })
     .join('')}${allPages
-    .map(
-      (page) => `
+    .map((page) => {
+      const lastmod = formatLastmod(page.updatedAt, page.createdAt);
+      return `
   <url>
-    <loc>https://${siteDomain}/${page.path}</loc>
+    <loc>https://${siteDomain}/${page.path}</loc>${lastmod ? `
+    <lastmod>${lastmod}</lastmod>` : ''}
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>`
-    )
+  </url>`;
+    })
     .join('')}
 </urlset>`;
 
