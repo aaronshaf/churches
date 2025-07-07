@@ -183,8 +183,18 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       data-testid="geocode-button"
                     >
                       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
                       </svg>
                       <span id="geocode-button-text">Get Coordinates</span>
                     </button>
@@ -288,7 +298,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2 space-y-2">
                     <input
-                      type="url"
+                      type="text"
                       name="website"
                       id="website"
                       value={church?.website || ''}
@@ -343,7 +353,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="url"
+                      type="text"
                       name="facebook"
                       id="facebook"
                       value={church?.facebook || ''}
@@ -360,7 +370,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="url"
+                      type="text"
                       name="instagram"
                       id="instagram"
                       value={church?.instagram || ''}
@@ -377,7 +387,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="url"
+                      type="text"
                       name="youtube"
                       id="youtube"
                       value={church?.youtube || ''}
@@ -394,7 +404,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="url"
+                      type="text"
                       name="spotify"
                       id="spotify"
                       value={church?.spotify || ''}
@@ -476,7 +486,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="url"
+                      type="text"
                       name="statementOfFaith"
                       id="statementOfFaith"
                       value={church?.statementOfFaith || ''}

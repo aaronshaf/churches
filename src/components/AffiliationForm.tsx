@@ -131,13 +131,11 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                 </label>
                 <div class="mt-1">
                   <input
-                    type="url"
+                    type="text"
                     name="website"
                     id="website"
                     value={affiliation?.website || ''}
                     placeholder="https://example.com"
-                    pattern="https?://.+"
-                    title="Please enter a valid URL starting with http:// or https://"
                     data-testid="input-website"
                     class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />
