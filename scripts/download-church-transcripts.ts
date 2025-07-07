@@ -150,6 +150,7 @@ function isRateLimitError(error: string): boolean {
     '429',
     'ERROR: This video is not available',
     'ERROR: Private video',
+    'Command timed out',
   ];
 
   return rateLimitIndicators.some((indicator) => error.toLowerCase().includes(indicator.toLowerCase()));
@@ -260,7 +261,7 @@ function generateTranscriptFilename(churchPath: string, videoId: string, videoTi
 }
 
 /**
- * Run yt-dlp command and return promise
+ * Run yt-dlp command and return promise with timeout
  */
 function runYtDlp(args: string[]): Promise<{ success: boolean; output: string; error?: string }> {
   return new Promise((resolve) => {
@@ -268,6 +269,18 @@ function runYtDlp(args: string[]): Promise<{ success: boolean; output: string; e
 
     let output = '';
     let errorOutput = '';
+    let timedOut = false;
+
+    // Set timeout of 30 seconds
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      ytdlp.kill('SIGTERM');
+      resolve({
+        success: false,
+        output: output,
+        error: 'Command timed out after 30 seconds',
+      });
+    }, 30000);
 
     ytdlp.stdout.on('data', (data) => {
       output += data.toString();
@@ -278,11 +291,25 @@ function runYtDlp(args: string[]): Promise<{ success: boolean; output: string; e
     });
 
     ytdlp.on('close', (code) => {
-      resolve({
-        success: code === 0,
-        output: output,
-        error: code !== 0 ? errorOutput : undefined,
-      });
+      if (!timedOut) {
+        clearTimeout(timeout);
+        resolve({
+          success: code === 0,
+          output: output,
+          error: code !== 0 ? errorOutput : undefined,
+        });
+      }
+    });
+
+    ytdlp.on('error', (err) => {
+      if (!timedOut) {
+        clearTimeout(timeout);
+        resolve({
+          success: false,
+          output: output,
+          error: err.message,
+        });
+      }
     });
   });
 }
@@ -346,11 +373,12 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
 
   if (!listResult.success) {
     if (listResult.error && isRateLimitError(listResult.error)) {
-      console.log(`⚠️  Rate limit detected! Stopping to avoid being blocked.`);
+      console.log(`⚠️  Rate limit or timeout detected! Stopping to avoid being blocked.`);
       console.log(`   Error: ${listResult.error?.substring(0, 100)}...`);
       throw new Error('RATE_LIMITED');
     }
     console.log(`❌ Failed to get video list: ${listResult.error?.substring(0, 200)}`);
+    console.log(`   Skipping this church due to error`);
     return 0;
   }
 
