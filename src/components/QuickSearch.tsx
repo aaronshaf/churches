@@ -392,7 +392,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   }
                 } else if (result.type === 'county') {
                   href = \`/counties/\${result.path}\`;
-                  title = result.name + ' County';
+                  title = result.name;
                   subtitle = result.description || 'View all churches';
                   typeLabel = 'County';
                   typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';

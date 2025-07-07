@@ -1,4 +1,4 @@
-import { and, eq, like, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createDbWithContext } from '../db';
@@ -13,9 +13,24 @@ mcpRoutes.use(
   cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   })
 );
+
+// MCP Protocol: Server info endpoint (required by Claude AI)
+mcpRoutes.get('/', (c) => {
+  return c.json({
+    name: 'Utah Churches',
+    version: '1.0.0',
+    description: 'Access church data for Utah including search, county browsing, and network exploration',
+    capabilities: {
+      tools: true,
+      resources: false,
+      prompts: false,
+    },
+  });
+});
 
 // MCP Protocol: List available tools
 mcpRoutes.get('/tools', (c) => {
@@ -111,6 +126,185 @@ mcpRoutes.get('/tools', (c) => {
   });
 });
 
+// MCP Protocol: Handle JSON-RPC requests (standard MCP protocol)
+mcpRoutes.post('/', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { jsonrpc, method, params, id } = body;
+
+    // Validate JSON-RPC 2.0 request
+    if (jsonrpc !== '2.0') {
+      return c.json({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Invalid Request' },
+        id: id || null,
+      });
+    }
+
+    // Handle different MCP methods
+    switch (method) {
+      case 'initialize':
+        return c.json({
+          jsonrpc: '2.0',
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: {},
+            },
+            serverInfo: {
+              name: 'Utah Churches',
+              version: '1.0.0',
+            },
+          },
+          id,
+        });
+
+      case 'tools/list':
+        return c.json({
+          jsonrpc: '2.0',
+          result: {
+            tools: [
+              {
+                name: 'church_search',
+                description:
+                  'Search for churches in Utah with comprehensive filters including status, county, and affiliation',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'Search query for church name or keywords',
+                    },
+                    county: {
+                      type: 'string',
+                      description: 'Filter by county name (e.g., "Salt Lake", "Utah")',
+                    },
+                    status: {
+                      type: 'string',
+                      description: 'Filter by church status',
+                      enum: ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed'],
+                    },
+                    affiliation: {
+                      type: 'string',
+                      description: 'Filter by church network/affiliation name',
+                    },
+                    limit: {
+                      type: 'number',
+                      description: 'Maximum number of results to return (default: 20)',
+                      minimum: 1,
+                      maximum: 100,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'county_browser',
+                description: 'Browse churches by county or list all counties in Utah',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    county: {
+                      type: 'string',
+                      description: 'County name to browse (optional, omit to list all counties)',
+                    },
+                    include_churches: {
+                      type: 'boolean',
+                      description: 'Include church list when viewing specific county (default: true)',
+                    },
+                  },
+                },
+              },
+              {
+                name: 'network_explorer',
+                description: 'Explore church networks/affiliations and their associated churches',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    network: {
+                      type: 'string',
+                      description: 'Network/affiliation name to explore (optional, omit to list all)',
+                    },
+                    include_churches: {
+                      type: 'boolean',
+                      description: 'Include associated churches when viewing specific network (default: true)',
+                    },
+                  },
+                },
+              },
+              {
+                name: 'church_details',
+                description: 'Get detailed information about a specific church',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    identifier: {
+                      type: 'string',
+                      description: 'Church ID, name, or URL path',
+                    },
+                  },
+                  required: ['identifier'],
+                },
+              },
+            ],
+          },
+          id,
+        });
+
+      case 'tools/call': {
+        const { name, arguments: args } = params;
+        let result: any;
+
+        switch (name) {
+          case 'church_search':
+            result = await handleChurchSearch(c, args);
+            break;
+          case 'county_browser':
+            result = await handleCountyBrowser(c, args);
+            break;
+          case 'network_explorer':
+            result = await handleNetworkExplorer(c, args);
+            break;
+          case 'church_details':
+            result = await handleChurchDetails(c, args);
+            break;
+          default:
+            return c.json({
+              jsonrpc: '2.0',
+              error: { code: -32601, message: 'Method not found' },
+              id,
+            });
+        }
+
+        // Extract the content from the tool response
+        const responseBody = await result.json();
+        return c.json({
+          jsonrpc: '2.0',
+          result: responseBody,
+          id,
+        });
+      }
+
+      default:
+        return c.json({
+          jsonrpc: '2.0',
+          error: { code: -32601, message: 'Method not found' },
+          id,
+        });
+    }
+  } catch (error) {
+    return c.json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32603,
+        message: 'Internal error',
+        data: error instanceof Error ? error.message : 'Unknown error',
+      },
+      id: null,
+    });
+  }
+});
+
+// Legacy REST-style endpoints (keeping for backward compatibility)
 // MCP Protocol: Call a specific tool
 mcpRoutes.post('/tools/call', async (c) => {
   const body = await c.req.json();
@@ -158,12 +352,12 @@ async function handleChurchSearch(c: any, args: any) {
 
   // Text search
   if (query && query.length >= 2) {
-    conditions.push(sql`${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE`);
+    conditions.push(sql`${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE`);
   }
 
   // County filter
   if (county) {
-    conditions.push(sql`${counties.name} LIKE ${'%' + county + '%'} COLLATE NOCASE`);
+    conditions.push(sql`${counties.name} LIKE ${`%${county}%`} COLLATE NOCASE`);
   }
 
   // Status filter
@@ -179,8 +373,8 @@ async function handleChurchSearch(c: any, args: any) {
     .orderBy(
       query && query.length >= 2
         ? sql`CASE 
-            WHEN ${churches.name} LIKE ${query + '%'} COLLATE NOCASE THEN 1 
-            WHEN ${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE THEN 2 
+            WHEN ${churches.name} LIKE ${`${query}%`} COLLATE NOCASE THEN 1 
+            WHEN ${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE THEN 2 
             ELSE 3 
           END`
         : churches.name
@@ -197,7 +391,7 @@ async function handleChurchSearch(c: any, args: any) {
         .from(churchAffiliations)
         .leftJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
         .where(
-          sql`${churchAffiliations.churchId} IN (${churchIds.join(',')}) AND ${affiliations.name} LIKE ${'%' + affiliation + '%'} COLLATE NOCASE`
+          sql`${churchAffiliations.churchId} IN (${churchIds.join(',')}) AND ${affiliations.name} LIKE ${`%${affiliation}%`} COLLATE NOCASE`
         )
         .all();
 
@@ -245,7 +439,7 @@ async function handleCountyBrowser(c: any, args: any) {
       .from(counties)
       .leftJoin(churches, eq(counties.id, churches.countyId))
       .where(
-        sql`${counties.name} LIKE ${'%' + county + '%'} COLLATE NOCASE OR ${counties.path} LIKE ${'%' + county + '%'} COLLATE NOCASE`
+        sql`${counties.name} LIKE ${`%${county}%`} COLLATE NOCASE OR ${counties.path} LIKE ${`%${county}%`} COLLATE NOCASE`
       )
       .groupBy(counties.id)
       .get();
@@ -340,7 +534,7 @@ async function handleNetworkExplorer(c: any, args: any) {
       .from(affiliations)
       .leftJoin(churchAffiliations, eq(affiliations.id, churchAffiliations.affiliationId))
       .where(
-        sql`${affiliations.name} LIKE ${'%' + network + '%'} COLLATE NOCASE OR ${affiliations.path} LIKE ${'%' + network + '%'} COLLATE NOCASE`
+        sql`${affiliations.name} LIKE ${`%${network}%`} COLLATE NOCASE OR ${affiliations.path} LIKE ${`%${network}%`} COLLATE NOCASE`
       )
       .groupBy(affiliations.id);
 
@@ -463,7 +657,7 @@ async function handleChurchDetails(c: any, args: any) {
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
-      sql`${churches.id} = ${Number(identifier) || 0} OR ${churches.name} LIKE ${'%' + identifier + '%'} COLLATE NOCASE OR ${churches.path} = ${identifier}`
+      sql`${churches.id} = ${Number(identifier) || 0} OR ${churches.name} LIKE ${`%${identifier}%`} COLLATE NOCASE OR ${churches.path} = ${identifier}`
     )
     .get();
 
