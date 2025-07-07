@@ -79,7 +79,17 @@ export function formatChangesAsYaml(changes: ChangeRecord[]): string {
 export function createAuditComment(userName: string, action: string, changes: ChangeRecord[]): string {
   const yamlChanges = formatChangesAsYaml(changes);
 
-  return `${userName} ${action}\n\n\`\`\`yaml\n${yamlChanges}\n\`\`\``;
+  // For creation, just show the action
+  if (action === 'created church' || action === 'created') {
+    return 'Created';
+  }
+
+  // For updates, show what changed
+  if (changes.length === 0) {
+    return 'Updated';
+  }
+
+  return `Updated\n\n\`\`\`yaml\n${yamlChanges}\n\`\`\``;
 }
 
 /**

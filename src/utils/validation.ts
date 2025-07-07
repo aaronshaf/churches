@@ -34,10 +34,11 @@ export const churchSchema = z
     path: z
       .string()
       .trim()
-      .min(1, 'Path is required')
       .max(100, 'Path too long')
       .regex(/^[a-z0-9-]+$/, 'Path must be lowercase with hyphens only')
-      .refine((val) => !val.startsWith('-') && !val.endsWith('-'), 'Path cannot start or end with hyphen'),
+      .refine((val) => !val || (!val.startsWith('-') && !val.endsWith('-')), 'Path cannot start or end with hyphen')
+      .optional()
+      .or(z.literal('')),
     status: z.enum(['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed']).optional(),
     privateNotes: z.string().max(2000, 'Private notes too long').optional(),
     publicNotes: z.string().max(1000, 'Public notes too long').optional(),
@@ -302,11 +303,36 @@ export function formatPhoneNumber(phone: string | undefined): string | undefined
   return phone;
 }
 
+// Helper to generate URL path from church name
+export function generateUrlPath(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .trim()
+      // Replace spaces, underscores, and multiple hyphens with single hyphen
+      .replace(/[\s_]+/g, '-')
+      // Remove special characters except hyphens
+      .replace(/[^a-z0-9-]/g, '')
+      // Replace multiple consecutive hyphens with single hyphen
+      .replace(/-+/g, '-')
+      // Remove leading and trailing hyphens
+      .replace(/^-+|-+$/g, '')
+      // Limit length
+      .substring(0, 100)
+  );
+}
+
 // Helper to sanitize and prepare church data from form
 export function prepareChurchDataFromForm(body: Record<string, unknown>) {
+  const name = body.name as string;
+  const providedPath = body.path as string;
+
+  // Generate path if not provided
+  const path = providedPath?.trim() || generateUrlPath(name);
+
   return {
-    name: body.name as string,
-    path: (body.path as string) || undefined,
+    name,
+    path: path || undefined,
     status: (body.status as ChurchStatus) || undefined,
     gatheringAddress: (body.gatheringAddress as string) || undefined,
     latitude: body.latitude !== null && body.latitude !== undefined ? parseFloat(body.latitude as string) : null,

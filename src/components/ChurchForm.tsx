@@ -80,14 +80,13 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
                 <div class="sm:col-span-4">
                   <label for="path" class="block text-sm font-medium leading-6 text-gray-900">
-                    URL Path <span class="text-red-500">*</span>
+                    URL Path
                   </label>
                   <div class="mt-2">
                     <input
                       type="text"
                       name="path"
                       id="path"
-                      required
                       value={church?.path || ''}
                       placeholder="e.g., first-baptist-church-salt-lake"
                       pattern="[a-z0-9\-]+"
@@ -95,6 +94,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       data-testid="input-path"
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
+                    <p class="mt-2 text-sm text-gray-500">Leave blank to auto-generate from church name</p>
                   </div>
                 </div>
 
