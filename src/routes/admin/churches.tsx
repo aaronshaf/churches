@@ -1030,7 +1030,10 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
 adminChurchesRoutes.post('/:id/extract', async (c) => {
   const _user = c.get('betterUser');
   const _id = Number(c.req.param('id'));
-  const { website } = await c.req.json();
+  
+  // Parse form data instead of JSON
+  const body = await c.req.parseBody();
+  const website = (body.websiteUrl || body.website || '') as string;
 
   if (!website) {
     return c.json({ error: 'Website URL is required' }, 400);
@@ -1051,7 +1054,24 @@ adminChurchesRoutes.post('/:id/extract', async (c) => {
     }
 
     const extractedData = await extractChurchDataFromWebsite(website, c.env.OPENROUTER_API_KEY!);
-    return c.json(extractedData);
+    
+    // All fields are always available for update
+    const fields = {
+      phone: true,
+      email: true,
+      address: true,
+      serviceTimes: true,
+      instagram: true,
+      facebook: true,
+      youtube: true,
+      spotify: true,
+      statementOfFaith: true,
+    };
+    
+    return c.json({ 
+      extracted: extractedData || {},
+      fields: fields
+    });
   } catch (error) {
     console.error('Error extracting website data:', error);
     return c.json({ error: 'Failed to extract data from website' }, 500);

@@ -15,6 +15,16 @@ This document describes how to integrate with the Utah Churches data via MCP (Mo
 - `GET https://utahchurches.org/api/networks` - List of church networks/affiliations
 - `GET https://utahchurches.org/api/churches/search?q={query}` - Search churches by name
 
+### MCP Protocol Endpoints
+- `GET https://utahchurches.org/mcp/tools` - List available MCP tools
+- `POST https://utahchurches.org/mcp/tools/call` - Execute MCP tool calls
+
+#### Available MCP Tools
+1. **church_search** - Enhanced church search with filters for status, county, and affiliation
+2. **county_browser** - Browse churches by Utah county with statistics
+3. **network_explorer** - Explore church networks and their member churches
+4. **church_details** - Get comprehensive information about a specific church
+
 ## Data Structure
 
 ### Church Object
@@ -57,25 +67,78 @@ This document describes how to integrate with the Utah Churches data via MCP (Mo
 3. **Caching**: Data is updated regularly but can be cached for up to 1 hour
 4. **Attribution**: When using this data, please attribute to Utah Churches (utahchurches.org)
 
-## Example MCP Tool Configuration
+## MCP Integration Examples
+
+### Basic MCP Client Setup
 
 ```typescript
+// List available tools
+const toolsResponse = await fetch('https://utahchurches.org/mcp/tools');
+const { tools } = await toolsResponse.json();
+
+// Call a specific tool
+const callResponse = await fetch('https://utahchurches.org/mcp/tools/call', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'church_search',
+    arguments: {
+      query: 'Baptist',
+      county: 'Salt Lake',
+      status: 'Listed',
+      limit: 10
+    }
+  })
+});
+
+const result = await callResponse.json();
+```
+
+### Tool Usage Examples
+
+#### Church Search Tool
+```json
 {
-  name: "search_utah_churches",
-  description: "Search for churches in Utah by name, city, or affiliation",
-  inputSchema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Search query"
-      }
-    },
-    required: ["query"]
-  },
-  execute: async ({ query }) => {
-    const response = await fetch(`https://utahchurches.org/api/churches/search?q=${encodeURIComponent(query)}`);
-    return await response.json();
+  "name": "church_search",
+  "arguments": {
+    "query": "Baptist",
+    "county": "Utah",
+    "status": "Listed",
+    "affiliation": "Southern Baptist",
+    "limit": 20
+  }
+}
+```
+
+#### County Browser Tool
+```json
+{
+  "name": "county_browser",
+  "arguments": {
+    "county": "Salt Lake",
+    "include_churches": true
+  }
+}
+```
+
+#### Network Explorer Tool
+```json
+{
+  "name": "network_explorer",
+  "arguments": {
+    "network": "Presbyterian",
+    "include_churches": true,
+    "status_filter": "Listed"
+  }
+}
+```
+
+#### Church Details Tool
+```json
+{
+  "name": "church_details",
+  "arguments": {
+    "identifier": "first-baptist-salt-lake"
   }
 }
 ```

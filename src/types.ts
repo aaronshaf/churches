@@ -8,6 +8,7 @@ export interface Bindings {
   CLOUDFLARE_ACCOUNT_HASH: string;
   // Optional environment variables
   GOOGLE_MAPS_API_KEY?: string;
+  GOOGLE_SSR_KEY?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_IMAGES_API_TOKEN?: string;
   OPENROUTER_API_KEY?: string;

@@ -53,11 +53,16 @@ Create a `.dev.vars` file with:
 TURSO_DATABASE_URL=your_database_url
 TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
+GOOGLE_SSR_KEY=your_server_side_maps_api_key
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
 BETTER_AUTH_URL=http://utahchurches.localhost:8787
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 ```
+
+**Google API Key Notes:**
+- `GOOGLE_MAPS_API_KEY` - Client-side key for map display (can have referrer restrictions)
+- `GOOGLE_SSR_KEY` - Server-side key for geocoding/address validation (must allow any referrer)
 
 ### Common Commands
 
@@ -100,6 +105,7 @@ Set production secrets using wrangler:
 wrangler secret put TURSO_DATABASE_URL
 wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
+wrangler secret put GOOGLE_SSR_KEY
 wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put BETTER_AUTH_URL
 wrangler secret put GOOGLE_CLIENT_ID
@@ -289,14 +295,20 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 - Old custom scripts: Can be removed after transition
 
 ### Code Search and Navigation
-- **Use ast-grep for structural code search** - it's faster and more accurate than regex
+- **ALWAYS use ast-grep for structural code search** - it's faster and more accurate than regex
   - Example: `ast-grep --pattern 'app.get($path, $_)' src/`
   - Example: `ast-grep --pattern 'name="$_"' src/components/`
   - Searches by AST structure, not text patterns
-- Prefer ast-grep over grep/Grep when searching for:
+- **STRONGLY prefer ast-grep over rg/ripgrep/grep** when searching for:
   - Function calls, route definitions, JSX attributes
   - Import statements, variable declarations
   - Any code with specific structure
+  - Component usage, prop patterns
+  - Database queries, schema references
+- Only use rg/ripgrep for:
+  - Plain text searches in documentation
+  - Comments or string content
+  - When ast-grep patterns would be too complex
 
 ### TypeScript Code Quality Enforcement
 

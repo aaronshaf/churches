@@ -1,10 +1,10 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { AffiliationForm } from '../../components/AffiliationForm';
 import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
 import { createDbWithContext } from '../../db';
-import { affiliations, churchAffiliations } from '../../db/schema';
+import { affiliations, churchAffiliations, churches, counties } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings } from '../../types';
 import { getLogoUrl } from '../../utils/settings';
@@ -191,6 +191,35 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     return c.html(<NotFound />, 404);
   }
 
+  // Get affiliated churches (simplified for form)
+  const affiliatedChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      status: churches.status,
+      countyName: sql<string | null>`${counties.name}`.as('countyName'),
+    })
+    .from(churches)
+    .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(eq(churchAffiliations.affiliationId, id))
+    .orderBy(churches.name)
+    .all() as any[];
+
+  // Get all churches for selection (simplified for form)
+  const allChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      status: churches.status,
+      countyName: sql<string | null>`${counties.name}`.as('countyName'),
+    })
+    .from(churches)
+    .leftJoin(counties, eq(churches.countyId, counties.id))
+    .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
+    .orderBy(churches.name)
+    .all() as any[];
+
   const content = (
     <Layout title={`Edit ${affiliation.name}`} user={user}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -199,6 +228,8 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
         </div>
         <AffiliationForm
           affiliation={affiliation}
+          affiliatedChurches={affiliatedChurches}
+          allChurches={allChurches}
           action={`/admin/affiliations/${id}`}
           cancelUrl="/admin/affiliations"
         />
@@ -217,7 +248,8 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
-    const body = await c.req.parseBody();
+    // Use all: true to get multiple values for same-named fields (e.g., checkboxes)
+    const body = await c.req.parseBody({ all: true });
     const parsedBody = parseFormBody(body);
     const validationResult = validateFormData(affiliationSchema, parsedBody);
 
@@ -229,6 +261,34 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         return c.html(<NotFound />, 404);
       }
 
+      // Re-fetch church data for error state
+      const affiliatedChurches = await db
+        .select({
+          id: churches.id,
+          name: churches.name,
+          status: churches.status,
+          countyName: sql<string | null>`${counties.name}`.as('countyName'),
+        })
+        .from(churches)
+        .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
+        .leftJoin(counties, eq(churches.countyId, counties.id))
+        .where(eq(churchAffiliations.affiliationId, id))
+        .orderBy(churches.name)
+        .all() as any[];
+
+      const allChurches = await db
+        .select({
+          id: churches.id,
+          name: churches.name,
+          status: churches.status,
+          countyName: sql<string | null>`${counties.name}`.as('countyName'),
+        })
+        .from(churches)
+        .leftJoin(counties, eq(churches.countyId, counties.id))
+        .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
+        .orderBy(churches.name)
+        .all() as any[];
+
       return c.html(
         <Layout title={`Edit ${affiliation.name}`} user={user} logoUrl={logoUrl}>
           <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -237,6 +297,8 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
             </div>
             <AffiliationForm
               affiliation={{ ...affiliation, ...parsedBody }}
+              affiliatedChurches={affiliatedChurches}
+              allChurches={allChurches}
               action={`/admin/affiliations/${id}`}
               cancelUrl="/admin/affiliations"
               error={validationResult.message}
@@ -248,15 +310,74 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
 
     const validatedData = validationResult.data;
 
+    // Update affiliation details
     await db
       .update(affiliations)
       .set({
         name: validatedData.name,
         path: validatedData.path,
         status: validatedData.status,
+        website: validatedData.website,
+        publicNotes: validatedData.publicNotes,
+        privateNotes: validatedData.privateNotes,
         updatedAt: new Date(),
       })
       .where(eq(affiliations.id, id));
+
+    // Handle church relationships
+    // When no checkboxes are selected, parsedBody.churches will be undefined
+    // We need to treat this as an empty array (remove all churches)
+    const selectedChurchIds = parsedBody.churches 
+      ? (Array.isArray(parsedBody.churches) 
+          ? parsedBody.churches.map(id => Number(id))
+          : [Number(parsedBody.churches)])
+      : []; // Empty array when no churches selected
+
+    // Get current church affiliations
+    const currentAffiliations = await db
+      .select({ churchId: churchAffiliations.churchId })
+      .from(churchAffiliations)
+      .where(eq(churchAffiliations.affiliationId, id))
+      .all();
+
+    const currentChurchIds = currentAffiliations.map(ca => ca.churchId);
+
+    // Churches to add (selected but not currently affiliated)
+    const churchesToAdd = selectedChurchIds.filter(churchId => !currentChurchIds.includes(churchId));
+
+    // Churches to remove (currently affiliated but not selected)
+    const churchesToRemove = currentChurchIds.filter(churchId => !selectedChurchIds.includes(churchId));
+
+    // Add new church affiliations
+    if (churchesToAdd.length > 0) {
+      // Get max order for new entries
+      const maxOrder = await db
+        .select({ maxOrder: sql<number>`MAX(${churchAffiliations.order})`.as('maxOrder') })
+        .from(churchAffiliations)
+        .where(eq(churchAffiliations.affiliationId, id))
+        .get();
+
+      const startOrder = (maxOrder?.maxOrder ?? 0) + 1;
+
+      const newAffiliations = churchesToAdd.map((churchId, index) => ({
+        churchId,
+        affiliationId: id,
+        order: startOrder + index,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await db.insert(churchAffiliations).values(newAffiliations);
+    }
+
+    // Remove church affiliations
+    if (churchesToRemove.length > 0) {
+      await db
+        .delete(churchAffiliations)
+        .where(
+          sql`${churchAffiliations.affiliationId} = ${id} AND ${churchAffiliations.churchId} IN (${churchesToRemove.join(',')})`
+        );
+    }
 
     return c.redirect('/admin/affiliations');
   } catch (error) {
@@ -290,3 +411,4 @@ adminAffiliationsRoutes.post('/:id/delete', async (c) => {
 
   return c.redirect('/admin/affiliations');
 });
+

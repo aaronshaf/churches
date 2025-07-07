@@ -154,3 +154,144 @@ apiRoutes.get('/networks', async (c) => {
 
   return c.json(allNetworks);
 });
+
+// Validate address and get coordinates (admin/contributor only)
+apiRoutes.post('/geocode', requireAdminBetter, async (c) => {
+  try {
+    const body = await c.req.json();
+    const address = body.address?.trim();
+
+    if (!address) {
+      return c.json({ error: 'Address is required' }, 400);
+    }
+
+    const apiKey = c.env.GOOGLE_SSR_KEY;
+    if (!apiKey) {
+      return c.json({ error: 'Google server-side API key not configured. Please set GOOGLE_SSR_KEY environment variable.' }, 500);
+    }
+
+    // Step 1: Try to validate address using Address Validation API
+    let validatedAddress = address;
+    let addressQuality = 'unknown';
+    let addressSuggestion = null;
+    let validationError = null;
+
+    try {
+      const validationRequestBody = {
+        address: {
+          addressLines: [address],
+          regionCode: 'US'
+        },
+        enableUspsCass: true
+      };
+      
+      const validationResponse = await fetch(
+        `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validationRequestBody)
+        }
+      );
+      
+      if (validationResponse.ok) {
+        const validationData = await validationResponse.json() as any;
+        
+        if (validationData.result?.address) {
+          const result = validationData.result;
+          
+          // Extract address quality information
+          if (result.verdict) {
+            addressQuality = result.verdict.addressComplete ? 'complete' : 
+                            result.verdict.hasReplacedComponents ? 'corrected' :
+                            result.verdict.hasInferredComponents ? 'inferred' : 'incomplete';
+          }
+
+          // Get the formatted address from validation
+          if (result.address.formattedAddress) {
+            // Remove ", USA" from the end of the address
+            validatedAddress = result.address.formattedAddress.replace(/, USA$/, '');
+            
+            // If address was significantly corrected, note it as a suggestion
+            if (result.verdict?.hasReplacedComponents) {
+              addressSuggestion = result.address.formattedAddress.replace(/, USA$/, '');
+            }
+          }
+        }
+      } else {
+        const errorData = await validationResponse.json() as any;
+        validationError = errorData.error?.message || 'Address Validation API error';
+        
+        // Check if it's a referrer restriction issue
+        if (errorData.error?.details?.[0]?.reason === 'API_KEY_HTTP_REFERRER_BLOCKED') {
+          validationError = 'API key referrer restriction - using geocoding only';
+        }
+        // Continue with geocoding using original address
+      }
+    } catch (error) {
+      validationError = 'Address Validation API unavailable';
+      // Continue with geocoding using original address
+    }
+
+    // Step 2: Geocode the validated address
+    const geocodeResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(validatedAddress)}&key=${apiKey}`
+    );
+    
+    if (!geocodeResponse.ok) {
+      return c.json({ error: 'Geocoding service unavailable' }, 503);
+    }
+
+    const geocodeData = await geocodeResponse.json() as any;
+
+    if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
+      const location = geocodeData.results[0].geometry.location;
+      const geocodeFormatted = geocodeData.results[0].formatted_address.replace(/, USA$/, '');
+      
+      return c.json({
+        latitude: location.lat,
+        longitude: location.lng,
+        original_address: address,
+        validated_address: validatedAddress,
+        formatted_address: geocodeFormatted,
+        address_quality: addressQuality,
+        address_suggestion: addressSuggestion,
+        validation_error: validationError,
+        // Include additional useful info
+        location_type: geocodeData.results[0].geometry.location_type,
+        place_id: geocodeData.results[0].place_id
+      });
+    }
+
+    // Handle specific Google API error statuses
+    let errorMessage = 'Address not found';
+    switch (geocodeData.status) {
+      case 'ZERO_RESULTS':
+        errorMessage = 'No results found for this address';
+        break;
+      case 'OVER_QUERY_LIMIT':
+        errorMessage = 'API quota exceeded. Please try again later.';
+        break;
+      case 'REQUEST_DENIED':
+        // Check if it's a referer restriction issue
+        if (geocodeData.error_message?.includes('referer restrictions')) {
+          errorMessage = 'Google API key has referrer restrictions that prevent server-side usage. Please configure the API key to allow requests from any referer or create a separate server-side API key.';
+        } else {
+          errorMessage = 'Request denied. Check API configuration.';
+        }
+        break;
+      case 'INVALID_REQUEST':
+        errorMessage = 'Invalid request format';
+        break;
+    }
+
+    return c.json({ error: errorMessage }, 400);
+  } catch (error) {
+    console.error('Address validation/geocoding error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    return c.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});

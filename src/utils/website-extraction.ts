@@ -237,12 +237,7 @@ export async function extractChurchDataFromWebsite(websiteUrl: string, apiKey: s
       // Allow up to 500k HTML
       wordwrap: false,
       selectors: [
-        { selector: 'script', options: { uppercase: false } },
-        { selector: 'style', options: { uppercase: false } },
-        { selector: 'noscript', options: { uppercase: false } },
-        { selector: 'img', options: { uppercase: false } },
-        { selector: 'a', options: { uppercase: false } },
-        // Don't skip nav/header/footer with Gemini - they might contain service times
+        // Skip script, style, and noscript tags completely
       ],
       limits: {
         maxInputLength: 500000,

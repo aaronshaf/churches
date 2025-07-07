@@ -41,8 +41,16 @@ export const churchSchema = z
     privateNotes: z.string().max(2000, 'Private notes too long').optional(),
     publicNotes: z.string().max(1000, 'Public notes too long').optional(),
     gatheringAddress: z.string().trim().max(500, 'Address too long').optional(),
-    latitude: z.coerce.number().min(-90).max(90, 'Invalid latitude').optional().nullable(),
-    longitude: z.coerce.number().min(-180).max(180, 'Invalid longitude').optional().nullable(),
+    latitude: z.preprocess((val) => {
+      if (val === undefined || val === '' || val === null) return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    }, z.number().min(-90).max(90, 'Invalid latitude').nullable().optional()),
+    longitude: z.preprocess((val) => {
+      if (val === undefined || val === '' || val === null) return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    }, z.number().min(-180).max(180, 'Invalid longitude').nullable().optional()),
     countyId: z.coerce.number().positive('Invalid county').optional().nullable(),
     serviceTimes: z.string().max(500, 'Service times too long').optional(),
     website: optionalUrl,
@@ -58,7 +66,10 @@ export const churchSchema = z
   .refine(
     (data) => {
       // If coordinates are provided, both must be present
-      if ((data.latitude && !data.longitude) || (!data.latitude && data.longitude)) {
+      const hasLat = data.latitude !== null && data.latitude !== undefined;
+      const hasLng = data.longitude !== null && data.longitude !== undefined;
+      
+      if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
         return false;
       }
       return true;
@@ -297,8 +308,8 @@ export function prepareChurchDataFromForm(body: Record<string, unknown>) {
     path: (body.path as string) || undefined,
     status: (body.status as ChurchStatus) || undefined,
     gatheringAddress: (body.gatheringAddress as string) || undefined,
-    latitude: body.latitude ? parseFloat(body.latitude as string) : undefined,
-    longitude: body.longitude ? parseFloat(body.longitude as string) : undefined,
+    latitude: body.latitude !== null && body.latitude !== undefined ? parseFloat(body.latitude as string) : null,
+    longitude: body.longitude !== null && body.longitude !== undefined ? parseFloat(body.longitude as string) : null,
     countyId: body.countyId ? Number(body.countyId) : undefined,
     website: (body.website as string) || undefined,
     statementOfFaith: (body.statementOfFaith as string) || undefined,

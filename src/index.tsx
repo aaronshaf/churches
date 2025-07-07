@@ -40,6 +40,7 @@ import { betterAuthApp } from './routes/better-auth';
 import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
+import { mcpRoutes } from './routes/mcp';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
 import {
@@ -320,6 +321,9 @@ app.route('/admin/users', adminUsersApp);
 
 // Mount API routes
 app.route('/api', apiRoutes);
+
+// Mount MCP routes
+app.route('/mcp', mcpRoutes);
 
 // Mount SEO routes
 app.route('/', seoRoutes);
@@ -1429,6 +1433,7 @@ app.get('/networks/:id', async (c) => {
               <p class="text-gray-700">{affiliation.publicNotes}</p>
             </div>
           )}
+
 
           {/* Churches List */}
           {listedChurches.length > 0 ? (
@@ -4600,6 +4605,25 @@ app.get('*', async (c) => {
     </Layout>,
     404
   );
+});
+
+// Chrome DevTools workspace support (development only)
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (c) => {
+  // Only respond in development environment
+  const isDevelopment = c.env.ENVIRONMENT !== 'production' && 
+                       (c.req.header('host')?.includes('localhost') || 
+                        c.req.header('host')?.includes('.workers.dev'));
+  
+  if (!isDevelopment) {
+    return c.notFound();
+  }
+
+  return c.json({
+    workspace: {
+      root: process.cwd?.() || "/workspace/churches",
+      uuid: "utah-churches-dev-workspace-2025"
+    }
+  });
 });
 
 // Custom 404 handler

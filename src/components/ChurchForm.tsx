@@ -174,6 +174,22 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     />
                   </div>
+                  <div class="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      id="geocode-button"
+                      onclick="getCoordinates()"
+                      class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="geocode-button"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span id="geocode-button-text">Get Coordinates</span>
+                    </button>
+                    <div id="geocode-message" class="hidden"></div>
+                  </div>
                 </div>
 
                 <div class="sm:col-span-3">
@@ -881,7 +897,12 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             }
             
             // Apply extracted data to form fields
-            const { extracted, fields } = data;
+            const { extracted = {}, fields = {} } = data || {};
+            
+            // Validate we have data
+            if (!extracted || typeof extracted !== 'object') {
+              throw new Error('No data extracted from website');
+            }
             
             // Clear existing list items
             resultsList.innerHTML = '';
@@ -1432,6 +1453,177 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           }
         });
         
+        // Address validation and geocoding function
+        async function getCoordinates() {
+          const addressField = document.getElementById('gatheringAddress');
+          const latField = document.getElementById('latitude');
+          const lngField = document.getElementById('longitude');
+          const button = document.getElementById('geocode-button');
+          const buttonText = document.getElementById('geocode-button-text');
+          const messageDiv = document.getElementById('geocode-message');
+          
+          const address = addressField?.value?.trim();
+          
+          if (!address) {
+            showGeocodeMessage('Please enter an address first', 'error');
+            return;
+          }
+          
+          // Show loading state
+          button.disabled = true;
+          buttonText.textContent = 'Validating address...';
+          messageDiv.className = 'mt-2 hidden';
+          
+          try {
+            const response = await fetch('/api/geocode', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ address: address })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+              // Success - update the latitude and longitude fields
+              if (latField) latField.value = data.latitude;
+              if (lngField) lngField.value = data.longitude;
+              
+              // Handle address validation results intelligently
+              handleAddressValidation(data, addressField);
+              
+            } else {
+              // Error from the API
+              showGeocodeMessage(data.error || 'Failed to get coordinates', 'error');
+            }
+          } catch (error) {
+            console.error('Address validation error:', error);
+            showGeocodeMessage('Network error. Please try again.', 'error');
+          } finally {
+            // Reset button state
+            button.disabled = false;
+            buttonText.textContent = 'Get Coordinates';
+          }
+        }
+        
+        function handleAddressValidation(data, addressField) {
+          const { 
+            original_address, 
+            validated_address, 
+            formatted_address, 
+            address_quality, 
+            address_suggestion,
+            location_type,
+            validation_error
+          } = data;
+          
+          let message = 'Coordinates updated successfully!';
+          let messageType = 'success';
+          
+          // If validation failed due to API restrictions, inform user but continue
+          if (validation_error && validation_error.includes('referrer restriction')) {
+            message = 'Coordinates found (address validation unavailable due to API settings)';
+            messageType = 'warning';
+            
+            // Still offer geocoding-based formatting suggestion
+            if (formatted_address && formatted_address !== original_address) {
+              if (confirm('Google suggests this formatted address:\\n\\n' + formatted_address + '\\n\\nWould you like to use this format?')) {
+                addressField.value = formatted_address;
+                message = 'Address formatted and coordinates set!';
+                messageType = 'success';
+              }
+            }
+            
+            showGeocodeMessage(message, messageType);
+            return;
+          }
+          
+          // Handle different address quality scenarios
+          switch (address_quality) {
+            case 'complete':
+              // Address is perfect, but check if formatting improved
+              if (formatted_address !== original_address) {
+                if (confirm('Google suggests this formatted address:\\n\\n' + formatted_address + '\\n\\nWould you like to use this format?')) {
+                  addressField.value = formatted_address;
+                  message = 'Address updated and coordinates set!';
+                }
+              }
+              break;
+              
+            case 'corrected':
+              // Address had issues that were corrected
+              if (address_suggestion && address_suggestion !== original_address) {
+                if (confirm('Google corrected your address:\\n\\nOriginal: ' + original_address + '\\nCorrected: ' + address_suggestion + '\\n\\nWould you like to use the corrected address?')) {
+                  addressField.value = address_suggestion;
+                  message = 'Address corrected and coordinates set!';
+                } else {
+                  message = 'Coordinates set (using original address)';
+                  messageType = 'warning';
+                }
+              }
+              break;
+              
+            case 'inferred':
+              // Some parts were inferred/guessed
+              message = 'Coordinates set (some address parts were inferred)';
+              messageType = 'warning';
+              if (formatted_address !== original_address) {
+                console.log('Google inferred address:', formatted_address);
+              }
+              break;
+              
+            case 'incomplete':
+              // Address validation found issues
+              message = 'Coordinates found, but address may be incomplete';
+              messageType = 'warning';
+              break;
+              
+            default:
+              // Validation API didn't work, but geocoding did
+              if (formatted_address && formatted_address !== original_address) {
+                if (confirm('Google suggests this formatted address:\\n\\n' + formatted_address + '\\n\\nWould you like to use this format?')) {
+                  addressField.value = formatted_address;
+                  message = 'Address formatted and coordinates set!';
+                }
+              }
+          }
+          
+          // Add location precision info for very precise coordinates
+          if (location_type === 'ROOFTOP') {
+            message += ' (Rooftop precision)';
+          } else if (location_type === 'RANGE_INTERPOLATED') {
+            message += ' (Street-level precision)';
+          }
+          
+          showGeocodeMessage(message, messageType);
+        }
+        
+        function showGeocodeMessage(message, type) {
+          const messageDiv = document.getElementById('geocode-message');
+          
+          messageDiv.textContent = message;
+          
+          // Set appropriate styling based on message type
+          if (type === 'success') {
+            messageDiv.className = 'text-sm text-green-600 font-medium animate-fade-in';
+          } else if (type === 'warning') {
+            messageDiv.className = 'text-sm text-yellow-600 font-medium animate-fade-in';
+          } else {
+            messageDiv.className = 'text-sm text-red-600 font-medium animate-fade-in';
+          }
+          
+          // Auto-hide success and warning messages after 5 seconds
+          if (type === 'success' || type === 'warning') {
+            setTimeout(() => {
+              messageDiv.classList.add('animate-fade-out');
+              setTimeout(() => {
+                messageDiv.className = 'hidden';
+              }, 300);
+            }, 5000);
+          }
+        }
+
         // Phone number formatting
         const phoneInput = document.getElementById('phone');
         if (phoneInput) {

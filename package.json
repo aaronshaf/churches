@@ -6,7 +6,7 @@
   "scripts": {
     "build:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --minify",
     "watch:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --watch",
-    "dev": "concurrently \"pnpm run watch:css\" \"wrangler dev --host utahchurches.localhost\"",
+    "dev": "concurrently \"pnpm run watch:css\" \"wrangler dev\"",
     "build": "pnpm run build:css && wrangler deploy --dry-run",
     "deploy": "pnpm run build:css && wrangler deploy",
     "db:generate": "drizzle-kit generate",
