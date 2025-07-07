@@ -386,7 +386,7 @@ app.get('/', async (c) => {
     return c.html(
       <Layout title={frontPageTitle} currentPath="/" {...layoutProps}>
         <div class="bg-gray-50">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:py-8">
             {/* Setup Alert for Admins */}
             {layoutProps.user?.role === 'admin' && missingSettings.length > 0 && (
               <div class="mb-6 bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-4">
