@@ -38,7 +38,7 @@ jobs:
       - name: Check file sizes
         run: |
           # Check for large files (> 1MB)
-          LARGE_FILES=$(find . -type f -size +1M | grep -v -E "(node_modules|.git|pnpm-lock.yaml)" || true)
+          LARGE_FILES=$(find . -type f -size +1M | grep -v -E "(node_modules|.git|bun.lockb)" || true)
           if [ -n "$LARGE_FILES" ]; then
             echo "⚠️  Large files detected (>1MB):"
             echo "$LARGE_FILES"

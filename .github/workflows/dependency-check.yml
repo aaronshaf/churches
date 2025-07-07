@@ -15,47 +15,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 10.11.0
+          bun-version: latest
           
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          cache: 'bun'
           
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
         
       - name: Check for outdated dependencies
         run: |
           echo "## Dependency Update Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "### Production Dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "### Outdated Dependencies" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          pnpm outdated --prod >> $GITHUB_STEP_SUMMARY || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "### Development Dependencies" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          pnpm outdated --dev >> $GITHUB_STEP_SUMMARY || true
+          bun outdated >> $GITHUB_STEP_SUMMARY || true
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           
       - name: Security audit
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Security Audit" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          pnpm audit >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "Bun does not have a built-in audit command yet." >> $GITHUB_STEP_SUMMARY
           
       - name: Check for Wrangler updates
         run: |
-          CURRENT_VERSION=$(pnpm list wrangler --json | jq -r '.[0].devDependencies.wrangler.version')
+          CURRENT_VERSION=$(cat package.json | jq -r '.devDependencies.wrangler' | sed 's/[^0-9.]//g')
           LATEST_VERSION=$(npm view wrangler version)
           
           echo "" >> $GITHUB_STEP_SUMMARY
