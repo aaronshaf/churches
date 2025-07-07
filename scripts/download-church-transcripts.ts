@@ -22,9 +22,10 @@ import * as yaml from 'js-yaml';
 // Configuration
 const CHURCHES_JSON_URL = 'https://utahchurches.com/churches.json';
 const TRANSCRIPT_BASE_DIR = './transcripts';
+const PROGRESS_FILE = './transcripts/progress.json';
 const DAYS_BACK = 365; // Download transcripts from past year
 const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
-const MAX_TRANSCRIPTS_PER_RUN = 5; // Global limit per script run - be respectful
+const MAX_TRANSCRIPTS_PER_RUN = 3; // Global limit per script run - be very respectful
 
 interface ChurchData {
   id: number;
@@ -55,6 +56,23 @@ interface ChurchMetadata {
   churchPath: string;
   lastUpdated: string;
   videos: VideoMetadata[];
+}
+
+interface ChurchProgress {
+  churchId: number;
+  churchName: string;
+  lastProcessed: string;
+  videosDownloaded: number;
+  hasYouTube: boolean;
+  status: 'pending' | 'in-progress' | 'completed' | 'skipped';
+}
+
+interface ProgressTracker {
+  version: string;
+  lastRun: string;
+  totalChurchesProcessed: number;
+  totalTranscriptsDownloaded: number;
+  churches: ChurchProgress[];
 }
 
 /**
@@ -90,6 +108,51 @@ async function ensureBaseDir() {
     console.error('❌ Failed to create transcript directory:', error);
     process.exit(1);
   }
+}
+
+/**
+ * Load progress tracker
+ */
+async function loadProgress(): Promise<ProgressTracker> {
+  try {
+    const content = await fs.readFile(PROGRESS_FILE, 'utf-8');
+    return JSON.parse(content);
+  } catch (error) {
+    // File doesn't exist, return new tracker
+    return {
+      version: '1.0',
+      lastRun: new Date().toISOString(),
+      totalChurchesProcessed: 0,
+      totalTranscriptsDownloaded: 0,
+      churches: [],
+    };
+  }
+}
+
+/**
+ * Save progress tracker
+ */
+async function saveProgress(progress: ProgressTracker): Promise<void> {
+  progress.lastRun = new Date().toISOString();
+  const jsonContent = JSON.stringify(progress, null, 2);
+  await fs.writeFile(PROGRESS_FILE, jsonContent, 'utf-8');
+}
+
+/**
+ * Check if we're being rate limited
+ */
+function isRateLimitError(error: string): boolean {
+  const rateLimitIndicators = [
+    'ERROR: Sign in to confirm',
+    'ERROR: Unable to extract',
+    'too many requests',
+    'rate limit',
+    '429',
+    'ERROR: This video is not available',
+    'ERROR: Private video',
+  ];
+
+  return rateLimitIndicators.some((indicator) => error.toLowerCase().includes(indicator.toLowerCase()));
 }
 
 /**
@@ -282,7 +345,12 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
   const listResult = await runYtDlp(listArgs);
 
   if (!listResult.success) {
-    console.log(`❌ Failed to get video list: ${listResult.error}`);
+    if (listResult.error && isRateLimitError(listResult.error)) {
+      console.log(`⚠️  Rate limit detected! Stopping to avoid being blocked.`);
+      console.log(`   Error: ${listResult.error?.substring(0, 100)}...`);
+      throw new Error('RATE_LIMITED');
+    }
+    console.log(`❌ Failed to get video list: ${listResult.error?.substring(0, 200)}`);
     return 0;
   }
 
@@ -431,6 +499,12 @@ async function main() {
   await ensureBaseDir();
   const allChurches = await fetchChurches();
 
+  // Load progress tracker
+  const progress = await loadProgress();
+  console.log(
+    `📊 Progress: ${progress.totalChurchesProcessed} churches processed, ${progress.totalTranscriptsDownloaded} transcripts downloaded`
+  );
+
   // Filter for Listed and Unlisted churches with YouTube channels
   console.log('🔍 Filtering churches with YouTube channels...');
 
@@ -446,12 +520,38 @@ async function main() {
     return;
   }
 
+  // Update progress tracker with all churches
+  for (const church of churchesWithYoutube) {
+    if (!progress.churches.some((c) => c.churchId === church.id)) {
+      progress.churches.push({
+        churchId: church.id,
+        churchName: church.name,
+        lastProcessed: '',
+        videosDownloaded: 0,
+        hasYouTube: true,
+        status: 'pending',
+      });
+    }
+  }
+
+  // Sort churches by ID to ensure consistent order
+  const sortedChurches = churchesWithYoutube.sort((a, b) => a.id - b.id);
+
+  // Find churches that haven't been completed yet
+  const pendingChurches = sortedChurches.filter((church) => {
+    const churchProgress = progress.churches.find((c) => c.churchId === church.id);
+    return !churchProgress || churchProgress.status !== 'completed';
+  });
+
+  console.log(`📋 ${pendingChurches.length} churches still need processing\n`);
+
   // Process each church
   let processed = 0;
   let totalDownloaded = 0;
   let succeeded = 0;
+  let rateLimited = false;
 
-  for (const church of churchesWithYoutube) {
+  for (const church of pendingChurches) {
     // Check if we've hit the global limit
     if (totalDownloaded >= MAX_TRANSCRIPTS_PER_RUN) {
       console.log(`\n🛑 Reached global limit of ${MAX_TRANSCRIPTS_PER_RUN} transcripts for this run`);
@@ -459,6 +559,14 @@ async function main() {
     }
 
     processed++;
+
+    // Update progress to mark as in-progress
+    const churchProgress = progress.churches.find((c) => c.churchId === church.id);
+    if (churchProgress) {
+      churchProgress.status = 'in-progress';
+      churchProgress.lastProcessed = new Date().toISOString();
+    }
+
     try {
       const downloadsFromThisChurch = await downloadChurchTranscripts(church, totalDownloaded);
       totalDownloaded += downloadsFromThisChurch;
@@ -467,20 +575,57 @@ async function main() {
         succeeded++;
       }
 
+      // Update progress
+      if (churchProgress) {
+        churchProgress.videosDownloaded += downloadsFromThisChurch;
+        churchProgress.status = downloadsFromThisChurch > 0 ? 'completed' : 'skipped';
+        progress.totalTranscriptsDownloaded += downloadsFromThisChurch;
+      }
+
       console.log(
-        `   [${processed}/${churchesWithYoutube.length}] ✅ Downloaded ${downloadsFromThisChurch} transcript(s) from: ${church.name}`
+        `   [${processed}/${pendingChurches.length}] ✅ Downloaded ${downloadsFromThisChurch} transcript(s) from: ${church.name}`
       );
-    } catch (error) {
-      console.log(`   [${processed}/${churchesWithYoutube.length}] ❌ Error processing ${church.name}:`, error);
+
+      // Save progress after each church
+      await saveProgress(progress);
+    } catch (error: any) {
+      if (error.message === 'RATE_LIMITED') {
+        rateLimited = true;
+        console.log(`\n🚫 Rate limit detected - stopping to avoid being blocked`);
+        break;
+      }
+      console.log(
+        `   [${processed}/${pendingChurches.length}] ❌ Error processing ${church.name}:`,
+        error.message || error
+      );
+
+      // Mark as pending again so it gets retried next run
+      if (churchProgress) {
+        churchProgress.status = 'pending';
+      }
     }
   }
 
+  // Update total churches processed
+  progress.totalChurchesProcessed = progress.churches.filter(
+    (c) => c.status === 'completed' || c.status === 'skipped'
+  ).length;
+  await saveProgress(progress);
+
   console.log('\n📊 Summary:');
-  console.log(`   Churches processed: ${processed}`);
+  console.log(`   Churches processed this run: ${processed}`);
   console.log(`   Churches with downloads: ${succeeded}`);
-  console.log(`   Total transcripts downloaded: ${totalDownloaded}`);
-  console.log(`   Transcript base directory: ${TRANSCRIPT_BASE_DIR}`);
-  console.log(`   Church directories created: ${succeeded}`);
+  console.log(`   Total transcripts downloaded this run: ${totalDownloaded}`);
+  console.log(`   Overall progress: ${progress.totalChurchesProcessed}/${progress.churches.length} churches`);
+  console.log(`   Total transcripts collected: ${progress.totalTranscriptsDownloaded}`);
+
+  if (rateLimited) {
+    console.log(`\n⚠️  Script stopped due to rate limiting. Wait a few hours before running again.`);
+  } else if (pendingChurches.length === 0) {
+    console.log(`\n✅ All churches have been processed!`);
+  } else if (totalDownloaded >= MAX_TRANSCRIPTS_PER_RUN) {
+    console.log(`\n💡 Run the script again to continue with the next churches.`);
+  }
 }
 
 // Run the script
