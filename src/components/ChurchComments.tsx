@@ -75,26 +75,30 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
                     {comment.userImage ? (
                       <img
                         src={comment.userImage}
-                        alt={comment.userName || comment.userEmail}
+                        alt={comment.userName || comment.userEmail || 'User'}
                         class="w-9 h-9 rounded-full object-cover border border-gray-200"
-                        onerror={`this.src='${getGravatarUrl(comment.userEmail, 36)}'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}`}
+                        onerror={`this.src='${comment.userEmail ? getGravatarUrl(comment.userEmail, 36) : ''}'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='flex';}`}
                       />
-                    ) : (
+                    ) : comment.userEmail ? (
                       <img
                         src={getGravatarUrl(comment.userEmail, 36)}
                         alt={comment.userName || comment.userEmail}
                         class="w-9 h-9 rounded-full object-cover border border-gray-200"
                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
                       />
-                    )}
+                    ) : null}
                     <div
-                      class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 hidden items-center justify-center"
-                      style="display: none;"
+                      class={`w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 items-center justify-center ${!comment.userImage && !comment.userEmail ? 'flex' : 'hidden'}`}
+                      style={!comment.userImage && !comment.userEmail ? '' : 'display: none;'}
                     >
                       <span class="text-sm font-semibold text-white">
                         {comment.userName
                           ? comment.userName.charAt(0).toUpperCase()
-                          : comment.userEmail.charAt(0).toUpperCase()}
+                          : comment.userEmail
+                            ? comment.userEmail.charAt(0).toUpperCase()
+                            : comment.type === 'system'
+                              ? 'S'
+                              : '?'}
                       </span>
                     </div>
                   </div>
@@ -104,7 +108,7 @@ export const ChurchComments: FC<ChurchCommentsProps> = ({ churchId, churchPath, 
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center space-x-2">
                         <p class="text-sm font-medium text-gray-900" data-testid={`comment-author-${index}`}>
-                          {comment.userName || comment.userEmail.split('@')[0]}
+                          {comment.userName || (comment.userEmail ? comment.userEmail.split('@')[0] : 'System')}
                         </p>
                         {comment.isOwn && (
                           <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary-100 text-primary-800">

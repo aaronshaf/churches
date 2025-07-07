@@ -125,6 +125,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         id: comments.id,
         content: comments.content,
         type: comments.type,
+        metadata: comments.metadata,
         userId: comments.userId,
         churchId: comments.churchId,
         createdAt: comments.createdAt,
@@ -139,14 +140,32 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .all();
 
     // Process comments to add ownership info
-    const processedComments = allComments.map((comment) => ({
-      ...comment,
-      churchId: comment.churchId as number, // Safe since we filter by churchId
-      isOwn: user ? comment.userId === user.id : false,
-      userName: comment.userName || null,
-      userEmail: comment.userEmail || '',
-      userImage: comment.userImage || null,
-    }));
+    const processedComments = allComments.map((comment) => {
+      // For system comments without valid user data, try to extract from content
+      let displayName = comment.userName || null;
+      let displayEmail = comment.userEmail || '';
+
+      if (comment.type === 'system' && !comment.userEmail && comment.content) {
+        // Try to extract username from audit comment content
+        const match = comment.content.match(/^([^:]+):/);
+        if (match) {
+          displayName = match[1].trim();
+          // If it looks like an email, use it for gravatar
+          if (displayName.includes('@')) {
+            displayEmail = displayName;
+          }
+        }
+      }
+
+      return {
+        ...comment,
+        churchId: comment.churchId as number, // Safe since we filter by churchId
+        isOwn: user ? comment.userId === user.id : false,
+        userName: displayName,
+        userEmail: displayEmail,
+        userImage: comment.userImage || null,
+      };
+    });
 
     // Get site settings for JSON-LD
     const siteDomainSetting = await db
