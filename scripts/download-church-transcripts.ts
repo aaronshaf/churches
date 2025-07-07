@@ -241,14 +241,15 @@ async function downloadChurchTranscripts(
   // First, get video list from the past year
   console.log(`   📋 Getting videos from last ${DAYS_BACK} days...`);
 
+  // Note: We need to remove --flat-playlist to get full metadata including dates
   const listArgs = [
-    '--flat-playlist',
     '--print',
     '%(id)s|||%(title)s|||%(upload_date)s|||%(description)s',
     '--dateafter',
     dateFilter,
     '--playlist-end',
     MAX_VIDEOS_PER_CHANNEL.toString(),
+    '--skip-download',
     channelId.startsWith('@')
       ? `https://www.youtube.com/${channelId}/videos`
       : channelId.startsWith('UC')
@@ -288,8 +289,17 @@ async function downloadChurchTranscripts(
 
     const videoId = parts[0];
     const videoTitle = parts[1];
-    const uploadDate = parts[2];
+    const uploadDate = parts[2]; // Format: YYYYMMDD
     const description = parts[3] || '';
+
+    // Format upload date as ISO string if valid
+    let formattedDate = uploadDate;
+    if (uploadDate && uploadDate !== 'NA' && uploadDate.length === 8) {
+      const year = uploadDate.substring(0, 4);
+      const month = uploadDate.substring(4, 6);
+      const day = uploadDate.substring(6, 8);
+      formattedDate = `${year}-${month}-${day}`;
+    }
 
     // Check if we already have this video in metadata
     if (metadata.videos.some((v) => v.videoId === videoId)) {
@@ -352,7 +362,7 @@ async function downloadChurchTranscripts(
           videoId,
           title: videoTitle,
           description: description.substring(0, 500), // Limit description length
-          uploadDate,
+          uploadDate: formattedDate,
           url: `https://www.youtube.com/watch?v=${videoId}`,
           churchId: church.id,
           churchName: church.name,
