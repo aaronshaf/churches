@@ -4,8 +4,12 @@ import { createDbWithContext } from '../db';
 import { affiliations, churches, comments, counties } from '../db/schema';
 import { requireAdminBetter } from '../middleware/better-auth';
 import type { AuthVariables, Bindings } from '../types';
+import uploadRoutes from './api/upload';
 
 export const apiRoutes = new Hono<{ Bindings: Bindings; Variables: AuthVariables }>();
+
+// Mount upload routes
+apiRoutes.route('/upload', uploadRoutes);
 
 // Search churches
 apiRoutes.get('/churches/search', async (c) => {

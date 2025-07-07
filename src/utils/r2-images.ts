@@ -1,0 +1,138 @@
+import type { Bindings } from '../types';
+
+export interface ImageTransformations {
+  width?: number;
+  height?: number;
+  quality?: number;
+  format?: 'auto' | 'webp' | 'avif' | 'jpeg' | 'png';
+  fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad';
+}
+
+export interface UploadResult {
+  path: string;
+  url: string;
+}
+
+/**
+ * Upload an image to R2 bucket
+ */
+export async function uploadImage(
+  file: File,
+  folder: 'churches' | 'counties' | 'pages' | 'site',
+  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN'>
+): Promise<UploadResult> {
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    throw new Error('File must be an image');
+  }
+
+  // Validate file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw new Error('File size must be less than 10MB');
+  }
+
+  // Generate unique filename
+  const timestamp = Date.now();
+  const sanitizedName = file.name
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .toLowerCase()
+    .replace(/_{2,}/g, '_');
+  const path = `${folder}/${timestamp}_${sanitizedName}`;
+
+  // Upload to R2
+  const arrayBuffer = await file.arrayBuffer();
+  await env.IMAGES_BUCKET.put(path, arrayBuffer, {
+    httpMetadata: {
+      contentType: file.type,
+    },
+  });
+
+  const domain = env.SITE_DOMAIN || 'utahchurches.org';
+
+  return {
+    path,
+    url: getImageUrl(path, domain),
+  };
+}
+
+/**
+ * Generate a Cloudflare Image Transformation URL
+ */
+export function getImageUrl(
+  path: string | null | undefined,
+  domain: string,
+  transformations?: ImageTransformations
+): string {
+  if (!path) return '';
+
+  // Handle legacy Cloudflare Images URLs
+  if (path.startsWith('http')) {
+    return path;
+  }
+
+  const baseUrl = `https://${domain}/cdn-cgi/image`;
+
+  if (!transformations || Object.keys(transformations).length === 0) {
+    return `${baseUrl}/format=auto/${path}`;
+  }
+
+  const params = formatTransformations(transformations);
+  return `${baseUrl}/${params}/${path}`;
+}
+
+/**
+ * Format transformation parameters for URL
+ */
+function formatTransformations(transformations: ImageTransformations): string {
+  const params: string[] = [];
+
+  if (transformations.width) params.push(`width=${transformations.width}`);
+  if (transformations.height) params.push(`height=${transformations.height}`);
+  if (transformations.quality) params.push(`quality=${transformations.quality}`);
+  if (transformations.format) params.push(`format=${transformations.format}`);
+  if (transformations.fit) params.push(`fit=${transformations.fit}`);
+
+  // Default to auto format if no format specified
+  if (!transformations.format) {
+    params.push('format=auto');
+  }
+
+  return params.join(',');
+}
+
+/**
+ * Delete an image from R2 bucket
+ */
+export async function deleteImage(
+  path: string | null | undefined,
+  env: Pick<Bindings, 'IMAGES_BUCKET'>
+): Promise<void> {
+  if (!path || path.startsWith('http')) return;
+
+  try {
+    await env.IMAGES_BUCKET.delete(path);
+  } catch (error) {
+    console.error('Failed to delete image:', error);
+    // Don't throw - allow operation to continue
+  }
+}
+
+/**
+ * Generate responsive image srcset
+ */
+export function generateSrcSet(
+  path: string,
+  domain: string,
+  baseWidth: number,
+  transformations?: Omit<ImageTransformations, 'width'>
+): string {
+  const widths = [Math.round(baseWidth * 0.5), baseWidth, Math.round(baseWidth * 1.5), Math.round(baseWidth * 2)];
+
+  return widths
+    .map((width) => {
+      const url = getImageUrl(path, domain, { ...transformations, width });
+      return `${url} ${width}w`;
+    })
+    .join(', ');
+}

@@ -18,6 +18,11 @@ database_name = "utahchurches-production"
 database_id = "c5a5dea0-1a3d-4cc0-8df0-49507e84e01f"
 preview_database_id = "5cd7354b-ab46-4b9e-b9b8-7cbe57f9eda5"
 
+# R2 Bucket Configuration
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "utahchurches-images"
+
 [vars]
 # Add your non-sensitive configuration here
 # For production, set the following secrets using wrangler:

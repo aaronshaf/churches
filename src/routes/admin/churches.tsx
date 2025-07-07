@@ -20,6 +20,7 @@ import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { deleteFromCloudflareImages, uploadToCloudflareImages } from '../../utils/cloudflare-images';
 import { batchedInQuery, createInClause } from '../../utils/db-helpers';
 import { getCloudflareImageEnvVars } from '../../utils/env-validation';
+import { deleteImage, uploadImage } from '../../utils/r2-images';
 import { getLogoUrl } from '../../utils/settings';
 import {
   churchWithGatheringsSchema,
@@ -796,7 +797,33 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     const body = await c.req.parseBody({ all: true });
 
-    // Handle image upload if present
+    // Handle R2 featured image upload
+    const featuredImage = body.featuredImage;
+    let newImagePath = null;
+    let newImageAlt = null;
+
+    if (featuredImage && featuredImage instanceof File && featuredImage.size > 0) {
+      try {
+        const result = await uploadImage(featuredImage, 'churches', c.env);
+        newImagePath = result.path;
+      } catch (error) {
+        console.error('Error uploading featured image:', error);
+        // Continue with the update even if image upload fails
+      }
+    }
+
+    // Handle featured image removal
+    if (body.removeImage === 'true' && oldChurch.imagePath) {
+      await deleteImage(oldChurch.imagePath, c.env);
+      newImagePath = ''; // Set to empty string to clear the field
+    }
+
+    // Update image alt text
+    if (typeof body.imageAlt === 'string') {
+      newImageAlt = body.imageAlt || null;
+    }
+
+    // Handle legacy image upload if present
     if (body.image && body.image instanceof File && body.image.size > 0) {
       // Check if Cloudflare image API is configured
       const { hasCloudflareImageEnvVars } = await import('../../utils/env-validation');
@@ -918,8 +945,15 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Prepare church data for update
     const churchData = prepareChurchDataFromForm(validatedChurchData);
 
+    // Create the final update data with R2 image fields
+    const updateData = {
+      ...churchData,
+      ...(newImagePath !== null && { imagePath: newImagePath || null }),
+      ...(newImageAlt !== null && { imageAlt: newImageAlt }),
+    };
+
     // Update church
-    await db.update(churches).set(churchData).where(eq(churches.id, id));
+    await db.update(churches).set(updateData).where(eq(churches.id, id));
 
     // Update gatherings
     await db.delete(churchGatherings).where(eq(churchGatherings.churchId, id));

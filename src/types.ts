@@ -6,6 +6,7 @@ export interface Bindings {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   CLOUDFLARE_ACCOUNT_HASH: string;
+  IMAGES_BUCKET: R2Bucket; // R2 bucket for image storage
   // Optional environment variables
   GOOGLE_MAPS_API_KEY?: string;
   GOOGLE_SSR_KEY?: string;
@@ -13,6 +14,7 @@ export interface Bindings {
   CLOUDFLARE_IMAGES_API_TOKEN?: string;
   OPENROUTER_API_KEY?: string;
   ENVIRONMENT?: string;
+  SITE_DOMAIN?: string; // For image transformation URLs
 }
 
 // User role types (matches auth schema)
@@ -128,8 +130,10 @@ export interface Church {
   youtube: string | null;
   spotify: string | null;
   language: string;
-  imageId: string | null;
-  imageUrl: string | null;
+  imageId: string | null; // Legacy Cloudflare Images field
+  imageUrl: string | null; // Legacy Cloudflare Images field
+  imagePath: string | null; // New R2 field
+  imageAlt: string | null; // New R2 field
   createdAt: Date;
   updatedAt: Date;
   // Optional joined fields
@@ -142,6 +146,8 @@ export interface County {
   path: string | null;
   description: string | null;
   population: number | null;
+  imagePath: string | null; // New R2 field
+  imageAlt: string | null; // New R2 field
   createdAt: Date;
   updatedAt: Date;
 }

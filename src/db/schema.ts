@@ -25,8 +25,10 @@ export const churches = sqliteTable('churches', {
   youtube: text('youtube'),
   spotify: text('spotify'),
   language: text('language').notNull().default('English'),
-  imageId: text('image_id'),
-  imageUrl: text('image_url'),
+  imageId: text('image_id'), // Legacy Cloudflare Images field
+  imageUrl: text('image_url'), // Legacy Cloudflare Images field
+  imagePath: text('image_path'), // New R2 field
+  imageAlt: text('image_alt'), // New R2 field
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -37,6 +39,8 @@ export const counties = sqliteTable('counties', {
   path: text('path').unique(),
   description: text('description'),
   population: integer('population'),
+  imagePath: text('image_path'), // New R2 field
+  imageAlt: text('image_alt'), // New R2 field
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -110,8 +114,10 @@ export const pages = sqliteTable('pages', {
   title: text('title').notNull(),
   path: text('path').notNull().unique(),
   content: text('content'),
-  featuredImageId: text('featured_image_id'),
-  featuredImageUrl: text('featured_image_url'),
+  featuredImageId: text('featured_image_id'), // Legacy Cloudflare Images field
+  featuredImageUrl: text('featured_image_url'), // Legacy Cloudflare Images field
+  featuredImagePath: text('featured_image_path'), // New R2 field
+  featuredImageAlt: text('featured_image_alt'), // New R2 field
   navbarOrder: integer('navbar_order'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),

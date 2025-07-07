@@ -1,5 +1,7 @@
 import type { FC } from 'hono/jsx';
 import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, ChurchImage, County } from '../types';
+import { getImageUrl } from '../utils/r2-images';
+import { OptimizedImage } from './OptimizedImage';
 
 type ChurchFormProps = {
   action: string;
@@ -533,8 +535,62 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <p class="mt-1 text-sm text-gray-500">These notes are only visible to administrators.</p>
                 </div>
 
+                {/* R2 Featured Image */}
                 <div class="sm:col-span-6">
-                  <label class="block text-sm font-medium leading-6 text-gray-900">Church Images</label>
+                  <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Featured Image</label>
+
+                  {/* Current featured image */}
+                  {church?.imagePath && (
+                    <div class="mb-4">
+                      <div class="flex items-start gap-4">
+                        <OptimizedImage
+                          path={church.imagePath}
+                          alt={church.imageAlt || church.name}
+                          width={300}
+                          height={200}
+                          className="rounded-lg border object-cover"
+                          domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+                        />
+                        <div class="flex-1">
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Alt Text</label>
+                          <input
+                            type="text"
+                            name="imageAlt"
+                            value={church.imageAlt || ''}
+                            placeholder="Describe the image for accessibility"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onclick="if(confirm('Remove featured image?')) { document.getElementById('removeImage').value='true'; this.closest('.mb-4').style.display='none'; }"
+                            class="mt-2 text-red-600 text-sm hover:text-red-800"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      </div>
+                      <input type="hidden" id="removeImage" name="removeImage" value="false" />
+                    </div>
+                  )}
+
+                  {/* Upload new featured image */}
+                  <div>
+                    <label for="featuredImage" class="block text-sm font-medium text-gray-700 mb-2">
+                      {church?.imagePath ? 'Replace with new image' : 'Upload featured image'}
+                    </label>
+                    <input
+                      type="file"
+                      id="featuredImage"
+                      name="featuredImage"
+                      accept="image/*"
+                      class="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Supported formats: JPG, PNG, WebP. Max size: 10MB.</p>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-6">
+                  <label class="block text-sm font-medium leading-6 text-gray-900">Legacy Church Images</label>
 
                   {/* Display existing images */}
                   {images.length > 0 && (
