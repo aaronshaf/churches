@@ -163,7 +163,7 @@ export const auth = betterAuth({
 
 ```bash
 # Generate the initial schema for D1
-pnpm db:generate
+bun run db:generate
 
 # Apply schema to D1 local
 wrangler d1 execute utahchurches-dev --file=drizzle/[migration-file].sql
@@ -176,7 +176,7 @@ wrangler d1 execute utahchurches-production --file=drizzle/[migration-file].sql
 
 ```bash
 # Generate Better-Auth tables in D1
-pnpm better-auth:schema
+bun run better-auth:schema
 
 # Or manually create using their SQL
 wrangler d1 execute utahchurches-production --file=auth-schema.sql
@@ -195,7 +195,7 @@ sqlite3 your-turso-db.sqlite3 .dump > turso-data.sql
 **Method 2: Application-Level Export**
 ```bash
 # Create a one-time export script
-pnpm tsx scripts/export-turso-data.ts
+bun run tsx scripts/export-turso-data.ts
 ```
 
 ### 4.2 Clean Export Data (For You)
@@ -252,7 +252,7 @@ wrangler deploy --name=utahchurches-staging
 
 ```bash
 # Deploy the updated code
-pnpm deploy
+bun run deploy
 
 # Verify deployment
 # Check all critical paths
@@ -359,7 +359,7 @@ async function validateMigration(d1: D1Database) {
 ```bash
 # Edit src/db/schema.ts
 # Generate migration
-pnpm db:generate
+bun run db:generate
 
 # Apply to local D1
 wrangler d1 execute utahchurches-dev --file=drizzle/[new-migration].sql
@@ -414,7 +414,7 @@ wrangler rollback
 
 # Or redeploy previous version
 git checkout previous-working-commit
-pnpm deploy
+bun run deploy
 ```
 
 ### Data Rollback (For You)

@@ -5,7 +5,7 @@ This guide walks you through setting up all the necessary services and configura
 ## Prerequisites
 
 - Node.js 18+ installed
-- pnpm 10.11.0+ installed (`npm install -g pnpm`)
+- bun 1.0+ installed (see [bun.sh](https://bun.sh) for installation)
 - Git installed
 - A domain name (optional, but recommended for production)
 
@@ -67,13 +67,13 @@ git clone https://github.com/yourusername/churches.git
 cd churches
 
 # Install dependencies
-pnpm install
+bun install
 
 # Push the schema to your database
-pnpm db:push
+bun run db:push
 
 # Create better-auth tables
-pnpm better-auth:schema
+bun run better-auth:schema
 ```
 
 ## 3. Google Services Setup
@@ -203,7 +203,7 @@ Enter each value when prompted.
 
 ```bash
 # Deploy to Cloudflare Workers
-pnpm deploy
+bun run deploy
 ```
 
 Note the deployment URL - this will be your application URL.
@@ -239,7 +239,7 @@ Note the deployment URL - this will be your application URL.
 ### Seed Initial Admin (Alternative)
 If you need to manually create an admin user:
 ```bash
-pnpm db:seed
+bun run db:seed
 ```
 
 ## 9. Custom Domain Setup (Optional)
@@ -265,18 +265,18 @@ wrangler tail
 ### Database Management
 ```bash
 # View database in browser
-pnpm db:studio
+bun run db:studio
 
 # Generate migrations after schema changes
-pnpm db:generate
+bun run db:generate
 
 # Push schema changes
-pnpm db:push
+bun run db:push
 ```
 
 ### Update Dependencies
 ```bash
-pnpm update
+bun update
 ```
 
 ## Troubleshooting

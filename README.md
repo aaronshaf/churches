@@ -30,7 +30,7 @@ This application provides a comprehensive directory of evangelical churches orga
 - **ORM**: Drizzle ORM
 - **Authentication**: Better-auth (self-hosted, Google OAuth)
 - **Styling**: Tailwind CSS (via CDN)
-- **Package Manager**: pnpm
+- **Package Manager**: bun
 - **AI Integration**: OpenRouter API with Google Gemini
 - **Image Storage**: Cloudflare Images
 
@@ -41,7 +41,7 @@ For detailed setup instructions including all third-party services, see [SETUP.m
 ### Prerequisites
 
 - Node.js 18+
-- pnpm 10.11.0+
+- bun 1.0+
 - Cloudflare account
 - Turso database account
 - Google OAuth credentials (for authentication)
@@ -70,10 +70,10 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Start development server
-pnpm dev
+bun run dev
 
 # The app will be available at http://localhost:8787
 ```
@@ -82,15 +82,15 @@ pnpm dev
 
 ```bash
 # Development
-pnpm dev              # Start development server
+bun run dev              # Start development server
 
 # Database
-pnpm db:generate      # Generate Drizzle migrations
-pnpm db:push         # Push schema changes to database
-pnpm db:studio       # Open Drizzle Studio
+bun run db:generate      # Generate Drizzle migrations
+bun run db:push         # Push schema changes to database
+bun run db:studio       # Open Drizzle Studio
 
 # Deployment
-pnpm deploy          # Deploy to Cloudflare Workers
+bun run deploy          # Deploy to Cloudflare Workers
 ```
 
 ## Project Structure
@@ -237,7 +237,7 @@ The application uses better-auth for self-hosted authentication with Google OAut
 3. **Set Up Database Schema**
    ```bash
    # Create better-auth tables
-   pnpm better-auth:schema
+   bun run better-auth:schema
    ```
 
 4. **Production Setup**
@@ -269,7 +269,7 @@ wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
 
 # Deploy
-pnpm deploy
+bun run deploy
 ```
 
 ## Contributing

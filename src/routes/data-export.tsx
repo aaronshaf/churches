@@ -731,59 +731,64 @@ dataExportRoutes.get('/data', async (c) => {
                   </a>
                 </div>
 
-
                 {/* MCP Server Section */}
                 <div class="mt-10">
-                  <h2 class="text-2xl font-bold text-gray-900 mb-6">AI/Bot Integration (MCP)</h2>
-                  
-                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <div class="mb-4">
-                      <h3 class="text-lg font-semibold text-gray-900 mb-2">Model Context Protocol (MCP) Server</h3>
-                      <p class="text-sm text-gray-600 mb-4">
-                        Integrate our church data into your AI assistants and bots using the standardized MCP protocol.
-                      </p>
+                  <h2 class="text-2xl font-bold text-gray-900 mb-4">Bot Integration (MCP)</h2>
+                  <p class="text-gray-600 mb-6">
+                    Integrate our church data into your AI assistants and bots using the standardized Model Context
+                    Protocol.
+                  </p>
+
+                  <div class="space-y-6">
+                    <div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-3">Available MCP Tools</h3>
+                      <ul class="text-sm text-gray-600 space-y-2">
+                        <li class="flex items-start">
+                          <span class="text-primary-600 mr-2">•</span>
+                          <span>
+                            <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_search</code> - Search churches
+                            with filters for status, county, and affiliation
+                          </span>
+                        </li>
+                        <li class="flex items-start">
+                          <span class="text-primary-600 mr-2">•</span>
+                          <span>
+                            <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">county_browser</code> - Browse
+                            churches by county with statistics
+                          </span>
+                        </li>
+                        <li class="flex items-start">
+                          <span class="text-primary-600 mr-2">•</span>
+                          <span>
+                            <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">network_explorer</code> - Explore
+                            church networks and affiliations
+                          </span>
+                        </li>
+                        <li class="flex items-start">
+                          <span class="text-primary-600 mr-2">•</span>
+                          <span>
+                            <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_details</code> - Get
+                            comprehensive information about a specific church
+                          </span>
+                        </li>
+                      </ul>
                     </div>
 
-                    <div class="space-y-4">
-                      <div>
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">Available MCP Tools:</h4>
-                        <ul class="text-sm text-gray-600 space-y-1">
-                          <li class="flex items-start">
-                            <span class="text-primary-600 mr-2">•</span>
-                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_search</code> - Search churches with filters for status, county, and affiliation</span>
-                          </li>
-                          <li class="flex items-start">
-                            <span class="text-primary-600 mr-2">•</span>
-                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">county_browser</code> - Browse churches by county with statistics</span>
-                          </li>
-                          <li class="flex items-start">
-                            <span class="text-primary-600 mr-2">•</span>
-                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">network_explorer</code> - Explore church networks and affiliations</span>
-                          </li>
-                          <li class="flex items-start">
-                            <span class="text-primary-600 mr-2">•</span>
-                            <span><code class="bg-gray-100 px-1 py-0.5 rounded text-xs">church_details</code> - Get comprehensive information about a specific church</span>
-                          </li>
-                        </ul>
+                    <div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-3">MCP Endpoints</h3>
+                      <div class="bg-gray-50 rounded border border-gray-200 p-3 font-mono text-xs">
+                        <div class="text-gray-700">GET https://utahchurches.org/mcp/tools</div>
+                        <div class="text-gray-700">POST https://utahchurches.org/mcp/tools/call</div>
                       </div>
+                    </div>
 
-                      <div>
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">MCP Endpoints:</h4>
-                        <div class="bg-white rounded border border-gray-300 p-3 font-mono text-xs">
-                          <div class="text-gray-600">GET https://utahchurches.org/mcp/tools</div>
-                          <div class="text-gray-600">POST https://utahchurches.org/mcp/tools/call</div>
-                        </div>
+                    <div>
+                      <h3 class="text-base font-semibold text-gray-900 mb-3">REST API Endpoints</h3>
+                      <div class="bg-gray-50 rounded border border-gray-200 p-3 font-mono text-xs space-y-1">
+                        <div class="text-gray-700">GET /api/churches/search?q=&lt;query&gt;</div>
+                        <div class="text-gray-700">GET /api/counties</div>
+                        <div class="text-gray-700">GET /api/networks</div>
                       </div>
-
-                      <div>
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">REST API Endpoints:</h4>
-                        <div class="bg-white rounded border border-gray-300 p-3 font-mono text-xs space-y-1">
-                          <div class="text-gray-600">GET /api/churches/search?q=&lt;query&gt;</div>
-                          <div class="text-gray-600">GET /api/counties</div>
-                          <div class="text-gray-600">GET /api/networks</div>
-                        </div>
-                      </div>
-
                     </div>
                   </div>
                 </div>

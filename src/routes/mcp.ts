@@ -1,4 +1,4 @@
-import { eq, like, sql } from 'drizzle-orm';
+import { and, eq, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createDbWithContext } from '../db';
@@ -8,11 +8,14 @@ import type { Bindings } from '../types';
 export const mcpRoutes = new Hono<{ Bindings: Bindings }>();
 
 // Enable CORS for MCP clients
-mcpRoutes.use('*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'OPTIONS'],
-  allowHeaders: ['Content-Type'],
-}));
+mcpRoutes.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
+  })
+);
 
 // MCP Protocol: List available tools
 mcpRoutes.get('/tools', (c) => {
@@ -26,29 +29,29 @@ mcpRoutes.get('/tools', (c) => {
           properties: {
             query: {
               type: 'string',
-              description: 'Search query for church name or keywords'
+              description: 'Search query for church name or keywords',
             },
             county: {
               type: 'string',
-              description: 'Filter by county name (e.g., "Salt Lake", "Utah")'
+              description: 'Filter by county name (e.g., "Salt Lake", "Utah")',
             },
             status: {
               type: 'string',
               description: 'Filter by church status',
-              enum: ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed']
+              enum: ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed'],
             },
             affiliation: {
               type: 'string',
-              description: 'Filter by church network/affiliation name'
+              description: 'Filter by church network/affiliation name',
             },
             limit: {
               type: 'number',
               description: 'Maximum number of results to return (default: 20)',
               minimum: 1,
-              maximum: 100
-            }
-          }
-        }
+              maximum: 100,
+            },
+          },
+        },
       },
       {
         name: 'county_browser',
@@ -58,14 +61,14 @@ mcpRoutes.get('/tools', (c) => {
           properties: {
             county: {
               type: 'string',
-              description: 'County name or path (e.g., "Salt Lake" or "salt-lake")'
+              description: 'County name or path (e.g., "Salt Lake" or "salt-lake")',
             },
             include_churches: {
               type: 'boolean',
-              description: 'Include list of churches in the county (default: true)'
-            }
-          }
-        }
+              description: 'Include list of churches in the county (default: true)',
+            },
+          },
+        },
       },
       {
         name: 'network_explorer',
@@ -75,35 +78,36 @@ mcpRoutes.get('/tools', (c) => {
           properties: {
             network: {
               type: 'string',
-              description: 'Network/affiliation name or path'
+              description: 'Network/affiliation name or path',
             },
             include_churches: {
               type: 'boolean',
-              description: 'Include list of churches in the network (default: true)'
+              description: 'Include list of churches in the network (default: true)',
             },
             status_filter: {
               type: 'string',
               description: 'Filter networks by status',
-              enum: ['Listed', 'Unlisted', 'Heretical']
-            }
-          }
-        }
+              enum: ['Listed', 'Unlisted', 'Heretical'],
+            },
+          },
+        },
       },
       {
         name: 'church_details',
-        description: 'Get comprehensive information about a specific church including location, contacts, and affiliations',
+        description:
+          'Get comprehensive information about a specific church including location, contacts, and affiliations',
         inputSchema: {
           type: 'object',
           properties: {
             identifier: {
               type: 'string',
-              description: 'Church ID, name, or URL path'
-            }
+              description: 'Church ID, name, or URL path',
+            },
           },
-          required: ['identifier']
-        }
-      }
-    ]
+          required: ['identifier'],
+        },
+      },
+    ],
   });
 });
 
@@ -132,7 +136,7 @@ async function handleChurchSearch(c: any, args: any) {
   const db = createDbWithContext(c);
   const { query = '', county, status, affiliation, limit = 20 } = args;
 
-  let churchQuery = db
+  const churchQuery = db
     .select({
       id: churches.id,
       name: churches.name,
@@ -168,21 +172,12 @@ async function handleChurchSearch(c: any, args: any) {
   }
 
   // Build WHERE clause
-  if (conditions.length > 0) {
-    if (conditions.length === 1) {
-      churchQuery = churchQuery.where(conditions[0]);
-    } else {
-      churchQuery = churchQuery.where(
-        sql`${conditions.reduce((acc, condition, index) => 
-          index === 0 ? condition : sql`${acc} AND ${condition}`
-        )}`
-      );
-    }
-  }
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   let results = await churchQuery
+    .where(whereClause)
     .orderBy(
-      query && query.length >= 2 
+      query && query.length >= 2
         ? sql`CASE 
             WHEN ${churches.name} LIKE ${query + '%'} COLLATE NOCASE THEN 1 
             WHEN ${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE THEN 2 
@@ -195,7 +190,7 @@ async function handleChurchSearch(c: any, args: any) {
 
   // Affiliation filter (post-query due to many-to-many relationship)
   if (affiliation) {
-    const churchIds = results.map(c => c.id);
+    const churchIds = results.map((c) => c.id);
     if (churchIds.length > 0) {
       const affiliatedChurches = await db
         .select({ churchId: churchAffiliations.churchId })
@@ -206,24 +201,29 @@ async function handleChurchSearch(c: any, args: any) {
         )
         .all();
 
-      const affiliatedChurchIds = new Set(affiliatedChurches.map(ac => ac.churchId));
-      results = results.filter(c => affiliatedChurchIds.has(c.id));
+      const affiliatedChurchIds = new Set(affiliatedChurches.map((ac) => ac.churchId));
+      results = results.filter((c) => affiliatedChurchIds.has(c.id));
     }
   }
 
   return c.json({
-    content: [{
-      type: 'text',
-      text: `Found ${results.length} church(es) matching your criteria:\n\n${results.map(church => 
-        `**${church.name}** (${church.status})\n` +
-        `County: ${church.countyName || 'Unknown'}\n` +
-        `Address: ${church.gatheringAddress || 'Not specified'}\n` +
-        `Website: ${church.website || 'None'}\n` +
-        `Contact: ${church.phone || church.email || 'None'}\n` +
-        (church.notes ? `Notes: ${church.notes}\n` : '') +
-        `---`
-      ).join('\n\n')}`
-    }]
+    content: [
+      {
+        type: 'text',
+        text: `Found ${results.length} church(es) matching your criteria:\n\n${results
+          .map(
+            (church) =>
+              `**${church.name}** (${church.status})\n` +
+              `County: ${church.countyName || 'Unknown'}\n` +
+              `Address: ${church.gatheringAddress || 'Not specified'}\n` +
+              `Website: ${church.website || 'None'}\n` +
+              `Contact: ${church.phone || church.email || 'None'}\n` +
+              (church.notes ? `Notes: ${church.notes}\n` : '') +
+              `---`
+          )
+          .join('\n\n')}`,
+      },
+    ],
   });
 }
 
@@ -254,7 +254,8 @@ async function handleCountyBrowser(c: any, args: any) {
       return c.json({ error: 'County not found' }, 404);
     }
 
-    let response = `**${countyData.name} County**\n\n` +
+    let response =
+      `**${countyData.name} County**\n\n` +
       `Population: ${countyData.population?.toLocaleString() || 'Unknown'}\n` +
       `Churches: ${countyData.churchCount}\n`;
 
@@ -277,15 +278,18 @@ async function handleCountyBrowser(c: any, args: any) {
         .all();
 
       response += `\n**Churches in ${countyData.name} County:**\n\n`;
-      response += countyChurches.map(church => 
-        `• **${church.name}** (${church.status})\n` +
-        `  Address: ${church.gatheringAddress || 'Not specified'}\n` +
-        `  Website: ${church.website || 'None'}`
-      ).join('\n\n');
+      response += countyChurches
+        .map(
+          (church) =>
+            `• **${church.name}** (${church.status})\n` +
+            `  Address: ${church.gatheringAddress || 'Not specified'}\n` +
+            `  Website: ${church.website || 'None'}`
+        )
+        .join('\n\n');
     }
 
     return c.json({
-      content: [{ type: 'text', text: response }]
+      content: [{ type: 'text', text: response }],
     });
   } else {
     // List all counties with church counts
@@ -302,14 +306,17 @@ async function handleCountyBrowser(c: any, args: any) {
       .orderBy(counties.name)
       .all();
 
-    const response = `**Utah Counties with Churches**\n\n${allCounties.map(county => 
-      `**${county.name} County**\n` +
-      `Population: ${county.population?.toLocaleString() || 'Unknown'}\n` +
-      `Churches: ${county.churchCount}`
-    ).join('\n\n')}`;
+    const response = `**Utah Counties with Churches**\n\n${allCounties
+      .map(
+        (county) =>
+          `**${county.name} County**\n` +
+          `Population: ${county.population?.toLocaleString() || 'Unknown'}\n` +
+          `Churches: ${county.churchCount}`
+      )
+      .join('\n\n')}`;
 
     return c.json({
-      content: [{ type: 'text', text: response }]
+      content: [{ type: 'text', text: response }],
     });
   }
 }
@@ -320,7 +327,7 @@ async function handleNetworkExplorer(c: any, args: any) {
 
   if (network) {
     // Get specific network
-    let networkQuery = db
+    const networkQuery = db
       .select({
         id: affiliations.id,
         name: affiliations.name,
@@ -343,8 +350,8 @@ async function handleNetworkExplorer(c: any, args: any) {
       return c.json({ error: 'Network not found' }, 404);
     }
 
-    let response = `**${networkData.name}** (${networkData.status})\n\n` +
-      `Member Churches: ${networkData.churchCount}\n`;
+    let response =
+      `**${networkData.name}** (${networkData.status})\n\n` + `Member Churches: ${networkData.churchCount}\n`;
 
     if (networkData.website) {
       response += `Website: ${networkData.website}\n`;
@@ -372,16 +379,19 @@ async function handleNetworkExplorer(c: any, args: any) {
         .all();
 
       response += `\n**Member Churches:**\n\n`;
-      response += networkChurches.map(church => 
-        `• **${church.name}** (${church.status})\n` +
-        `  County: ${church.countyName || 'Unknown'}\n` +
-        `  Address: ${church.gatheringAddress || 'Not specified'}\n` +
-        `  Website: ${church.website || 'None'}`
-      ).join('\n\n');
+      response += networkChurches
+        .map(
+          (church) =>
+            `• **${church.name}** (${church.status})\n` +
+            `  County: ${church.countyName || 'Unknown'}\n` +
+            `  Address: ${church.gatheringAddress || 'Not specified'}\n` +
+            `  Website: ${church.website || 'None'}`
+        )
+        .join('\n\n');
     }
 
     return c.json({
-      content: [{ type: 'text', text: response }]
+      content: [{ type: 'text', text: response }],
     });
   } else {
     // List all networks with church counts
@@ -398,19 +408,23 @@ async function handleNetworkExplorer(c: any, args: any) {
 
     const allNetworks = await (status_filter
       ? networkQueryBase.where(eq(affiliations.status, status_filter))
-      : networkQueryBase)
+      : networkQueryBase
+    )
       .groupBy(affiliations.id)
       .orderBy(affiliations.name)
       .all();
 
-    const response = `**Church Networks & Affiliations**\n\n${allNetworks.map(network => 
-      `**${network.name}** (${network.status})\n` +
-      `Member Churches: ${network.churchCount}\n` +
-      `Website: ${network.website || 'None'}`
-    ).join('\n\n')}`;
+    const response = `**Church Networks & Affiliations**\n\n${allNetworks
+      .map(
+        (network) =>
+          `**${network.name}** (${network.status})\n` +
+          `Member Churches: ${network.churchCount}\n` +
+          `Website: ${network.website || 'None'}`
+      )
+      .join('\n\n')}`;
 
     return c.json({
-      content: [{ type: 'text', text: response }]
+      content: [{ type: 'text', text: response }],
     });
   }
 }
@@ -469,9 +483,8 @@ async function handleChurchDetails(c: any, args: any) {
     .where(eq(churchAffiliations.churchId, church.id))
     .all();
 
-  let response = `**${church.name}**\n\n` +
-    `Status: ${church.status}\n` +
-    `County: ${church.countyName || 'Unknown'}\n`;
+  let response =
+    `**${church.name}**\n\n` + `Status: ${church.status}\n` + `County: ${church.countyName || 'Unknown'}\n`;
 
   if (church.gatheringAddress) {
     response += `Address: ${church.gatheringAddress}\n`;
@@ -497,9 +510,9 @@ async function handleChurchDetails(c: any, args: any) {
 
   if (churchAffiliationsData.length > 0) {
     response += '\n**Networks & Affiliations:**\n';
-    response += churchAffiliationsData.map(aff => 
-      `• ${aff.name} (${aff.status})${aff.website ? ` - ${aff.website}` : ''}`
-    ).join('\n');
+    response += churchAffiliationsData
+      .map((aff) => `• ${aff.name} (${aff.status})${aff.website ? ` - ${aff.website}` : ''}`)
+      .join('\n');
   }
 
   if (church.language) {
@@ -511,13 +524,12 @@ async function handleChurchDetails(c: any, args: any) {
   }
 
   if (church.lastUpdated) {
-    const date = typeof church.lastUpdated === 'number' 
-      ? new Date(church.lastUpdated * 1000)
-      : new Date(church.lastUpdated);
+    const date =
+      typeof church.lastUpdated === 'number' ? new Date(church.lastUpdated * 1000) : new Date(church.lastUpdated);
     response += `\n*Last updated: ${date.toLocaleDateString()}*`;
   }
 
   return c.json({
-    content: [{ type: 'text', text: response }]
+    content: [{ type: 'text', text: response }],
   });
 }

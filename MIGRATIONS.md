@@ -17,7 +17,7 @@ We use a simple dev/production setup with D1 databases:
 vim src/db/schema.ts
 
 # Generate migration SQL
-pnpm db:generate
+bun run db:generate
 
 # This creates a new file like: drizzle/0005_your_migration.sql
 ```
@@ -29,7 +29,7 @@ pnpm db:generate
 npx wrangler d1 execute utahchurches-production --local --file=./drizzle/0005_your_migration.sql
 
 # Test your changes locally
-pnpm dev
+bun run dev
 ```
 
 ### 3. Applying Migrations to Production
@@ -64,7 +64,7 @@ git clone https://github.com/yourusername/churches.git
 cd churches
 
 # 2. Install dependencies
-pnpm install
+bun install
 
 # 3. Create your D1 databases
 wrangler d1 create utahchurches-production
@@ -85,7 +85,7 @@ cp .dev.vars.example .dev.vars
 # Edit .dev.vars with your credentials
 
 # 7. Run the development server
-pnpm dev
+bun run dev
 ```
 
 ## Best Practices

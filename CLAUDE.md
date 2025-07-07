@@ -22,7 +22,7 @@ Database name: `utahchurches`
 - **Maps**: Google Maps JavaScript API (best coverage for Utah)
 
 ### Development Tools
-- **Package Manager**: pnpm v10.11.0 (faster, more efficient than npm)
+- **Package Manager**: bun (ultra-fast JavaScript runtime and package manager)
 - **Local Dev**: Wrangler (Cloudflare's CLI)
 - **TypeScript**: Built-in support via Hono
 - **Code Search**: ast-grep (structural code search, faster than regex)
@@ -44,7 +44,7 @@ Database name: `utahchurches`
 
 ## Development Setup
 
-This project uses pnpm as the package manager. 
+This project uses bun as the package manager and JavaScript runtime. 
 
 ### Environment Variables
 
@@ -68,29 +68,29 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
-# Start development server (runs at http://utahchurches.localhost:8787)
-pnpm dev
+# Start development server (runs at http://localhost:8787)
+bun dev
 
 # Deploy to Cloudflare Workers
-pnpm deploy
+bun deploy
 
 # Database commands
-pnpm db:generate  # Generate Drizzle migrations
-pnpm db:migrate   # Apply pending migrations (STANDARD WAY)
-pnpm db:push      # Push schema to Turso (development only)
-pnpm db:studio    # Open Drizzle Studio
-pnpm db:seed      # Seed admin user
-pnpm db:reset-admin  # Reset admin password
+bun db:generate  # Generate Drizzle migrations
+bun db:migrate   # Apply pending migrations (STANDARD WAY)
+bun db:push      # Push schema to Turso (development only)
+bun db:studio    # Open Drizzle Studio
+bun db:seed      # Seed admin user
+bun db:reset-admin  # Reset admin password
 
 # Initialize standard migrations (one-time setup)
-pnpm tsx scripts/setup-standard-migrations.ts
+bun tsx scripts/setup-standard-migrations.ts
 
 # Better-Auth setup (self-hosted authentication)
-pnpm better-auth:setup    # Configure environment variables for better-auth
-pnpm better-auth:schema   # Create auth database tables  
-pnpm better-auth:test     # Show testing instructions
+bun better-auth:setup    # Configure environment variables for better-auth
+bun better-auth:schema   # Create auth database tables  
+bun better-auth:test     # Show testing instructions
 
 # Code search with ast-grep
 ast-grep --pattern 'app.get($_, $_)' src/  # Find all GET routes
