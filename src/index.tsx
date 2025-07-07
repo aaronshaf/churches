@@ -447,13 +447,13 @@ app.get('/', async (c) => {
             )}
 
             {/* Header */}
-            <div class="mb-4">
+            <div class="mb-2 sm:mb-4">
               <h1 class="sr-only">Churches</h1>
               <p class="sr-only">A directory of evangelical churches</p>
             </div>
 
             {/* Map Card */}
-            <div class="mb-8">
+            <div class="mb-4 sm:mb-8">
               <a
                 href="/map"
                 class="block bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 p-8 text-white group"
