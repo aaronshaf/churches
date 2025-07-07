@@ -12,7 +12,6 @@ export interface Bindings {
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_IMAGES_API_TOKEN?: string;
   OPENROUTER_API_KEY?: string;
-  YOUTUBE_API_KEY?: string;
   ENVIRONMENT?: string;
 }
 

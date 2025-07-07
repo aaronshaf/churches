@@ -13,7 +13,6 @@ import {
   churchImages,
   comments,
   counties,
-  sermons,
   settings,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
@@ -772,58 +771,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               }
             });
             
-            // Update Sermons function for admins and contributors
-            ${
-              user && (user.role === 'admin' || user.role === 'contributor') && church.youtube
-                ? `
-            async function updateSermons() {
-              const btn = document.getElementById('update-sermons-btn');
-              const text = document.getElementById('update-sermons-text');
-              const message = document.getElementById('update-sermons-message');
-              
-              // Disable button and show loading state
-              btn.disabled = true;
-              text.innerHTML = '<span class="animate-spin mr-2">⏳</span>Extracting sermon...';
-              message.className = 'text-sm text-blue-600';
-              message.textContent = 'This may take 30-60 seconds...';
-              message.classList.remove('hidden');
-              
-              try {
-                const response = await fetch('/api/churches/${church.id}/extract-sermon', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                  if (data.sermon) {
-                    message.className = 'text-sm text-green-600';
-                    message.textContent = \`✅ Found sermon: "\${data.sermon.title}"\${data.sermon.passage ? \` - \${data.sermon.passage}\` : ''}\`;
-                  } else {
-                    message.className = 'text-sm text-green-600';
-                    message.textContent = '✅ Sermon updated successfully';
-                  }
-                  // Refresh page after 3 seconds to show new sermon
-                  setTimeout(() => window.location.reload(), 3000);
-                } else {
-                  message.className = 'text-sm text-red-600';
-                  message.textContent = \`❌ \${data.error}\`;
-                }
-              } catch (error) {
-                message.className = 'text-sm text-red-600';
-                message.textContent = '❌ Failed to extract sermon';
-              } finally {
-                // Re-enable button
-                btn.disabled = false;
-                text.textContent = 'Update Sermons';
-              }
-            }
-            `
-                : ''
-            }
             
             // Edit hotkey for admins and contributors
             ${
