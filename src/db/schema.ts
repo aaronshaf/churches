@@ -1,5 +1,5 @@
-import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const churches = sqliteTable('churches', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -29,6 +29,9 @@ export const churches = sqliteTable('churches', {
   imageUrl: text('image_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  lastSermonExtractedAt: integer('last_sermon_extracted_at', { mode: 'timestamp' }),
+  lastSermonVideoId: text('last_sermon_video_id'),
+  sermonCount: integer('sermon_count').default(0),
 });
 
 export const counties = sqliteTable('counties', {
@@ -181,6 +184,25 @@ export const comments = sqliteTable('comments', {
     .default('pending'),
   reviewedBy: text('reviewed_by'),
   reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const sermons = sqliteTable('sermons', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  churchId: integer('church_id')
+    .notNull()
+    .references(() => churches.id),
+  videoId: text('video_id').notNull().unique(),
+  youtubeTitle: text('youtube_title').notNull(),
+  aiGeneratedTitle: text('ai_generated_title'),
+  mainBiblePassage: text('main_bible_passage'),
+  videoUrl: text('video_url').notNull(),
+  durationSeconds: integer('duration_seconds'),
+  publishedAt: integer('published_at', { mode: 'timestamp' }).notNull(),
+  transcriptText: text('transcript_text'),
+  processedAt: integer('processed_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  processedBy: text('processed_by'), // User ID from better-auth
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });

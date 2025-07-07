@@ -13,6 +13,7 @@ import {
   churchImages,
   comments,
   counties,
+  sermons,
   settings,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
@@ -596,6 +597,26 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </div>
                   )}
 
+                  {/* Admin Actions */}
+                  {user && (user.role === 'admin' || user.role === 'contributor') && church.youtube && (
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h3 class="text-lg font-semibold text-blue-900 mb-2">Admin Actions</h3>
+                      <div class="space-y-2">
+                        <button
+                          id="update-sermons-btn"
+                          onclick="updateSermons()"
+                          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span id="update-sermons-text">Update Sermons</span>
+                        </button>
+                        <p class="text-xs text-blue-700">
+                          Finds the most recent video over 30 minutes and extracts sermon information using AI.
+                        </p>
+                        <div id="update-sermons-message" class="text-sm hidden"></div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Comments Section */}
                   {(() => {
                     if (!user) return null;
@@ -750,6 +771,59 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                 closeImageModal();
               }
             });
+            
+            // Update Sermons function for admins and contributors
+            ${
+              user && (user.role === 'admin' || user.role === 'contributor') && church.youtube
+                ? `
+            async function updateSermons() {
+              const btn = document.getElementById('update-sermons-btn');
+              const text = document.getElementById('update-sermons-text');
+              const message = document.getElementById('update-sermons-message');
+              
+              // Disable button and show loading state
+              btn.disabled = true;
+              text.innerHTML = '<span class="animate-spin mr-2">⏳</span>Extracting sermon...';
+              message.className = 'text-sm text-blue-600';
+              message.textContent = 'This may take 30-60 seconds...';
+              message.classList.remove('hidden');
+              
+              try {
+                const response = await fetch('/api/churches/${church.id}/extract-sermon', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                  if (data.sermon) {
+                    message.className = 'text-sm text-green-600';
+                    message.textContent = \`✅ Found sermon: "\${data.sermon.title}"\${data.sermon.passage ? \` - \${data.sermon.passage}\` : ''}\`;
+                  } else {
+                    message.className = 'text-sm text-green-600';
+                    message.textContent = '✅ Sermon updated successfully';
+                  }
+                  // Refresh page after 3 seconds to show new sermon
+                  setTimeout(() => window.location.reload(), 3000);
+                } else {
+                  message.className = 'text-sm text-red-600';
+                  message.textContent = \`❌ \${data.error}\`;
+                }
+              } catch (error) {
+                message.className = 'text-sm text-red-600';
+                message.textContent = '❌ Failed to extract sermon';
+              } finally {
+                // Re-enable button
+                btn.disabled = false;
+                text.textContent = 'Update Sermons';
+              }
+            }
+            `
+                : ''
+            }
             
             // Edit hotkey for admins and contributors
             ${
