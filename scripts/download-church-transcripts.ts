@@ -5,7 +5,7 @@
  *
  * This script downloads transcripts from church YouTube channels using yt-dlp.
  * It fetches church data from the public JSON API, finds YouTube channels,
- * and downloads transcripts for videos/livestreams from the last week.
+ * and downloads transcripts with metadata stored in YAML format.
  *
  * Usage: bun scripts/download-church-transcripts.ts
  *
@@ -16,13 +16,16 @@
 
 import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 
 // Configuration
 const CHURCHES_JSON_URL = 'https://utahchurches.com/churches.json';
 const TRANSCRIPT_DIR = './transcripts';
-const DAYS_BACK = 7; // Download transcripts from last 7 days
-const MAX_VIDEOS_PER_CHANNEL = 10; // Limit videos per channel
+const METADATA_FILE = './transcripts/metadata.yaml';
+const DAYS_BACK = 365; // Download transcripts from past year
+const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
+const MAX_TRANSCRIPTS_PER_RUN = 10; // Global limit per script run
 
 interface ChurchData {
   id: number;
@@ -35,6 +38,24 @@ interface ChurchData {
 interface ChurchesResponse {
   total: number;
   churches: ChurchData[];
+}
+
+interface VideoMetadata {
+  videoId: string;
+  title: string;
+  description: string;
+  uploadDate: string;
+  url: string;
+  churchId: number;
+  churchName: string;
+  churchPath: string;
+  transcriptFile: string;
+  downloadedAt: string;
+}
+
+interface MetadataStore {
+  videos: VideoMetadata[];
+  lastUpdated: string;
 }
 
 /**
@@ -70,6 +91,35 @@ async function ensureTranscriptDir() {
     console.error('❌ Failed to create transcript directory:', error);
     process.exit(1);
   }
+}
+
+/**
+ * Load metadata from YAML file
+ */
+async function loadMetadata(): Promise<MetadataStore> {
+  try {
+    const content = await fs.readFile(METADATA_FILE, 'utf-8');
+    return yaml.load(content) as MetadataStore;
+  } catch (error) {
+    // File doesn't exist or is invalid, return empty store
+    return {
+      videos: [],
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Save metadata to YAML file
+ */
+async function saveMetadata(metadata: MetadataStore): Promise<void> {
+  metadata.lastUpdated = new Date().toISOString();
+  const yamlContent = yaml.dump(metadata, {
+    indent: 2,
+    lineWidth: -1, // Disable line wrapping
+    noRefs: true,
+  });
+  await fs.writeFile(METADATA_FILE, yamlContent, 'utf-8');
 }
 
 /**
@@ -156,12 +206,19 @@ function runYtDlp(args: string[]): Promise<{ success: boolean; output: string; e
 
 /**
  * Download transcripts for a single church's YouTube channel
+ * Returns the number of transcripts downloaded
  */
-async function downloadChurchTranscripts(church: ChurchData): Promise<void> {
+async function downloadChurchTranscripts(
+  church: ChurchData,
+  metadata: MetadataStore,
+  globalDownloadCount: number
+): Promise<number> {
   if (!church.youtube) {
     console.log(`⏭️  ${church.name}: No YouTube channel`);
-    return;
+    return 0;
   }
+
+  let downloadsInThisChurch = 0;
 
   console.log(`\n🔍 Processing: ${church.name}`);
   console.log(`   YouTube: ${church.youtube}`);
@@ -177,13 +234,13 @@ async function downloadChurchTranscripts(church: ChurchData): Promise<void> {
   oneWeekAgo.setDate(oneWeekAgo.getDate() - DAYS_BACK);
   const dateFilter = oneWeekAgo.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-  // First, get video list from the last week
+  // First, get video list from the past year
   console.log(`   📋 Getting videos from last ${DAYS_BACK} days...`);
 
   const listArgs = [
     '--flat-playlist',
     '--print',
-    '%(id)s %(title)s %(upload_date)s',
+    '%(id)s|||%(title)s|||%(upload_date)s|||%(description)s',
     '--dateafter',
     dateFilter,
     '--playlist-end',
@@ -216,20 +273,33 @@ async function downloadChurchTranscripts(church: ChurchData): Promise<void> {
 
   // Process each video
   for (const videoLine of videoLines) {
-    const parts = videoLine.trim().split(' ');
-    if (parts.length < 3) continue;
+    // Check global limit
+    if (globalDownloadCount + downloadsInThisChurch >= MAX_TRANSCRIPTS_PER_RUN) {
+      console.log(`   🛑 Reached global limit of ${MAX_TRANSCRIPTS_PER_RUN} transcripts per run`);
+      break;
+    }
+
+    const parts = videoLine.trim().split('|||');
+    if (parts.length < 4) continue;
 
     const videoId = parts[0];
-    const _uploadDate = parts[parts.length - 1]; // Last part is date
-    const videoTitle = parts.slice(1, -1).join(' '); // Everything between ID and date
+    const videoTitle = parts[1];
+    const uploadDate = parts[2];
+    const description = parts[3] || '';
+
+    // Check if we already have this video in metadata
+    if (metadata.videos.some((v) => v.videoId === videoId)) {
+      console.log(`   ⏭️  Already in metadata: ${videoTitle.substring(0, 50)}...`);
+      continue;
+    }
 
     const filename = generateTranscriptFilename(church.path, videoId, videoTitle);
     const filepath = path.join(TRANSCRIPT_DIR, filename);
 
-    // Check if transcript already exists
+    // Check if transcript file already exists
     try {
       await fs.access(filepath);
-      console.log(`   ⏭️  Already exists: ${filename}`);
+      console.log(`   ⏭️  File exists: ${filename}`);
       continue;
     } catch {
       // File doesn't exist, proceed with download
@@ -271,6 +341,26 @@ async function downloadChurchTranscripts(church: ChurchData): Promise<void> {
 
       if (foundTranscript) {
         console.log(`   ✅ Saved: ${filename}`);
+
+        // Add to metadata
+        const videoMetadata: VideoMetadata = {
+          videoId,
+          title: videoTitle,
+          description: description.substring(0, 500), // Limit description length
+          uploadDate,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          churchId: church.id,
+          churchName: church.name,
+          churchPath: church.path,
+          transcriptFile: filename,
+          downloadedAt: new Date().toISOString(),
+        };
+
+        metadata.videos.push(videoMetadata);
+        downloadsInThisChurch++;
+
+        // Save metadata after each successful download
+        await saveMetadata(metadata);
       } else {
         console.log(`   ⚠️  Transcript downloaded but file not found: ${videoTitle.substring(0, 30)}...`);
       }
@@ -281,6 +371,8 @@ async function downloadChurchTranscripts(church: ChurchData): Promise<void> {
     // Small delay to be respectful to YouTube
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+
+  return downloadsInThisChurch;
 }
 
 /**
@@ -305,6 +397,10 @@ async function main() {
   await ensureTranscriptDir();
   const allChurches = await fetchChurches();
 
+  // Load existing metadata
+  const metadata = await loadMetadata();
+  console.log(`📊 Existing metadata: ${metadata.videos.length} videos`);
+
   // Filter for Listed and Unlisted churches with YouTube channels
   console.log('🔍 Filtering churches with YouTube channels...');
 
@@ -322,30 +418,44 @@ async function main() {
 
   // Process each church
   let processed = 0;
+  let totalDownloaded = 0;
   let succeeded = 0;
 
   for (const church of churchesWithYoutube) {
+    // Check if we've hit the global limit
+    if (totalDownloaded >= MAX_TRANSCRIPTS_PER_RUN) {
+      console.log(`\n🛑 Reached global limit of ${MAX_TRANSCRIPTS_PER_RUN} transcripts for this run`);
+      break;
+    }
+
     processed++;
     try {
-      await downloadChurchTranscripts(church);
-      succeeded++;
-      console.log(`   [${processed}/${churchesWithYoutube.length}] ✅ Completed: ${church.name}`);
+      const downloadsFromThisChurch = await downloadChurchTranscripts(church, metadata, totalDownloaded);
+      totalDownloaded += downloadsFromThisChurch;
+
+      if (downloadsFromThisChurch > 0) {
+        succeeded++;
+      }
+
+      console.log(
+        `   [${processed}/${churchesWithYoutube.length}] ✅ Downloaded ${downloadsFromThisChurch} transcript(s) from: ${church.name}`
+      );
     } catch (error) {
       console.log(`   [${processed}/${churchesWithYoutube.length}] ❌ Error processing ${church.name}:`, error);
     }
   }
 
   console.log('\n📊 Summary:');
-  console.log(`   Processed: ${processed} churches`);
-  console.log(`   Succeeded: ${succeeded} churches`);
-  console.log(`   Failed: ${processed - succeeded} churches`);
+  console.log(`   Churches processed: ${processed}`);
+  console.log(`   Churches with downloads: ${succeeded}`);
+  console.log(`   Total transcripts downloaded: ${totalDownloaded}`);
+  console.log(`   Total transcripts in metadata: ${metadata.videos.length}`);
   console.log(`   Transcript directory: ${TRANSCRIPT_DIR}`);
+  console.log(`   Metadata file: ${METADATA_FILE}`);
 }
 
 // Run the script
-if (import.meta.main) {
-  main().catch((error) => {
-    console.error('💥 Script failed:', error);
-    process.exit(1);
-  });
-}
+main().catch((error) => {
+  console.error('💥 Script failed:', error);
+  process.exit(1);
+});
