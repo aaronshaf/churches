@@ -26,6 +26,8 @@ const PROGRESS_FILE = './transcripts/progress.json';
 const DAYS_BACK = 365; // Download transcripts from past year
 const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
 const MAX_TRANSCRIPTS_PER_RUN = 3; // Global limit per script run - be very respectful
+const MIN_DELAY_MS = 3000; // Minimum delay between operations (3 seconds)
+const MAX_DELAY_MS = 15000; // Maximum delay between operations (15 seconds)
 
 interface ChurchData {
   id: number;
@@ -136,6 +138,24 @@ async function saveProgress(progress: ProgressTracker): Promise<void> {
   progress.lastRun = new Date().toISOString();
   const jsonContent = JSON.stringify(progress, null, 2);
   await fs.writeFile(PROGRESS_FILE, jsonContent, 'utf-8');
+}
+
+/**
+ * Generate a random delay between MIN_DELAY_MS and MAX_DELAY_MS
+ */
+function getRandomDelay(): number {
+  return Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1)) + MIN_DELAY_MS;
+}
+
+/**
+ * Sleep for a random amount of time
+ */
+async function randomSleep(context?: string): Promise<void> {
+  const delay = getRandomDelay();
+  if (context) {
+    console.log(`   ⏳ Waiting ${(delay / 1000).toFixed(1)}s ${context}...`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 /**
@@ -373,9 +393,9 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
 
   if (!listResult.success) {
     if (listResult.error && listResult.error.includes('Command timed out')) {
-      console.log(`⏱️  Timeout detected for this church - skipping`);
-      console.log(`   This channel may have issues or a different URL format`);
-      return -1; // Special return value to indicate skip
+      console.log(`⏱️  Timeout detected! Stopping to avoid issues.`);
+      console.log(`   This may indicate rate limiting or network issues`);
+      throw new Error('TIMEOUT_DETECTED');
     }
     if (listResult.error && isRateLimitError(listResult.error)) {
       console.log(`⚠️  Rate limit detected! Stopping to avoid being blocked.`);
@@ -503,8 +523,8 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
       console.log(`   ❌ Failed to download transcript: ${transcriptResult.error?.substring(0, 100)}...`);
     }
 
-    // Small delay to be respectful to YouTube
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Random delay to be respectful to YouTube
+    await randomSleep('before next download');
   }
 
   return downloadsInThisChurch;
@@ -629,10 +649,19 @@ async function main() {
 
       // Save progress after each church
       await saveProgress(progress);
+
+      // Add delay between churches
+      if (processed < pendingChurches.length) {
+        await randomSleep('before next church');
+      }
     } catch (error: any) {
-      if (error.message === 'RATE_LIMITED') {
+      if (error.message === 'RATE_LIMITED' || error.message === 'TIMEOUT_DETECTED') {
         rateLimited = true;
-        console.log(`\n🚫 Rate limit detected - stopping to avoid being blocked`);
+        const message =
+          error.message === 'TIMEOUT_DETECTED'
+            ? '⏱️  Timeout detected - stopping to avoid issues'
+            : '🚫 Rate limit detected - stopping to avoid being blocked';
+        console.log(`\n${message}`);
         break;
       }
       console.log(
@@ -640,13 +669,9 @@ async function main() {
         error.message || error
       );
 
-      // Mark as skipped if it's a timeout/rate limit, pending for other errors
+      // Mark as skipped for other errors
       if (churchProgress) {
-        if (error.message === 'RATE_LIMITED') {
-          // Don't update status here, we're breaking the loop
-        } else {
-          churchProgress.status = 'skipped'; // Skip problematic churches
-        }
+        churchProgress.status = 'skipped'; // Skip problematic churches
       }
     }
   }
@@ -665,7 +690,7 @@ async function main() {
   console.log(`   Total transcripts collected: ${progress.totalTranscriptsDownloaded}`);
 
   if (rateLimited) {
-    console.log(`\n⚠️  Script stopped due to rate limiting. Wait a few hours before running again.`);
+    console.log(`\n⚠️  Script stopped due to rate limiting or timeouts. Wait a few hours before running again.`);
   } else if (pendingChurches.length === 0) {
     console.log(`\n✅ All churches have been processed!`);
   } else if (totalDownloaded >= MAX_TRANSCRIPTS_PER_RUN) {
