@@ -7,7 +7,8 @@ import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations, churches, counties } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings } from '../../types';
-import { getLogoUrl } from '../../utils/settings';
+import { getNavbarPages } from '../../utils/pages';
+import { getFaviconUrl, getLogoUrl } from '../../utils/settings';
 import { affiliationSchema, parseFormBody, validateFormData } from '../../utils/validation';
 
 type Variables = AuthenticatedVariables;
@@ -21,12 +22,14 @@ adminAffiliationsRoutes.use('*', requireAdminWithRedirect);
 adminAffiliationsRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const _logoUrl = await getLogoUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
+  const faviconUrl = await getFaviconUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
 
   const allAffiliations = await db.select().from(affiliations).orderBy(desc(affiliations.updatedAt)).all();
 
   const content = (
-    <Layout title="Manage Affiliations" user={user}>
+    <Layout title="Manage Affiliations" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="sm:flex sm:items-center">
           <div class="sm:flex-auto">
@@ -67,7 +70,13 @@ adminAffiliationsRoutes.get('/', async (c) => {
                   {allAffiliations.map((affiliation) => (
                     <tr key={affiliation.id}>
                       <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                        {affiliation.name}
+                        {affiliation.path ? (
+                          <a href={`/networks/${affiliation.path}`} class="text-primary-600 hover:text-primary-500">
+                            {affiliation.name}
+                          </a>
+                        ) : (
+                          affiliation.name
+                        )}
                       </td>
                       <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <span
@@ -124,6 +133,26 @@ adminAffiliationsRoutes.get('/new', async (c) => {
   return c.html(content);
 });
 
+// New affiliation form
+adminAffiliationsRoutes.get('/new', async (c) => {
+  const user = c.get('betterUser');
+  const logoUrl = await getLogoUrl(c.env);
+  const faviconUrl = await getFaviconUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
+
+  return c.html(
+    <Layout
+      title="Create Affiliation - Admin"
+      user={user}
+      logoUrl={logoUrl}
+      faviconUrl={faviconUrl}
+      pages={navbarPages}
+    >
+      <AffiliationForm action="/admin/affiliations" affiliation={undefined} isNew={true} />
+    </Layout>
+  );
+});
+
 // Create affiliation
 adminAffiliationsRoutes.post('/', async (c) => {
   const db = createDbWithContext(c);
@@ -137,8 +166,16 @@ adminAffiliationsRoutes.post('/', async (c) => {
 
     if (!validationResult.success) {
       const logoUrl = await getLogoUrl(c.env);
+      const faviconUrl = await getFaviconUrl(c.env);
+      const navbarPages = await getNavbarPages(c.env);
       return c.html(
-        <Layout title="Create Affiliation - Admin" user={user} logoUrl={logoUrl}>
+        <Layout
+          title="Create Affiliation - Admin"
+          user={user}
+          logoUrl={logoUrl}
+          faviconUrl={faviconUrl}
+          pages={navbarPages}
+        >
           <AffiliationForm
             action="/admin/affiliations"
             error={validationResult.message}
@@ -162,8 +199,11 @@ adminAffiliationsRoutes.post('/', async (c) => {
     return c.redirect('/admin/affiliations');
   } catch (error) {
     console.error('Error creating affiliation:', error);
+    const faviconUrl = await getFaviconUrl(c.env);
+    const logoUrl = await getLogoUrl(c.env);
+    const navbarPages = await getNavbarPages(c.env);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error creating affiliation</h3>
@@ -182,7 +222,9 @@ adminAffiliationsRoutes.post('/', async (c) => {
 adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const _logoUrl = await getLogoUrl(c.env);
+  const logoUrl = await getLogoUrl(c.env);
+  const faviconUrl = await getFaviconUrl(c.env);
+  const navbarPages = await getNavbarPages(c.env);
   const id = Number(c.req.param('id'));
 
   const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
@@ -192,7 +234,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   }
 
   // Get affiliated churches (simplified for form)
-  const affiliatedChurches = await db
+  const affiliatedChurches = (await db
     .select({
       id: churches.id,
       name: churches.name,
@@ -204,10 +246,10 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(eq(churchAffiliations.affiliationId, id))
     .orderBy(churches.name)
-    .all() as any[];
+    .all()) as any[];
 
   // Get all churches for selection (simplified for form)
-  const allChurches = await db
+  const allChurches = (await db
     .select({
       id: churches.id,
       name: churches.name,
@@ -218,10 +260,16 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
     .orderBy(churches.name)
-    .all() as any[];
+    .all()) as any[];
 
   const content = (
-    <Layout title={`Edit ${affiliation.name}`} user={user}>
+    <Layout
+      title={`Edit ${affiliation.name}`}
+      user={user}
+      faviconUrl={faviconUrl}
+      logoUrl={logoUrl}
+      pages={navbarPages}
+    >
       <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
           <h1 class="text-2xl font-semibold text-gray-900">Edit Affiliation</h1>
@@ -262,7 +310,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
       }
 
       // Re-fetch church data for error state
-      const affiliatedChurches = await db
+      const affiliatedChurches = (await db
         .select({
           id: churches.id,
           name: churches.name,
@@ -274,9 +322,9 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         .leftJoin(counties, eq(churches.countyId, counties.id))
         .where(eq(churchAffiliations.affiliationId, id))
         .orderBy(churches.name)
-        .all() as any[];
+        .all()) as any[];
 
-      const allChurches = await db
+      const allChurches = (await db
         .select({
           id: churches.id,
           name: churches.name,
@@ -287,10 +335,18 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         .leftJoin(counties, eq(churches.countyId, counties.id))
         .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
         .orderBy(churches.name)
-        .all() as any[];
+        .all()) as any[];
 
+      const faviconUrl = await getFaviconUrl(c.env);
+      const navbarPages = await getNavbarPages(c.env);
       return c.html(
-        <Layout title={`Edit ${affiliation.name}`} user={user} logoUrl={logoUrl}>
+        <Layout
+          title={`Edit ${affiliation.name}`}
+          user={user}
+          logoUrl={logoUrl}
+          faviconUrl={faviconUrl}
+          pages={navbarPages}
+        >
           <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <div class="mb-8">
               <h1 class="text-2xl font-semibold text-gray-900">Edit Affiliation</h1>
@@ -327,10 +383,10 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     // Handle church relationships
     // When no checkboxes are selected, parsedBody.churches will be undefined
     // We need to treat this as an empty array (remove all churches)
-    const selectedChurchIds = parsedBody.churches 
-      ? (Array.isArray(parsedBody.churches) 
-          ? parsedBody.churches.map(id => Number(id))
-          : [Number(parsedBody.churches)])
+    const selectedChurchIds = parsedBody.churches
+      ? Array.isArray(parsedBody.churches)
+        ? parsedBody.churches.map((id) => Number(id))
+        : [Number(parsedBody.churches)]
       : []; // Empty array when no churches selected
 
     // Get current church affiliations
@@ -340,13 +396,13 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
       .where(eq(churchAffiliations.affiliationId, id))
       .all();
 
-    const currentChurchIds = currentAffiliations.map(ca => ca.churchId);
+    const currentChurchIds = currentAffiliations.map((ca) => ca.churchId);
 
     // Churches to add (selected but not currently affiliated)
-    const churchesToAdd = selectedChurchIds.filter(churchId => !currentChurchIds.includes(churchId));
+    const churchesToAdd = selectedChurchIds.filter((churchId) => !currentChurchIds.includes(churchId));
 
     // Churches to remove (currently affiliated but not selected)
-    const churchesToRemove = currentChurchIds.filter(churchId => !selectedChurchIds.includes(churchId));
+    const churchesToRemove = currentChurchIds.filter((churchId) => !selectedChurchIds.includes(churchId));
 
     // Add new church affiliations
     if (churchesToAdd.length > 0) {
@@ -382,8 +438,11 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     return c.redirect('/admin/affiliations');
   } catch (error) {
     console.error('Error updating affiliation:', error);
+    const faviconUrl = await getFaviconUrl(c.env);
+    const logoUrl = await getLogoUrl(c.env);
+    const navbarPages = await getNavbarPages(c.env);
     return c.html(
-      <Layout title="Error" user={user}>
+      <Layout title="Error" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div class="rounded-md bg-red-50 p-4">
             <h3 class="text-sm font-medium text-red-800">Error updating affiliation</h3>
@@ -411,4 +470,3 @@ adminAffiliationsRoutes.post('/:id/delete', async (c) => {
 
   return c.redirect('/admin/affiliations');
 });
-

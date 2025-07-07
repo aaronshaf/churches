@@ -837,6 +837,7 @@ app.get('/networks', async (c) => {
     .select({
       id: affiliations.id,
       name: affiliations.name,
+      path: affiliations.path,
       website: affiliations.website,
       publicNotes: affiliations.publicNotes,
       churchCount: sql<number>`COUNT(DISTINCT ${churches.id})`.as('churchCount'),
@@ -880,7 +881,10 @@ app.get('/networks', async (c) => {
             <ul class="divide-y divide-gray-200">
               {listedAffiliations.map((affiliation) => (
                 <li>
-                  <a href={`/networks/${affiliation.id}`} class="block px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <a
+                    href={`/networks/${affiliation.path || affiliation.id}`}
+                    class="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                  >
                     <div class="flex items-center justify-between">
                       <div>
                         <h3 class="text-lg font-medium text-gray-900">
@@ -1433,7 +1437,6 @@ app.get('/networks/:id', async (c) => {
               <p class="text-gray-700">{affiliation.publicNotes}</p>
             </div>
           )}
-
 
           {/* Churches List */}
           {listedChurches.length > 0 ? (
@@ -4610,19 +4613,19 @@ app.get('*', async (c) => {
 // Chrome DevTools workspace support (development only)
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (c) => {
   // Only respond in development environment
-  const isDevelopment = c.env.ENVIRONMENT !== 'production' && 
-                       (c.req.header('host')?.includes('localhost') || 
-                        c.req.header('host')?.includes('.workers.dev'));
-  
+  const isDevelopment =
+    c.env.ENVIRONMENT !== 'production' &&
+    (c.req.header('host')?.includes('localhost') || c.req.header('host')?.includes('.workers.dev'));
+
   if (!isDevelopment) {
     return c.notFound();
   }
 
   return c.json({
     workspace: {
-      root: process.cwd?.() || "/workspace/churches",
-      uuid: "utah-churches-dev-workspace-2025"
-    }
+      root: process.cwd?.() || '/workspace/churches',
+      uuid: 'utah-churches-dev-workspace-2025',
+    },
   });
 });
 
