@@ -77,26 +77,31 @@ export class YouTubeService {
     try {
       const url = new URL(youtubeUrl);
 
-      // Handle @username format: https://www.youtube.com/@username
+      // Handle @username format: https://www.youtube.com/@username (with optional sub-paths)
       if (url.pathname.startsWith('/@')) {
-        const username = url.pathname.substring(2);
+        const pathParts = url.pathname.substring(2).split('/');
+        const username = pathParts[0]; // Take only the username part, ignore /streams, /videos, etc.
         return await this.resolveUsernameToChannelId(username);
       }
 
-      // Handle /c/ format: https://www.youtube.com/c/channelname
+      // Handle /c/ format: https://www.youtube.com/c/channelname (with optional sub-paths)
       if (url.pathname.startsWith('/c/')) {
-        const channelName = url.pathname.substring(3);
+        const pathParts = url.pathname.substring(3).split('/');
+        const channelName = pathParts[0]; // Take only the channel name part
         return await this.resolveChannelNameToId(channelName);
       }
 
-      // Handle /channel/ format: https://www.youtube.com/channel/UC...
+      // Handle /channel/ format: https://www.youtube.com/channel/UC... (with optional sub-paths)
       if (url.pathname.startsWith('/channel/')) {
-        return url.pathname.substring(9);
+        const pathParts = url.pathname.substring(9).split('/');
+        const channelId = pathParts[0]; // Take only the channel ID part
+        return channelId;
       }
 
-      // Handle /user/ format: https://www.youtube.com/user/username
+      // Handle /user/ format: https://www.youtube.com/user/username (with optional sub-paths)
       if (url.pathname.startsWith('/user/')) {
-        const username = url.pathname.substring(6);
+        const pathParts = url.pathname.substring(6).split('/');
+        const username = pathParts[0]; // Take only the username part
         return await this.resolveUsernameToChannelId(username);
       }
 
