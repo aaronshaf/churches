@@ -226,13 +226,17 @@ async function downloadChurchTranscripts(
   const channelId = extractChannelIdentifier(church.youtube);
   if (!channelId) {
     console.log(`❌ Invalid YouTube URL format: ${church.youtube}`);
-    return;
+    return 0;
   }
 
-  // Calculate date filter for last week
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - DAYS_BACK);
-  const dateFilter = oneWeekAgo.toISOString().split('T')[0]; // YYYY-MM-DD format
+  // Calculate date filter for past year
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(oneYearAgo.getDate() - DAYS_BACK);
+  // Format as YYYYMMDD for yt-dlp
+  const year = oneYearAgo.getFullYear();
+  const month = String(oneYearAgo.getMonth() + 1).padStart(2, '0');
+  const day = String(oneYearAgo.getDate()).padStart(2, '0');
+  const dateFilter = `${year}${month}${day}`; // YYYYMMDD format
 
   // First, get video list from the past year
   console.log(`   📋 Getting videos from last ${DAYS_BACK} days...`);
@@ -256,7 +260,7 @@ async function downloadChurchTranscripts(
 
   if (!listResult.success) {
     console.log(`❌ Failed to get video list: ${listResult.error}`);
-    return;
+    return 0;
   }
 
   const videoLines = listResult.output
@@ -266,7 +270,7 @@ async function downloadChurchTranscripts(
 
   if (videoLines.length === 0) {
     console.log(`   📭 No recent videos found`);
-    return;
+    return 0;
   }
 
   console.log(`   📹 Found ${videoLines.length} recent video(s)`);
