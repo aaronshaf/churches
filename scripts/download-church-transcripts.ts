@@ -372,8 +372,13 @@ async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount
   const listResult = await runYtDlp(listArgs);
 
   if (!listResult.success) {
+    if (listResult.error && listResult.error.includes('Command timed out')) {
+      console.log(`⏱️  Timeout detected for this church - skipping`);
+      console.log(`   This channel may have issues or a different URL format`);
+      return -1; // Special return value to indicate skip
+    }
     if (listResult.error && isRateLimitError(listResult.error)) {
-      console.log(`⚠️  Rate limit or timeout detected! Stopping to avoid being blocked.`);
+      console.log(`⚠️  Rate limit detected! Stopping to avoid being blocked.`);
       console.log(`   Error: ${listResult.error?.substring(0, 100)}...`);
       throw new Error('RATE_LIMITED');
     }
@@ -605,14 +610,22 @@ async function main() {
 
       // Update progress
       if (churchProgress) {
-        churchProgress.videosDownloaded += downloadsFromThisChurch;
-        churchProgress.status = downloadsFromThisChurch > 0 ? 'completed' : 'skipped';
-        progress.totalTranscriptsDownloaded += downloadsFromThisChurch;
+        if (downloadsFromThisChurch === -1) {
+          // Special case for timeout/skip
+          churchProgress.status = 'skipped';
+        } else {
+          churchProgress.videosDownloaded += downloadsFromThisChurch;
+          churchProgress.status = downloadsFromThisChurch > 0 ? 'completed' : 'skipped';
+          progress.totalTranscriptsDownloaded += downloadsFromThisChurch;
+        }
       }
 
-      console.log(
-        `   [${processed}/${pendingChurches.length}] ✅ Downloaded ${downloadsFromThisChurch} transcript(s) from: ${church.name}`
-      );
+      const statusIcon = downloadsFromThisChurch === -1 ? '⏭️' : downloadsFromThisChurch > 0 ? '✅' : '📭';
+      const message =
+        downloadsFromThisChurch === -1
+          ? 'Skipped due to timeout'
+          : `Downloaded ${downloadsFromThisChurch} transcript(s)`;
+      console.log(`   [${processed}/${pendingChurches.length}] ${statusIcon} ${message} from: ${church.name}`);
 
       // Save progress after each church
       await saveProgress(progress);
@@ -627,9 +640,13 @@ async function main() {
         error.message || error
       );
 
-      // Mark as pending again so it gets retried next run
+      // Mark as skipped if it's a timeout/rate limit, pending for other errors
       if (churchProgress) {
-        churchProgress.status = 'pending';
+        if (error.message === 'RATE_LIMITED') {
+          // Don't update status here, we're breaking the loop
+        } else {
+          churchProgress.status = 'skipped'; // Skip problematic churches
+        }
       }
     }
   }
