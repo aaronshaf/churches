@@ -1395,10 +1395,10 @@ app.get('/networks/:id', async (c) => {
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-12 md:py-16">
+            <div class="py-6 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
-                  <h1 class="text-4xl font-bold text-white md:text-5xl">{affiliation.name}</h1>
+                  <h1 class="text-3xl font-bold text-white md:text-5xl">{affiliation.name}</h1>
                   <p class="mt-4 text-xl text-primary-100">
                     {listedChurches.length + unlistedChurches.length}{' '}
                     {listedChurches.length + unlistedChurches.length === 1 ? 'church' : 'churches'}
