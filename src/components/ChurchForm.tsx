@@ -298,7 +298,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2 space-y-2">
                     <input
-                      type="text"
+                      type="url"
                       name="website"
                       id="website"
                       value={church?.website || ''}
@@ -353,7 +353,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="text"
+                      type="url"
                       name="facebook"
                       id="facebook"
                       value={church?.facebook || ''}
@@ -370,7 +370,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="text"
+                      type="url"
                       name="instagram"
                       id="instagram"
                       value={church?.instagram || ''}
@@ -387,7 +387,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="text"
+                      type="url"
                       name="youtube"
                       id="youtube"
                       value={church?.youtube || ''}
@@ -404,7 +404,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="text"
+                      type="url"
                       name="spotify"
                       id="spotify"
                       value={church?.spotify || ''}
@@ -486,7 +486,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </label>
                   <div class="mt-2">
                     <input
-                      type="text"
+                      type="url"
                       name="statementOfFaith"
                       id="statementOfFaith"
                       value={church?.statementOfFaith || ''}

@@ -131,7 +131,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                 </label>
                 <div class="mt-1">
                   <input
-                    type="text"
+                    type="url"
                     name="website"
                     id="website"
                     value={affiliation?.website || ''}
