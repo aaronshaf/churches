@@ -596,7 +596,7 @@ async function main() {
     return !churchProgress || churchProgress.status !== 'completed';
   });
 
-  console.log(`📋 ${pendingChurches.length} churches still need processing\n`);
+  console.log(`📋 ${pendingChurches.length} churches still need processing`);
 
   // Process each church
   let processed = 0;
