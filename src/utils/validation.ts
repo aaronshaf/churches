@@ -13,10 +13,29 @@ const websiteBuilderPatterns = [
   /websitebuilder\.com/i,
 ];
 
+// More permissive URL validation that handles various formats
+const urlRegex =
+  /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
+
 const optionalUrl: ZodType<string | undefined> = z
   .string()
-  .url('Invalid URL')
+  .transform((val) => {
+    // Trim whitespace
+    const trimmed = val.trim();
+    if (!trimmed) return '';
+
+    // Add https:// if no protocol is specified
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  })
   .refine((url) => {
+    if (!url) return true; // Empty string is valid for optional
+    return urlRegex.test(url);
+  }, 'Invalid URL format')
+  .refine((url) => {
+    if (!url) return true;
     // Check if it's a website builder URL
     return !websiteBuilderPatterns.some((pattern) => pattern.test(url));
   }, 'Website builder URLs are not valid church websites')
@@ -68,7 +87,7 @@ export const churchSchema = z
       // If coordinates are provided, both must be present
       const hasLat = data.latitude !== null && data.latitude !== undefined;
       const hasLng = data.longitude !== null && data.longitude !== undefined;
-      
+
       if ((hasLat && !hasLng) || (!hasLat && hasLng)) {
         return false;
       }
