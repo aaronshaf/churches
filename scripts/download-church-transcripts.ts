@@ -21,8 +21,7 @@ import * as yaml from 'js-yaml';
 
 // Configuration
 const CHURCHES_JSON_URL = 'https://utahchurches.com/churches.json';
-const TRANSCRIPT_DIR = './transcripts';
-const METADATA_FILE = './transcripts/metadata.yaml';
+const TRANSCRIPT_BASE_DIR = './transcripts';
 const DAYS_BACK = 365; // Download transcripts from past year
 const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
 const MAX_TRANSCRIPTS_PER_RUN = 5; // Global limit per script run - be respectful
@@ -46,16 +45,16 @@ interface VideoMetadata {
   description: string;
   uploadDate: string;
   url: string;
-  churchId: number;
-  churchName: string;
-  churchPath: string;
   transcriptFile: string;
   downloadedAt: string;
 }
 
-interface MetadataStore {
-  videos: VideoMetadata[];
+interface ChurchMetadata {
+  churchId: number;
+  churchName: string;
+  churchPath: string;
   lastUpdated: string;
+  videos: VideoMetadata[];
 }
 
 /**
@@ -81,12 +80,12 @@ async function fetchChurches(): Promise<ChurchData[]> {
 }
 
 /**
- * Ensure transcript directory exists
+ * Ensure base transcript directory exists
  */
-async function ensureTranscriptDir() {
+async function ensureBaseDir() {
   try {
-    await fs.mkdir(TRANSCRIPT_DIR, { recursive: true });
-    console.log(`📁 Transcript directory: ${TRANSCRIPT_DIR}`);
+    await fs.mkdir(TRANSCRIPT_BASE_DIR, { recursive: true });
+    console.log(`📁 Transcript base directory: ${TRANSCRIPT_BASE_DIR}`);
   } catch (error) {
     console.error('❌ Failed to create transcript directory:', error);
     process.exit(1);
@@ -94,32 +93,53 @@ async function ensureTranscriptDir() {
 }
 
 /**
- * Load metadata from YAML file
+ * Get church directory path
  */
-async function loadMetadata(): Promise<MetadataStore> {
+function getChurchDir(churchId: number): string {
+  return path.join(TRANSCRIPT_BASE_DIR, `church-${churchId}`);
+}
+
+/**
+ * Ensure church-specific directory exists
+ */
+async function ensureChurchDir(churchId: number): Promise<string> {
+  const churchDir = getChurchDir(churchId);
+  await fs.mkdir(churchDir, { recursive: true });
+  return churchDir;
+}
+
+/**
+ * Load metadata for a specific church
+ */
+async function loadChurchMetadata(church: ChurchData): Promise<ChurchMetadata> {
+  const metadataPath = path.join(getChurchDir(church.id), 'metadata.yaml');
   try {
-    const content = await fs.readFile(METADATA_FILE, 'utf-8');
-    return yaml.load(content) as MetadataStore;
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    return yaml.load(content) as ChurchMetadata;
   } catch (error) {
-    // File doesn't exist or is invalid, return empty store
+    // File doesn't exist or is invalid, return empty metadata
     return {
-      videos: [],
+      churchId: church.id,
+      churchName: church.name,
+      churchPath: church.path,
       lastUpdated: new Date().toISOString(),
+      videos: [],
     };
   }
 }
 
 /**
- * Save metadata to YAML file
+ * Save metadata for a specific church
  */
-async function saveMetadata(metadata: MetadataStore): Promise<void> {
+async function saveChurchMetadata(metadata: ChurchMetadata): Promise<void> {
   metadata.lastUpdated = new Date().toISOString();
+  const metadataPath = path.join(getChurchDir(metadata.churchId), 'metadata.yaml');
   const yamlContent = yaml.dump(metadata, {
     indent: 2,
     lineWidth: -1, // Disable line wrapping
     noRefs: true,
   });
-  await fs.writeFile(METADATA_FILE, yamlContent, 'utf-8');
+  await fs.writeFile(metadataPath, yamlContent, 'utf-8');
 }
 
 /**
@@ -208,11 +228,7 @@ function runYtDlp(args: string[]): Promise<{ success: boolean; output: string; e
  * Download transcripts for a single church's YouTube channel
  * Returns the number of transcripts downloaded
  */
-async function downloadChurchTranscripts(
-  church: ChurchData,
-  metadata: MetadataStore,
-  globalDownloadCount: number
-): Promise<number> {
+async function downloadChurchTranscripts(church: ChurchData, globalDownloadCount: number): Promise<number> {
   if (!church.youtube) {
     console.log(`⏭️  ${church.name}: No YouTube channel`);
     return 0;
@@ -220,8 +236,14 @@ async function downloadChurchTranscripts(
 
   let downloadsInThisChurch = 0;
 
-  console.log(`\n🔍 Processing: ${church.name}`);
+  console.log(`\n🔍 Processing: ${church.name} (ID: ${church.id})`);
   console.log(`   YouTube: ${church.youtube}`);
+
+  // Ensure church directory exists
+  const churchDir = await ensureChurchDir(church.id);
+
+  // Load church-specific metadata
+  const metadata = await loadChurchMetadata(church);
 
   const channelId = extractChannelIdentifier(church.youtube);
   if (!channelId) {
@@ -308,7 +330,7 @@ async function downloadChurchTranscripts(
     }
 
     const filename = generateTranscriptFilename(church.path, videoId, videoTitle);
-    const filepath = path.join(TRANSCRIPT_DIR, filename);
+    const filepath = path.join(churchDir, filename);
 
     // Check if transcript file already exists
     try {
@@ -364,9 +386,6 @@ async function downloadChurchTranscripts(
           description: description.substring(0, 500), // Limit description length
           uploadDate: formattedDate,
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          churchId: church.id,
-          churchName: church.name,
-          churchPath: church.path,
           transcriptFile: path.basename(actualFilepath),
           downloadedAt: new Date().toISOString(),
         };
@@ -375,7 +394,7 @@ async function downloadChurchTranscripts(
         downloadsInThisChurch++;
 
         // Save metadata after each successful download
-        await saveMetadata(metadata);
+        await saveChurchMetadata(metadata);
       } else {
         console.log(`   ⚠️  Transcript downloaded but file not found: ${videoTitle.substring(0, 30)}...`);
       }
@@ -409,12 +428,8 @@ async function main() {
   console.log(`✅ yt-dlp version: ${ytdlpCheck.output.trim()}\n`);
 
   // Initialize directory and fetch church data
-  await ensureTranscriptDir();
+  await ensureBaseDir();
   const allChurches = await fetchChurches();
-
-  // Load existing metadata
-  const metadata = await loadMetadata();
-  console.log(`📊 Existing metadata: ${metadata.videos.length} videos`);
 
   // Filter for Listed and Unlisted churches with YouTube channels
   console.log('🔍 Filtering churches with YouTube channels...');
@@ -445,7 +460,7 @@ async function main() {
 
     processed++;
     try {
-      const downloadsFromThisChurch = await downloadChurchTranscripts(church, metadata, totalDownloaded);
+      const downloadsFromThisChurch = await downloadChurchTranscripts(church, totalDownloaded);
       totalDownloaded += downloadsFromThisChurch;
 
       if (downloadsFromThisChurch > 0) {
@@ -464,9 +479,8 @@ async function main() {
   console.log(`   Churches processed: ${processed}`);
   console.log(`   Churches with downloads: ${succeeded}`);
   console.log(`   Total transcripts downloaded: ${totalDownloaded}`);
-  console.log(`   Total transcripts in metadata: ${metadata.videos.length}`);
-  console.log(`   Transcript directory: ${TRANSCRIPT_DIR}`);
-  console.log(`   Metadata file: ${METADATA_FILE}`);
+  console.log(`   Transcript base directory: ${TRANSCRIPT_BASE_DIR}`);
+  console.log(`   Church directories created: ${succeeded}`);
 }
 
 // Run the script
