@@ -457,3 +457,46 @@ apiRoutes.post('/churches/:id/extract-sermon', requireAdminBetter, async (c) => 
     );
   }
 });
+
+// Temporary: Delete sermon record for testing (admin only)
+apiRoutes.delete('/churches/:id/sermons/:videoId', requireAdminBetter, async (c) => {
+  try {
+    const churchId = parseInt(c.req.param('id'));
+    const videoId = c.req.param('videoId');
+
+    const db = createDbWithContext(c);
+    const deleted = await db
+      .delete(sermons)
+      .where(sql`${sermons.churchId} = ${churchId} AND ${sermons.videoId} = ${videoId}`)
+      .returning({ id: sermons.id, videoId: sermons.videoId })
+      .get();
+
+    if (!deleted) {
+      return c.json({ error: 'Sermon not found' }, 404);
+    }
+
+    // Update church stats
+    await db
+      .update(churches)
+      .set({
+        sermonCount: sql`MAX(0, ${churches.sermonCount} - 1)`,
+        lastSermonExtractedAt: null,
+        lastSermonVideoId: null,
+      })
+      .where(eq(churches.id, churchId))
+      .run();
+
+    return c.json({
+      success: true,
+      deleted: deleted,
+    });
+  } catch (error) {
+    console.error('Delete sermon error:', error);
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Delete failed',
+      },
+      500
+    );
+  }
+});
