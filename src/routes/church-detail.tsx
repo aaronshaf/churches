@@ -226,6 +226,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       '@type': 'Church',
       '@id': `https://${siteDomain}/churches/${church.path}`,
       name: church.name,
+      ...(church.status === 'Heretical' && {
+        additionalType: `https://${siteDomain}/schema/HereticalChurch`,
+      }),
       // alternateName: church.alternateName || undefined, // Not in schema
       ...(church.gatheringAddress && {
         address: {
