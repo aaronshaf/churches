@@ -25,7 +25,7 @@ const TRANSCRIPT_DIR = './transcripts';
 const METADATA_FILE = './transcripts/metadata.yaml';
 const DAYS_BACK = 365; // Download transcripts from past year
 const MAX_VIDEOS_PER_CHANNEL = 50; // Limit videos per channel
-const MAX_TRANSCRIPTS_PER_RUN = 10; // Global limit per script run
+const MAX_TRANSCRIPTS_PER_RUN = 5; // Global limit per script run - be respectful
 
 interface ChurchData {
   id: number;
