@@ -102,7 +102,7 @@ export class YouTubeService {
       if (url.pathname.startsWith('/user/')) {
         const pathParts = url.pathname.substring(6).split('/');
         const username = pathParts[0]; // Take only the username part
-        return await this.resolveUsernameToChannelId(username);
+        return await this.resolveLegacyUserToChannelId(username);
       }
 
       throw new Error('Unsupported YouTube URL format');
@@ -139,6 +139,24 @@ export class YouTubeService {
     const data = (await response.json()) as YouTubeApiResponse;
     if (!data.items || data.items.length === 0) {
       throw new Error(`Channel not found for name: ${channelName}`);
+    }
+
+    return (data.items[0] as { snippet: { channelId: string } }).snippet.channelId;
+  }
+
+  private async resolveLegacyUserToChannelId(username: string): Promise<string> {
+    // For legacy /user/ format, we need to search as the forHandle parameter doesn't work
+    const response = await fetch(
+      `${this.baseUrl}/search?part=snippet&type=channel&q=${encodeURIComponent(username)}&key=${this.apiKey}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`YouTube API error: ${response.status}`);
+    }
+
+    const data = (await response.json()) as YouTubeApiResponse;
+    if (!data.items || data.items.length === 0) {
+      throw new Error(`Channel not found for legacy user: ${username}`);
     }
 
     return (data.items[0] as { snippet: { channelId: string } }).snippet.channelId;
