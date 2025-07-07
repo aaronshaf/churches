@@ -40,3 +40,7 @@ coverage/
 backup-*.json
 TODO.md
 NOTES.md
+
+# Transcript files
+transcripts/
+*.vtt

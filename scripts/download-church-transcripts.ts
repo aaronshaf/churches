@@ -173,7 +173,7 @@ function generateTranscriptFilename(churchPath: string, videoId: string, videoTi
   const sanitizedChurchPath = sanitizeForFilename(churchPath);
   const sanitizedTitle = sanitizeForFilename(videoTitle).substring(0, 50); // Limit length
 
-  return `${sanitizedChurchPath}_${videoId}_${sanitizedTitle}.txt`;
+  return `${sanitizedChurchPath}_${videoId}_${sanitizedTitle}.vtt`;
 }
 
 /**
@@ -319,9 +319,9 @@ async function downloadChurchTranscripts(
       'en',
       '--skip-download', // Only download transcript, not video
       '--sub-format',
-      'txt',
+      'vtt',
       '--output',
-      filepath.replace('.txt', '.%(ext)s'),
+      filepath.replace('.vtt', '.%(ext)s'),
       `https://www.youtube.com/watch?v=${videoId}`,
     ];
 
@@ -329,15 +329,16 @@ async function downloadChurchTranscripts(
 
     if (transcriptResult.success) {
       // yt-dlp creates files with different extensions, find the actual transcript file
-      const possibleExtensions = ['.en.txt', '.en-US.txt', '.txt'];
+      const possibleExtensions = ['.en.vtt', '.en-US.vtt', '.vtt'];
       let foundTranscript = false;
 
+      let actualFilepath = '';
       for (const ext of possibleExtensions) {
-        const possiblePath = filepath.replace('.txt', ext);
+        const possiblePath = filepath.replace('.vtt', ext);
         try {
           await fs.access(possiblePath);
-          // Rename to our standard format
-          await fs.rename(possiblePath, filepath);
+          // Keep VTT format but update our tracking
+          actualFilepath = possiblePath;
           foundTranscript = true;
           break;
         } catch {}
@@ -356,7 +357,7 @@ async function downloadChurchTranscripts(
           churchId: church.id,
           churchName: church.name,
           churchPath: church.path,
-          transcriptFile: filename,
+          transcriptFile: path.basename(actualFilepath),
           downloadedAt: new Date().toISOString(),
         };
 
