@@ -1,3 +1,5 @@
+import yaml from 'js-yaml';
+
 export interface SermonAnalysis {
   aiGeneratedTitle: string;
   mainBiblePassage: string | null;
@@ -71,27 +73,43 @@ Title: ${title}
 Description: ${description}
 Uploaded: ${uploadDate}
 
-Please respond in this exact JSON format:
-{
-  "title": "Cleaned sermon title here",
-  "passage": "Main Bible passage or 'None identified'",
-  "confidence": 0.75
-}`;
+IMPORTANT: Respond with ONLY valid YAML, no additional text:
+
+title: Cleaned sermon title here
+passage: Main Bible passage or 'None identified'
+confidence: 0.75`;
   }
 
   private parseAnalysisResponse(response: string): SermonAnalysis {
+    console.log('Raw AI response:', response);
+
     try {
-      const parsed = JSON.parse(response);
+      // Parse YAML response
+      const parsed = yaml.load(response) as { title?: string; passage?: string; confidence?: number };
+
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid YAML structure');
+      }
+
       return {
         aiGeneratedTitle: parsed.title || 'Untitled Sermon',
-        mainBiblePassage: parsed.passage === 'None identified' ? null : parsed.passage,
+        mainBiblePassage: parsed.passage === 'None identified' ? null : parsed.passage || null,
         confidence: parsed.confidence || 0.5,
       };
     } catch (error) {
-      // Fallback parsing if JSON fails
-      console.error('Failed to parse AI response:', error);
+      // Fallback parsing if YAML fails - try to extract title manually
+      console.error('Failed to parse AI YAML response:', error);
+      console.error('Response content:', response);
+
+      // Try to extract a basic title from the response text
+      let fallbackTitle = 'Sermon Analysis Failed';
+      const titleMatch = response.match(/title:\s*(.+?)$/im);
+      if (titleMatch) {
+        fallbackTitle = titleMatch[1].trim().replace(/["']/g, '');
+      }
+
       return {
-        aiGeneratedTitle: 'Sermon Analysis Failed',
+        aiGeneratedTitle: fallbackTitle,
         mainBiblePassage: null,
         confidence: 0.0,
       };
