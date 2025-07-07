@@ -349,5 +349,6 @@ export function prepareChurchDataFromForm(body: Record<string, unknown>) {
     language: (body.language as string) || 'English',
     privateNotes: (body.privateNotes as string) || undefined,
     publicNotes: (body.publicNotes as string) || undefined,
+    lastUpdated: new Date(),
   };
 }

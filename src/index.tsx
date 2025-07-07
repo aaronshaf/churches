@@ -40,7 +40,6 @@ import { betterAuthApp } from './routes/better-auth';
 import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
-import { mcpRoutes } from './routes/mcp';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
 import {
@@ -321,9 +320,6 @@ app.route('/admin/users', adminUsersApp);
 
 // Mount API routes
 app.route('/api', apiRoutes);
-
-// Mount MCP routes
-app.route('/mcp', mcpRoutes);
 
 // Mount SEO routes
 app.route('/', seoRoutes);
