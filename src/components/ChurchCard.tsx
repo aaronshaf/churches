@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import { OptimizedImage } from './OptimizedImage';
 
 type Church = {
   id: number;
@@ -11,6 +12,8 @@ type Church = {
   website: string | null;
   language?: string | null;
   publicNotes?: string | null;
+  imagePath?: string | null; // R2 featured image
+  imageAlt?: string | null;
   gatherings?: Array<{
     id: number;
     churchId: number;
@@ -38,7 +41,21 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
   const statusStyle = church.status ? statusStyles[church.status] || '' : '';
 
   return (
-    <div class="group relative bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md transition-all duration-200">
+    <div class="group relative bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
+      {/* Featured Image */}
+      {church.imagePath && (
+        <div class="aspect-w-16 aspect-h-9">
+          <OptimizedImage
+            path={church.imagePath}
+            alt={church.imageAlt || church.name}
+            width={400}
+            height={225}
+            className="w-full h-48 object-cover"
+            domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+          />
+        </div>
+      )}
+
       <div class="p-6">
         <div class="flex items-start justify-between">
           <div class="flex-1">

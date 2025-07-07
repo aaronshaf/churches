@@ -9,6 +9,7 @@ import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
 import { MonitoringDashboard } from './components/MonitoringDashboard';
 import { NotFound } from './components/NotFound';
+import { OptimizedImage } from './components/OptimizedImage';
 import { PageForm } from './components/PageForm';
 import { SettingsForm } from './components/SettingsForm';
 import { createDb, createDbWithContext } from './db';

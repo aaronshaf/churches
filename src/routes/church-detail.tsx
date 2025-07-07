@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { ChurchComments } from '../components/ChurchComments';
 import { ErrorPage } from '../components/ErrorPage';
 import { Layout } from '../components/Layout';
+import { OptimizedImage } from '../components/OptimizedImage';
 import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
 import {
@@ -72,6 +73,8 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         privateNotes: churches.privateNotes,
         lastUpdated: churches.lastUpdated,
         countyId: churches.countyId,
+        imagePath: churches.imagePath,
+        imageAlt: churches.imageAlt,
         countyName: sql<string | null>`${counties.name}`.as('countyName'),
       })
       .from(churches)
@@ -322,6 +325,25 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
             </div>
           </div>
 
+          {/* Featured Image */}
+          {church.imagePath && (
+            <div class="bg-white">
+              <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="py-8">
+                  <OptimizedImage
+                    path={church.imagePath}
+                    alt={church.imageAlt || `${church.name} building`}
+                    width={1200}
+                    height={400}
+                    className="w-full h-64 md:h-80 lg:h-96 object-cover rounded-lg shadow-lg"
+                    domain={siteDomain}
+                    priority={true}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Church Content */}
           <div class="bg-gray-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -569,10 +591,10 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </div>
                   )}
 
-                  {/* Church Images */}
+                  {/* Additional Church Images */}
                   {churchImagesList.length > 0 && (
                     <div class="mt-6 pt-6 border-t border-gray-200">
-                      <h3 class="text-base font-medium text-gray-500 mb-3">Photos</h3>
+                      <h3 class="text-base font-medium text-gray-500 mb-3">Additional Photos</h3>
                       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {churchImagesList.map((image) => (
                           <div
