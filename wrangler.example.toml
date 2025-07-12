@@ -14,18 +14,21 @@ enabled = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "utahchurches-production"
-# Database IDs are set via wrangler CLI or environment-specific wrangler.toml files
-# Production: Set via `wrangler d1 create` or environment-specific config
-# database_id = "your-production-database-id-here"
-# preview_database_id = "your-preview-database-id-here"
+database_name = "your-database-name"
+database_id = "your-database-id-here"
+preview_database_id = "your-preview-database-id-here"
 
 # R2 Bucket Configuration
 [[r2_buckets]]
 binding = "IMAGES_BUCKET"
-bucket_name = "utahchurches-images"
+bucket_name = "your-bucket-name"
 
 [vars]
 # Add your non-sensitive configuration here
 # For production, set the following secrets using wrangler:
 # wrangler secret put GOOGLE_MAPS_API_KEY
+# wrangler secret put GOOGLE_SSR_KEY
+# wrangler secret put BETTER_AUTH_SECRET
+# wrangler secret put BETTER_AUTH_URL
+# wrangler secret put GOOGLE_CLIENT_ID
+# wrangler secret put GOOGLE_CLIENT_SECRET

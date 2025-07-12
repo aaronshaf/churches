@@ -144,8 +144,16 @@ export async function deleteImage(
 
 /**
  * Get R2 domain based on the site domain
+ * Can be overridden by R2_IMAGE_DOMAIN environment variable
  */
 function getR2Domain(siteDomain: string): string {
+  // Check for environment variable override first
+  // This allows different deployments to use different R2 domains
+  const envR2Domain = typeof process !== 'undefined' ? process.env?.R2_IMAGE_DOMAIN : undefined;
+  if (envR2Domain) {
+    return envR2Domain;
+  }
+
   // Map site domains to their corresponding R2 image domains
   const domainMap: Record<string, string> = {
     'utahchurches.com': 'images.utahchurches.com',
