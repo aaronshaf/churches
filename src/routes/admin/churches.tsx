@@ -695,7 +695,13 @@ adminChurchesRoutes.post('/', async (c) => {
         }));
 
         try {
-          await db.insert(churchImages).values(imagesToInsert);
+          // Use raw SQL to avoid Drizzle including the id field
+          for (const img of imagesToInsert) {
+            await db.run(
+              sql`INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
+                  VALUES (${img.churchId}, ${img.imagePath}, ${img.imageAlt}, ${img.caption}, ${img.isFeatured}, ${img.sortOrder})`
+            );
+          }
         } catch (error) {
           console.error('Failed to insert church images:', error);
           console.error('Images that failed to insert:', imagesToInsert);
@@ -1013,7 +1019,13 @@ adminChurchesRoutes.post('/:id', async (c) => {
           sortOrder: sortOrder + index,
         }));
 
-        await db.insert(churchImages).values(imagesToInsert);
+        // Use raw SQL to avoid Drizzle including the id field
+        for (const img of imagesToInsert) {
+          await db.run(
+            sql`INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
+                VALUES (${img.churchId}, ${img.imagePath}, ${img.imageAlt}, ${img.caption}, ${img.isFeatured}, ${img.sortOrder})`
+          );
+        }
       } catch (error) {
         console.error('Failed to insert new church images:', error);
         console.error('Upload attempt details:', { churchId: id, imageCount: uploadedImages.length });
