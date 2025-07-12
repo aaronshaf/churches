@@ -695,12 +695,15 @@ adminChurchesRoutes.post('/', async (c) => {
         }));
 
         try {
-          // Use raw SQL to avoid Drizzle including the id field
+          // Use D1 directly to bypass Drizzle's query transformation
+          const d1 = c.env.DB;
           for (const img of imagesToInsert) {
-            await db.run(
-              sql`INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
-                  VALUES (${img.churchId}, ${img.imagePath}, ${img.imageAlt}, ${img.caption}, ${img.isFeatured}, ${img.sortOrder})`
-            );
+            await d1
+              .prepare(
+                'INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+              )
+              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+              .run();
           }
         } catch (error) {
           console.error('Failed to insert church images:', error);
@@ -1019,12 +1022,15 @@ adminChurchesRoutes.post('/:id', async (c) => {
           sortOrder: sortOrder + index,
         }));
 
-        // Use raw SQL to avoid Drizzle including the id field
+        // Use D1 directly to bypass Drizzle's query transformation
+        const d1 = c.env.DB;
         for (const img of imagesToInsert) {
-          await db.run(
-            sql`INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
-                VALUES (${img.churchId}, ${img.imagePath}, ${img.imageAlt}, ${img.caption}, ${img.isFeatured}, ${img.sortOrder})`
-          );
+          await d1
+            .prepare(
+              'INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+            )
+            .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+            .run();
         }
       } catch (error) {
         console.error('Failed to insert new church images:', error);
