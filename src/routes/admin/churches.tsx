@@ -37,6 +37,35 @@ export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Var
 // Apply admin middleware to all routes
 adminChurchesRoutes.use('*', requireAdminWithRedirect);
 
+// Debug endpoint to check church_images table structure
+adminChurchesRoutes.get('/debug/church-images-schema', async (c) => {
+  try {
+    const d1 = c.env.DB;
+
+    // Get table schema
+    const schemaResult = await d1.prepare('PRAGMA table_info(church_images)').all();
+
+    // Try a test insert with minimal fields
+    const testResult = await d1
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='church_images'")
+      .first();
+
+    return c.json({
+      tableInfo: schemaResult,
+      createStatement: testResult,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      500
+    );
+  }
+});
+
 // List churches with search and filters
 adminChurchesRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);
@@ -695,15 +724,44 @@ adminChurchesRoutes.post('/', async (c) => {
         }));
 
         try {
-          // Use D1 directly to bypass Drizzle's query transformation
-          const d1 = c.env.DB;
+          // Try using Drizzle with explicit values to work around the issue
           for (const img of imagesToInsert) {
-            await d1
-              .prepare(
-                'INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-              )
-              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
-              .run();
+            // Create insert data without id field
+            const insertData = {
+              churchId: img.churchId,
+              imagePath: img.imagePath,
+              imageAlt: img.imageAlt || null,
+              caption: img.caption || null,
+              isFeatured: img.isFeatured,
+              sortOrder: img.sortOrder,
+              // Let Drizzle handle timestamps with its defaults
+            };
+
+            console.log('Attempting to insert:', insertData);
+
+            try {
+              // Use Drizzle's insert which should handle the autoincrement id properly
+              const result = await db.insert(churchImages).values(insertData).returning();
+              console.log('Successfully inserted image:', result);
+            } catch (insertError) {
+              console.error('Insert error details:', {
+                error: insertError,
+                message: insertError instanceof Error ? insertError.message : 'Unknown error',
+                data: insertData,
+              });
+
+              // If Drizzle fails, try raw SQL as a fallback
+              console.log('Trying raw SQL fallback...');
+              const d1 = c.env.DB;
+              const fallbackResult = await d1
+                .prepare(
+                  `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
+                   VALUES (?, ?, ?, ?, ?, ?)`
+                )
+                .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+                .run();
+              console.log('Fallback result:', fallbackResult);
+            }
           }
         } catch (error) {
           console.error('Failed to insert church images:', error);
@@ -1022,15 +1080,44 @@ adminChurchesRoutes.post('/:id', async (c) => {
           sortOrder: sortOrder + index,
         }));
 
-        // Use D1 directly to bypass Drizzle's query transformation
-        const d1 = c.env.DB;
+        // Try using Drizzle with explicit values to work around the issue
         for (const img of imagesToInsert) {
-          await d1
-            .prepare(
-              'INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-            )
-            .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
-            .run();
+          // Create insert data without id field
+          const insertData = {
+            churchId: img.churchId,
+            imagePath: img.imagePath,
+            imageAlt: img.imageAlt || null,
+            caption: img.caption || null,
+            isFeatured: img.isFeatured,
+            sortOrder: img.sortOrder,
+            // Let Drizzle handle timestamps with its defaults
+          };
+
+          console.log('Attempting to insert:', insertData);
+
+          try {
+            // Use Drizzle's insert which should handle the autoincrement id properly
+            const result = await db.insert(churchImages).values(insertData).returning();
+            console.log('Successfully inserted image:', result);
+          } catch (insertError) {
+            console.error('Insert error details:', {
+              error: insertError,
+              message: insertError instanceof Error ? insertError.message : 'Unknown error',
+              data: insertData,
+            });
+
+            // If Drizzle fails, try raw SQL as a fallback
+            console.log('Trying raw SQL fallback...');
+            const d1 = c.env.DB;
+            const fallbackResult = await d1
+              .prepare(
+                `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
+                 VALUES (?, ?, ?, ?, ?, ?)`
+              )
+              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+              .run();
+            console.log('Fallback result:', fallbackResult);
+          }
         }
       } catch (error) {
         console.error('Failed to insert new church images:', error);
