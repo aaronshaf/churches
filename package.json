@@ -19,7 +19,6 @@
     "better-auth:setup": "bun tsx scripts/setup-better-auth-env.ts",
     "better-auth:schema": "bun tsx scripts/generate-auth-schema.ts",
     "better-auth:test": "bun tsx scripts/test-better-auth.ts",
-    "turso:export": "bun tsx scripts/export-turso-data.ts",
     "backup:db": "bun tsx scripts/backup-database.ts",
     "backup:all-tables": "bun tsx scripts/backup-all-tables.ts",
     "test": "bun test",

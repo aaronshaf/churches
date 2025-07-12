@@ -33,31 +33,24 @@ This will open a browser window to authenticate with your Cloudflare account.
 3. On the right sidebar, find your Account ID
 4. Copy this ID - you'll need it for `CLOUDFLARE_ACCOUNT_ID`
 
-## 2. Turso Database Setup
+## 2. Cloudflare D1 Database Setup
 
-### Create Turso Account
-1. Go to [Turso](https://turso.tech)
-2. Sign up for a free account
-3. Install the Turso CLI:
-   ```bash
-   curl -sSfL https://get.tur.so/install.sh | bash
-   ```
-
-### Create Database
+### Create D1 Database
 ```bash
-# Login to Turso
-turso auth login
+# Create a new D1 database
+wrangler d1 create churches-db
 
-# Create a new database
-turso db create churches-db
+# This will output binding configuration
+# Copy the database_name and database_id for your wrangler.toml
+```
 
-# Get the database URL
-turso db show churches-db --url
-# Save this URL for TURSO_DATABASE_URL
-
-# Create an auth token
-turso db tokens create churches-db
-# Save this token for TURSO_AUTH_TOKEN
+### Update wrangler.toml
+Add the D1 binding to your `wrangler.toml`:
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "churches-db"
+database_id = "your-database-id-here"
 ```
 
 ### Initialize Database Schema
@@ -110,24 +103,22 @@ bun run better-auth:schema
    - Client ID → `GOOGLE_CLIENT_ID`
    - Client Secret → `GOOGLE_CLIENT_SECRET`
 
-## 4. Cloudflare Images Setup
+## 4. Cloudflare R2 Storage Setup
 
-### Enable Cloudflare Images
+### Create R2 Bucket
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Select "Images" from the sidebar
-3. Enable Cloudflare Images (requires payment method)
-4. Note your Account Hash from the Images dashboard
+2. Select "R2" from the sidebar
+3. Click "Create bucket"
+4. Name it: `utahchurches-images`
+5. Leave other settings as default
 
-### Create API Token for Images
-1. Go to "My Profile" → "API Tokens"
-2. Click "Create Token"
-3. Use "Custom token" template
-4. Configure:
-   - Token name: Churches Images
-   - Permissions: 
-     - Account → Cloudflare Images → Edit
-   - Account Resources: Include → Your account
-5. Create token and copy it for `CLOUDFLARE_IMAGES_API_TOKEN`
+### Update wrangler.toml
+Add the R2 binding to your `wrangler.toml`:
+```toml
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "utahchurches-images"
+```
 
 ## 5. OpenRouter Setup (for AI Features)
 
@@ -143,19 +134,14 @@ bun run better-auth:schema
 Create a `.dev.vars` file in the project root:
 
 ```bash
-# Database
-TURSO_DATABASE_URL=libsql://your-db.turso.io
-TURSO_AUTH_TOKEN=your-turso-auth-token
-
 # Google Services
 GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+GOOGLE_SSR_KEY=your-server-side-maps-api-key
 GOOGLE_CLIENT_ID=your-oauth-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-oauth-client-secret
 
-# Cloudflare
-CLOUDFLARE_ACCOUNT_ID=your-account-id
-CLOUDFLARE_ACCOUNT_HASH=your-account-hash
-CLOUDFLARE_IMAGES_API_TOKEN=your-images-api-token
+# Site Configuration
+SITE_DOMAIN=localhost:8787
 
 # AI Features
 OPENROUTER_API_KEY=your-openrouter-api-key
@@ -178,15 +164,12 @@ You can set production secrets using either Wrangler CLI or Cloudflare Dashboard
 #### Option A: Using Wrangler CLI
 ```bash
 # Set each secret
-wrangler secret put TURSO_DATABASE_URL
-wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
+wrangler secret put GOOGLE_SSR_KEY
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put CLOUDFLARE_ACCOUNT_ID
-wrangler secret put CLOUDFLARE_ACCOUNT_HASH
-wrangler secret put CLOUDFLARE_IMAGES_API_TOKEN
 wrangler secret put OPENROUTER_API_KEY
+wrangler secret put SITE_DOMAIN
 wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put BETTER_AUTH_URL
 ```
@@ -289,14 +272,14 @@ bun update
    - Ensure `BETTER_AUTH_SECRET` is the same in dev and production
 
 2. **Database connection errors**
-   - Verify Turso database is active
-   - Check auth token hasn't expired
-   - Ensure database URL includes `libsql://` protocol
+   - Verify D1 database binding is correct in wrangler.toml
+   - Check database_id matches the created database
+   - Ensure migrations have been applied
 
 3. **Images not uploading**
-   - Verify Cloudflare Images is enabled on your account
-   - Check API token has correct permissions
-   - Ensure account hash is correct
+   - Verify R2 bucket exists and is named correctly
+   - Check R2 binding in wrangler.toml
+   - Ensure SITE_DOMAIN is set correctly
 
 4. **Map not loading**
    - Check Google Maps API key is valid

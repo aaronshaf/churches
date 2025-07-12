@@ -4,7 +4,7 @@
 [![CI](https://github.com/aaronshaf/churches/actions/workflows/ci.yml/badge.svg)](https://github.com/aaronshaf/churches/actions/workflows/ci.yml)
 [![Deploy](https://github.com/aaronshaf/churches/actions/workflows/deploy.yml/badge.svg)](https://github.com/aaronshaf/churches/actions/workflows/deploy.yml)
 
-A directory of evangelical churches, built with Cloudflare Workers, Hono, and Turso.
+A directory of evangelical churches, built with Cloudflare Workers, Hono, and D1.
 
 ## Overview
 
@@ -19,20 +19,20 @@ This application provides a comprehensive directory of evangelical churches orga
 - **Multi-language Support** - Track churches serving in different languages
 - **Admin Dashboard** - Manage churches, affiliations, and users
 - **AI-Powered Data Extraction** - Automatically extract church information from websites
-- **Image Management** - Upload and reorder multiple church images via Cloudflare Images
+- **Image Management** - Upload and reorder multiple church images via Cloudflare R2
 - **Save and Continue** - Efficiently review churches with one-click navigation to next church
 
 ## Technology Stack
 
 - **Runtime**: Cloudflare Workers (edge computing)
 - **Framework**: Hono (lightweight web framework)
-- **Database**: Turso (SQLite at the edge)
+- **Database**: Cloudflare D1 (SQLite at the edge)
 - **ORM**: Drizzle ORM
 - **Authentication**: Better-auth (self-hosted, Google OAuth)
 - **Styling**: Tailwind CSS (via CDN)
 - **Package Manager**: bun
 - **AI Integration**: OpenRouter API with Google Gemini
-- **Image Storage**: Cloudflare Images
+- **Image Storage**: Cloudflare R2
 
 ## Development Setup
 
@@ -43,7 +43,7 @@ For detailed setup instructions including all third-party services, see [SETUP.m
 - Node.js 18+
 - bun 1.0+
 - Cloudflare account
-- Turso database account
+- Cloudflare D1 database
 - Google OAuth credentials (for authentication)
 
 ### Environment Variables
@@ -51,13 +51,10 @@ For detailed setup instructions including all third-party services, see [SETUP.m
 Create a `.dev.vars` file in the root directory:
 
 ```
-TURSO_DATABASE_URL=your_database_url
-TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
-CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
-CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
-CLOUDFLARE_IMAGES_API_TOKEN=your_cloudflare_images_token
+GOOGLE_SSR_KEY=your_server_side_maps_api_key
 OPENROUTER_API_KEY=your_openrouter_api_key
+SITE_DOMAIN=localhost:8787
 
 # Authentication (Better-Auth) - Required
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
@@ -256,13 +253,10 @@ The application uses better-auth for self-hosted authentication with Google OAut
 
 ```bash
 # Set production secrets
-wrangler secret put TURSO_DATABASE_URL
-wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
-wrangler secret put CLOUDFLARE_ACCOUNT_ID
-wrangler secret put CLOUDFLARE_ACCOUNT_HASH
-wrangler secret put CLOUDFLARE_IMAGES_API_TOKEN
+wrangler secret put GOOGLE_SSR_KEY
 wrangler secret put OPENROUTER_API_KEY
+wrangler secret put SITE_DOMAIN
 wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put BETTER_AUTH_URL
 wrangler secret put GOOGLE_CLIENT_ID

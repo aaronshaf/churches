@@ -12,7 +12,7 @@ Database name: `utahchurches`
 ### Core Technologies
 - **Runtime**: Cloudflare Workers (edge computing, global distribution)
 - **Framework**: Hono (lightweight, edge-optimized web framework)
-- **Database**: Turso (SQLite at the edge, low-latency reads)
+- **Database**: Cloudflare D1 (SQLite at the edge, low-latency reads)
 - **ORM**: Drizzle ORM (type-safe, edge-compatible, lightweight)
 
 ### Frontend & Styling
@@ -29,7 +29,7 @@ Database name: `utahchurches`
 
 ### Key Dependencies
 - `hono` - Web framework optimized for edge
-- `@libsql/client` - Turso database client
+- `@cloudflare/workers-types` - Cloudflare Workers types including D1
 - `drizzle-orm` - Type-safe ORM
 - `better-auth` - Self-hosted authentication with Google OAuth
 - `js-yaml` - YAML data export
@@ -50,14 +50,13 @@ This project uses bun as the package manager and JavaScript runtime.
 
 Create a `.dev.vars` file with:
 ```
-TURSO_DATABASE_URL=your_database_url
-TURSO_AUTH_TOKEN=your_auth_token
 GOOGLE_MAPS_API_KEY=your_maps_api_key
 GOOGLE_SSR_KEY=your_server_side_maps_api_key
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars-long
 BETTER_AUTH_URL=http://utahchurches.localhost:8787
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+SITE_DOMAIN=localhost:8787
 ```
 
 **Google API Key Notes:**
@@ -79,7 +78,7 @@ bun deploy
 # Database commands
 bun db:generate  # Generate Drizzle migrations
 bun db:migrate   # Apply pending migrations (STANDARD WAY)
-bun db:push      # Push schema to Turso (development only)
+bun db:push      # Push schema to D1 (development only)
 bun db:studio    # Open Drizzle Studio
 bun db:seed      # Seed admin user
 bun db:reset-admin  # Reset admin password
@@ -102,14 +101,13 @@ ast-grep --pattern '<$Component $$$>' src/  # Find JSX component usage
 
 Set production secrets using wrangler:
 ```bash
-wrangler secret put TURSO_DATABASE_URL
-wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put GOOGLE_MAPS_API_KEY
 wrangler secret put GOOGLE_SSR_KEY
 wrangler secret put BETTER_AUTH_SECRET
 wrangler secret put BETTER_AUTH_URL
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put SITE_DOMAIN
 ```
 
 ## Architecture

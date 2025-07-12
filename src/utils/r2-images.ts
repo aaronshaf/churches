@@ -1,3 +1,6 @@
+import { eq } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { settings } from '../db/schema';
 import type { Bindings } from '../types';
 
 export interface ImageTransformations {
@@ -19,7 +22,8 @@ export interface UploadResult {
 export async function uploadImage(
   file: File,
   folder: 'churches' | 'counties' | 'pages' | 'site',
-  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN'>
+  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN'>,
+  db?: DrizzleD1Database<any>
 ): Promise<UploadResult> {
   // Validate file type
   if (!file.type.startsWith('image/')) {
@@ -48,12 +52,30 @@ export async function uploadImage(
     },
   });
 
-  const domain = env.SITE_DOMAIN || 'utahchurches.org';
+  const domain = db ? await getDomain(db, env) : env.SITE_DOMAIN || 'utahchurches.org';
 
   return {
     path,
     url: getImageUrl(path, domain),
   };
+}
+
+/**
+ * Get domain from settings table or fallback to environment/default
+ */
+export async function getDomain(db: DrizzleD1Database<any>, env: Pick<Bindings, 'SITE_DOMAIN'>): Promise<string> {
+  try {
+    const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).limit(1);
+
+    if (siteDomainSetting.length > 0 && siteDomainSetting[0].value) {
+      return siteDomainSetting[0].value;
+    }
+  } catch (error) {
+    console.error('Failed to fetch site_domain from settings:', error);
+  }
+
+  // Fallback to environment variable or default
+  return env.SITE_DOMAIN || 'utahchurches.org';
 }
 
 /**
@@ -65,7 +87,6 @@ export function getImageUrl(
   transformations?: ImageTransformations
 ): string {
   if (!path) return '';
-
 
   const baseUrl = `https://${domain}/cdn-cgi/image`;
 

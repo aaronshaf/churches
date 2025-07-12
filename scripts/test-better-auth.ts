@@ -14,11 +14,11 @@ console.log('   BETTER_AUTH_URL=http://localhost:8787');
 console.log('   (Optional) GOOGLE_CLIENT_ID=your-google-client-id');
 console.log('   (Optional) GOOGLE_CLIENT_SECRET=your-google-client-secret\n');
 
-console.log('2. Generate the auth schema:');
-console.log('   pnpm tsx scripts/generate-auth-schema.ts\n');
+console.log('2. Apply database migrations (includes auth tables):');
+console.log('   bun db:migrate\n');
 
 console.log('3. Start the development server:');
-console.log('   pnpm dev\n');
+console.log('   bun dev\n');
 
 console.log('4. Test the auth flows:\n');
 

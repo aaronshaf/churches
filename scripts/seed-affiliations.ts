@@ -1,9 +1,12 @@
+// NOTE: This script needs to be updated to work with Cloudflare D1
+// For now, use the admin interface to add affiliations manually
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { createClient } from '@libsql/client';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { affiliations } from '../src/db/schema';
-import { sql } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const affiliationData = [
   { name: 'Alpine Church', website: 'https://alpinechurch.org/' },
@@ -11,7 +14,10 @@ const affiliationData = [
   { name: 'Anglican Church in North America', website: 'https://www.acna.org/' },
   { name: 'Arch Ministries', website: 'https://archmin.org/' },
   { name: 'Assemblies of God', website: 'https://ag.org/' },
-  { name: 'Beachy Amish Mennonite Fellowship', website: 'https://gameo.org/index.php?title=Beachy_Amish_Mennonite_Fellowship' },
+  {
+    name: 'Beachy Amish Mennonite Fellowship',
+    website: 'https://gameo.org/index.php?title=Beachy_Amish_Mennonite_Fellowship',
+  },
   { name: 'Biblical Ministries Worldwide', website: 'https://biblicalministries.org/' },
   { name: 'Calvary Chapel Association', website: 'https://calvarycca.org/' },
   { name: 'Calvary Global Network', website: 'https://cgn.org/' },
@@ -39,13 +45,16 @@ const affiliationData = [
   { name: 'Lutheran Congregations in Mission for Christ', website: 'https://www.lcmc.net/' },
   { name: 'M28 Alliance', website: 'https://www.m28alliance.com/' },
   { name: 'National Baptist Convention', website: 'https://www.nationalbaptist.com/' },
-  { name: 'Nationwide Fellowship Churches', website: 'https://gameo.org/index.php?title=Nationwide_Fellowship_Churches' },
+  {
+    name: 'Nationwide Fellowship Churches',
+    website: 'https://gameo.org/index.php?title=Nationwide_Fellowship_Churches',
+  },
   { name: 'North American Baptist Conference', website: 'https://nabconference.org/' },
   { name: 'Northwest Baptist Missions', website: 'https://www.nbmwest.org/' },
   { name: 'Orthodox Presbyterian Church', website: 'https://opc.org/' },
   { name: 'Plant for the Gospel', website: 'https://www.plant4thegospel.com/' },
   { name: 'Plant Utah', website: 'https://plantutah.com/' },
-  { name: 'Potter\'s House Christian Fellowship', website: 'https://www.prescottpottershouse.com/' },
+  { name: "Potter's House Christian Fellowship", website: 'https://www.prescottpottershouse.com/' },
   { name: 'Presbyterian Church (U.S.A.)', website: 'https://www.pcusa.org/' },
   { name: 'Presbyterian Church in America', website: 'https://pcanet.org/' },
   { name: 'Protestant Episcopal Church in the United States of America', website: 'https://www.episcopalchurch.org/' },
@@ -74,7 +83,7 @@ async function seedAffiliations() {
       const devVarsPath = path.join(__dirname, '..', '.dev.vars');
       const devVars = fs.readFileSync(devVarsPath, 'utf-8');
       const lines = devVars.split('\n');
-      
+
       for (const line of lines) {
         if (line.startsWith('TURSO_DATABASE_URL=')) {
           dbUrl = line.split('=')[1].trim();
@@ -82,7 +91,7 @@ async function seedAffiliations() {
           authToken = line.split('=')[1].trim();
         }
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Could not read .dev.vars file');
     }
   }
@@ -104,14 +113,16 @@ async function seedAffiliations() {
   for (const affiliation of affiliationData) {
     try {
       // Check if affiliation already exists
-      const existing = await db.select()
+      const existing = await db
+        .select()
         .from(affiliations)
         .where(sql`${affiliations.name} = ${affiliation.name}`)
         .get();
 
       if (existing) {
         // Update existing affiliation
-        await db.update(affiliations)
+        await db
+          .update(affiliations)
           .set({ website: affiliation.website })
           .where(sql`${affiliations.name} = ${affiliation.name}`);
         console.log(`Updated: ${affiliation.name}`);
