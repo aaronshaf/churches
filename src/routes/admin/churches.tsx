@@ -658,7 +658,7 @@ adminChurchesRoutes.post('/', async (c) => {
 
     // Insert affiliations
     if (validatedAffiliations && validatedAffiliations.length > 0) {
-      const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
+      const affiliationsToInsert = validatedAffiliations.map((affiliationId) => ({
         churchId: church.id,
         affiliationId: Number(affiliationId),
       }));
@@ -696,7 +696,12 @@ adminChurchesRoutes.post('/', async (c) => {
           updatedAt: new Date(),
         }));
 
-        await db.insert(churchImages).values(imagesToInsert);
+        try {
+          await db.insert(churchImages).values(imagesToInsert);
+        } catch (error) {
+          console.error('Failed to insert church images:', error);
+          // Continue without images if table doesn't exist
+        }
       }
     }
 
@@ -760,16 +765,24 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const churchName = c.req.query('churchName');
   const churchPath = c.req.query('churchPath');
 
-  const [church, gatherings, churchAffils, images, allCounties, allAffiliations] = await Promise.all([
-    db.select().from(churches).where(eq(churches.id, id)).get(),
-    db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
-    db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, id)).all(),
-    db
+  // Query for church images with error handling
+  let images: Array<typeof churchImages.$inferSelect> = [];
+  try {
+    images = await db
       .select()
       .from(churchImages)
       .where(eq(churchImages.churchId, id))
       .orderBy(churchImages.sortOrder, churchImages.createdAt)
-      .all(),
+      .all();
+  } catch (error) {
+    console.error('Failed to fetch church images:', error);
+    // Continue without images if table doesn't exist
+  }
+
+  const [church, gatherings, churchAffils, allCounties, allAffiliations] = await Promise.all([
+    db.select().from(churches).where(eq(churches.id, id)).get(),
+    db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
+    db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, id)).all(),
     db.select().from(counties).orderBy(counties.name).all(),
     db.select().from(affiliations).orderBy(affiliations.name).all(),
   ]);
@@ -808,7 +821,6 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
 adminChurchesRoutes.post('/:id', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('betterUser');
-  const logoUrl = await getLogoUrl(c.env);
   const id = Number(c.req.param('id'));
 
   try {
@@ -854,53 +866,58 @@ adminChurchesRoutes.post('/:id', async (c) => {
       }
     }
 
-    // Handle existing image updates and removals
-    const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+    // Handle existing image updates and removals (with error handling)
     const imagesToRemove: string[] = [];
-    const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string; isFeatured?: boolean }> = [];
+    try {
+      const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+      const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string; isFeatured?: boolean }> = [];
 
-    for (const image of existingImages) {
-      // Check if image should be removed
-      const removeKey = `removeImage_${image.id}`;
-      if (body[removeKey] === 'true') {
-        imagesToRemove.push(image.imagePath);
-        await db.delete(churchImages).where(eq(churchImages.id, image.id));
-        continue;
+      for (const image of existingImages) {
+        // Check if image should be removed
+        const removeKey = `removeImage_${image.id}`;
+        if (body[removeKey] === 'true') {
+          imagesToRemove.push(image.imagePath);
+          await db.delete(churchImages).where(eq(churchImages.id, image.id));
+          continue;
+        }
+
+        // Update image metadata
+        const altKey = `imageAlt_${image.id}`;
+        const captionKey = `imageCaption_${image.id}`;
+
+        const updates: { imageAlt?: string | null; caption?: string | null } = {};
+        if (typeof body[altKey] === 'string') {
+          updates.imageAlt = body[altKey] || null;
+        }
+        if (typeof body[captionKey] === 'string') {
+          updates.caption = body[captionKey] || null;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await db.update(churchImages).set(updates).where(eq(churchImages.id, image.id));
+        }
       }
 
-      // Update image metadata
-      const altKey = `imageAlt_${image.id}`;
-      const captionKey = `imageCaption_${image.id}`;
+      // Handle featured image selection
+      const featuredImageId = body.featuredImageId;
+      if (featuredImageId) {
+        // Clear all featured flags first
+        await db.update(churchImages).set({ isFeatured: false }).where(eq(churchImages.churchId, id));
 
-      const updates: { imageAlt?: string | null; caption?: string | null } = {};
-      if (typeof body[altKey] === 'string') {
-        updates.imageAlt = body[altKey] || null;
+        // Set the selected image as featured
+        await db
+          .update(churchImages)
+          .set({ isFeatured: true })
+          .where(eq(churchImages.id, Number(featuredImageId)));
       }
-      if (typeof body[captionKey] === 'string') {
-        updates.caption = body[captionKey] || null;
+
+      // Remove deleted images from R2
+      for (const imagePath of imagesToRemove) {
+        await deleteImage(imagePath, c.env);
       }
-
-      if (Object.keys(updates).length > 0) {
-        await db.update(churchImages).set(updates).where(eq(churchImages.id, image.id));
-      }
-    }
-
-    // Handle featured image selection
-    const featuredImageId = body.featuredImageId;
-    if (featuredImageId) {
-      // Clear all featured flags first
-      await db.update(churchImages).set({ isFeatured: false }).where(eq(churchImages.churchId, id));
-
-      // Set the selected image as featured
-      await db
-        .update(churchImages)
-        .set({ isFeatured: true })
-        .where(eq(churchImages.id, Number(featuredImageId)));
-    }
-
-    // Remove deleted images from R2
-    for (const imagePath of imagesToRemove) {
-      await deleteImage(imagePath, c.env);
+    } catch (error) {
+      console.error('Failed to update church images:', error);
+      // Continue without image updates if table doesn't exist
     }
 
     // Parse and validate form data
@@ -965,39 +982,44 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Update affiliations
     await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, id));
     if (validatedAffiliations && validatedAffiliations.length > 0) {
-      const affiliationsToInsert = validatedAffiliations.map((affiliationId, index) => ({
+      const affiliationsToInsert = validatedAffiliations.map((affiliationId) => ({
         churchId: id,
         affiliationId: Number(affiliationId),
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
 
-    // Insert new uploaded images
+    // Insert new uploaded images (with error handling)
     if (uploadedImages.length > 0) {
-      // Get current max sort order
-      const existingImagesCount = await db
-        .select({ count: sql`count(*)` })
-        .from(churchImages)
-        .where(eq(churchImages.churchId, id))
-        .get();
+      try {
+        // Get current max sort order
+        const existingImagesCount = await db
+          .select({ count: sql`count(*)` })
+          .from(churchImages)
+          .where(eq(churchImages.churchId, id))
+          .get();
 
-      const sortOrder = (existingImagesCount?.count as number) || 0;
+        const sortOrder = (existingImagesCount?.count as number) || 0;
 
-      // Check if this is the first image (should be featured)
-      const hasExistingImages = sortOrder > 0;
+        // Check if this is the first image (should be featured)
+        const hasExistingImages = sortOrder > 0;
 
-      const imagesToInsert = uploadedImages.map((img, index) => ({
-        churchId: id,
-        imagePath: img.path,
-        imageAlt: null,
-        caption: null,
-        isFeatured: !hasExistingImages && index === 0, // First image is featured if no existing images
-        sortOrder: sortOrder + index,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+        const imagesToInsert = uploadedImages.map((img, index) => ({
+          churchId: id,
+          imagePath: img.path,
+          imageAlt: null,
+          caption: null,
+          isFeatured: !hasExistingImages && index === 0, // First image is featured if no existing images
+          sortOrder: sortOrder + index,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
 
-      await db.insert(churchImages).values(imagesToInsert);
+        await db.insert(churchImages).values(imagesToInsert);
+      } catch (error) {
+        console.error('Failed to insert new church images:', error);
+        // Continue without images if table doesn't exist
+      }
     }
 
     // Get new affiliations for audit trail
@@ -1070,6 +1092,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
     }
   } catch (error) {
     console.error('Error updating church:', error);
+    const logoUrl = await getLogoUrl(c.env);
     return c.html(
       <Layout title="Error" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
         <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -1091,14 +1114,27 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
-  // Get all church images before deleting
-  const churchImagesList = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+  // Get all church images before deleting (with error handling)
+  let churchImagesList: Array<typeof churchImages.$inferSelect> = [];
+  try {
+    churchImagesList = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+  } catch (error) {
+    console.error('Failed to fetch church images for deletion:', error);
+    // Continue without images if table doesn't exist
+  }
 
   // Delete related data first
   await db.delete(churchGatherings).where(eq(churchGatherings.churchId, id));
   await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, id));
   await db.delete(comments).where(eq(comments.churchId, id));
-  await db.delete(churchImages).where(eq(churchImages.churchId, id));
+
+  // Delete church images with error handling
+  try {
+    await db.delete(churchImages).where(eq(churchImages.churchId, id));
+  } catch (error) {
+    console.error('Failed to delete church images:', error);
+    // Continue if table doesn't exist
+  }
 
   // Delete church
   await db.delete(churches).where(eq(churches.id, id));
