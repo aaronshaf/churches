@@ -692,8 +692,6 @@ adminChurchesRoutes.post('/', async (c) => {
           caption: null,
           isFeatured: index === 0, // First image is featured
           sortOrder: index,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         }));
 
         try {
@@ -1013,8 +1011,6 @@ adminChurchesRoutes.post('/:id', async (c) => {
           caption: null,
           isFeatured: !hasExistingImages && index === 0, // First image is featured if no existing images
           sortOrder: sortOrder + index,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         }));
 
         await db.insert(churchImages).values(imagesToInsert);
