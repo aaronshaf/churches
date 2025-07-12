@@ -174,3 +174,14 @@ export interface ChurchAffiliation {
   affiliationId: number;
 }
 
+export interface ChurchImage {
+  id: number;
+  churchId: number;
+  imagePath: string;
+  imageAlt: string | null;
+  caption: string | null;
+  isFeatured: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -19,6 +19,7 @@ import {
   churchAffiliations,
   churches,
   churchGatherings,
+  churchImages,
   churchSuggestions,
   comments,
   counties,
@@ -4033,7 +4034,6 @@ app.post('/admin/pages', requireAdminBetter, async (c) => {
     return c.text(result.error.errors[0].message, 400);
   }
 
-
   const pageData = {
     title,
     path,
@@ -4121,7 +4121,6 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
     .where(eq(pages.id, Number(id)))
     .get();
 
-
   const pageData = {
     title,
     path,
@@ -4148,7 +4147,6 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
     .from(pages)
     .where(eq(pages.id, Number(id)))
     .get();
-
 
   await db.delete(pages).where(eq(pages.id, Number(id)));
 
@@ -4315,122 +4313,6 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-    }
-  }
-
-  // Handle favicon upload
-  const favicon = body.favicon as File;
-  if (favicon && favicon.size > 0) {
-    try {
-      // Get validated Cloudflare environment variables
-      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-
-      // Get current favicon to delete if exists
-      const existingFaviconId = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
-
-      // Delete old favicon if exists
-      if (existingFaviconId?.value) {
-        await deleteFromCloudflareImages(existingFaviconId.value, accountId, apiToken);
-      }
-
-      const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(favicon, accountId, apiToken, imagePrefix);
-
-      if (uploadResult.success && uploadResult.result) {
-        const faviconId = uploadResult.result.id;
-        const faviconUrl = getCloudflareImageUrl(faviconId, accountHash, IMAGE_VARIANTS.FAVICON);
-
-        // Save favicon ID
-        const existingFaviconIdSetting = await db.select().from(settings).where(eq(settings.key, 'favicon_id')).get();
-
-        if (existingFaviconIdSetting) {
-          await db
-            .update(settings)
-            .set({ value: faviconId, updatedAt: new Date() })
-            .where(eq(settings.key, 'favicon_id'));
-        } else {
-          await db.insert(settings).values({
-            key: 'favicon_id',
-            value: faviconId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-
-        // Save favicon URL
-        const existingFaviconUrl = await db.select().from(settings).where(eq(settings.key, 'favicon_url')).get();
-
-        if (existingFaviconUrl) {
-          await db
-            .update(settings)
-            .set({ value: faviconUrl, updatedAt: new Date() })
-            .where(eq(settings.key, 'favicon_url'));
-        } else {
-          await db.insert(settings).values({
-            key: 'favicon_url',
-            value: faviconUrl,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Favicon upload error:', error);
-    }
-  }
-
-  // Handle logo upload
-  const logo = body.logo as File;
-  if (logo && logo.size > 0) {
-    try {
-      // Get validated Cloudflare environment variables
-      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-
-      // Get current logo to delete if exists
-      const existingLogoId = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
-
-      // Delete old logo if exists
-      if (existingLogoId?.value) {
-        await deleteFromCloudflareImages(existingLogoId.value, accountId, apiToken);
-      }
-
-      const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(logo, accountId, apiToken, imagePrefix);
-
-      if (uploadResult.success && uploadResult.result) {
-        const logoId = uploadResult.result.id;
-        const logoUrl = getCloudflareImageUrl(logoId, accountHash, IMAGE_VARIANTS.SMALL);
-
-        // Save logo ID
-        const existingLogoIdSetting = await db.select().from(settings).where(eq(settings.key, 'logo_id')).get();
-
-        if (existingLogoIdSetting) {
-          await db.update(settings).set({ value: logoId, updatedAt: new Date() }).where(eq(settings.key, 'logo_id'));
-        } else {
-          await db.insert(settings).values({
-            key: 'logo_id',
-            value: logoId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-
-        // Save logo URL
-        const existingLogoUrl = await db.select().from(settings).where(eq(settings.key, 'logo_url')).get();
-
-        if (existingLogoUrl) {
-          await db.update(settings).set({ value: logoUrl, updatedAt: new Date() }).where(eq(settings.key, 'logo_url'));
-        } else {
-          await db.insert(settings).values({
-            key: 'logo_url',
-            value: logoUrl,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Logo upload error:', error);
     }
   }
 

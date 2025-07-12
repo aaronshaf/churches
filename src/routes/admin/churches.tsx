@@ -10,6 +10,7 @@ import {
   churchAffiliations,
   churches,
   churchGatherings,
+  churchImages,
   comments,
   counties,
 } from '../../db/schema';
@@ -576,6 +577,7 @@ adminChurchesRoutes.get('/new', async (c) => {
           church={undefined}
           gatherings={[]}
           churchAffiliations={[]}
+          churchImages={[]}
           counties={allCounties}
           affiliations={allAffiliations}
           action="/admin/churches"
@@ -663,6 +665,41 @@ adminChurchesRoutes.post('/', async (c) => {
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
 
+    // Handle image uploads for new church
+    const newImages = body.newImages;
+    if (newImages) {
+      const files = Array.isArray(newImages) ? newImages : [newImages];
+      const uploadedImages: { path: string }[] = [];
+
+      for (const file of files) {
+        if (file instanceof File && file.size > 0) {
+          try {
+            const result = await uploadImage(file, 'churches', c.env);
+            uploadedImages.push({ path: result.path });
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            // Continue with the creation even if image upload fails
+          }
+        }
+      }
+
+      // Insert uploaded images
+      if (uploadedImages.length > 0) {
+        const imagesToInsert = uploadedImages.map((img, index) => ({
+          churchId: church.id,
+          imagePath: img.path,
+          imageAlt: null,
+          caption: null,
+          isFeatured: index === 0, // First image is featured
+          sortOrder: index,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        await db.insert(churchImages).values(imagesToInsert);
+      }
+    }
+
     // Create audit trail comment
     try {
       const auditComment = createAuditComment(user.name || user.email, 'created church', []);
@@ -723,10 +760,16 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const churchName = c.req.query('churchName');
   const churchPath = c.req.query('churchPath');
 
-  const [church, gatherings, churchAffils, allCounties, allAffiliations] = await Promise.all([
+  const [church, gatherings, churchAffils, images, allCounties, allAffiliations] = await Promise.all([
     db.select().from(churches).where(eq(churches.id, id)).get(),
     db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
     db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, id)).all(),
+    db
+      .select()
+      .from(churchImages)
+      .where(eq(churchImages.churchId, id))
+      .orderBy(churchImages.sortOrder, churchImages.createdAt)
+      .all(),
     db.select().from(counties).orderBy(counties.name).all(),
     db.select().from(affiliations).orderBy(affiliations.name).all(),
   ]);
@@ -748,6 +791,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
           church={church}
           gatherings={gatherings}
           churchAffiliations={churchAffils}
+          churchImages={images}
           counties={allCounties}
           affiliations={allAffiliations}
           action={`/admin/churches/${id}`}
@@ -790,33 +834,74 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     const body = await c.req.parseBody({ all: true });
 
-    // Handle R2 featured image upload
-    const featuredImage = body.featuredImage;
-    let newImagePath = null;
-    let newImageAlt = null;
+    // Handle multiple image uploads
+    const newImages = body.newImages;
+    const uploadedImages: { path: string }[] = [];
 
-    if (featuredImage && featuredImage instanceof File && featuredImage.size > 0) {
-      try {
-        const result = await uploadImage(featuredImage, 'churches', c.env);
-        newImagePath = result.path;
-      } catch (error) {
-        console.error('Error uploading featured image:', error);
-        // Continue with the update even if image upload fails
+    // Upload new images if any
+    if (newImages) {
+      const files = Array.isArray(newImages) ? newImages : [newImages];
+      for (const file of files) {
+        if (file instanceof File && file.size > 0) {
+          try {
+            const result = await uploadImage(file, 'churches', c.env);
+            uploadedImages.push({ path: result.path });
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            // Continue with the update even if image upload fails
+          }
+        }
       }
     }
 
-    // Handle featured image removal
-    if (body.removeImage === 'true' && oldChurch.imagePath) {
-      await deleteImage(oldChurch.imagePath, c.env);
-      newImagePath = ''; // Set to empty string to clear the field
+    // Handle existing image updates and removals
+    const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+    const imagesToRemove: string[] = [];
+    const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string; isFeatured?: boolean }> = [];
+
+    for (const image of existingImages) {
+      // Check if image should be removed
+      const removeKey = `removeImage_${image.id}`;
+      if (body[removeKey] === 'true') {
+        imagesToRemove.push(image.imagePath);
+        await db.delete(churchImages).where(eq(churchImages.id, image.id));
+        continue;
+      }
+
+      // Update image metadata
+      const altKey = `imageAlt_${image.id}`;
+      const captionKey = `imageCaption_${image.id}`;
+
+      const updates: { imageAlt?: string | null; caption?: string | null } = {};
+      if (typeof body[altKey] === 'string') {
+        updates.imageAlt = body[altKey] || null;
+      }
+      if (typeof body[captionKey] === 'string') {
+        updates.caption = body[captionKey] || null;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await db.update(churchImages).set(updates).where(eq(churchImages.id, image.id));
+      }
     }
 
-    // Update image alt text
-    if (typeof body.imageAlt === 'string') {
-      newImageAlt = body.imageAlt || null;
+    // Handle featured image selection
+    const featuredImageId = body.featuredImageId;
+    if (featuredImageId) {
+      // Clear all featured flags first
+      await db.update(churchImages).set({ isFeatured: false }).where(eq(churchImages.churchId, id));
+
+      // Set the selected image as featured
+      await db
+        .update(churchImages)
+        .set({ isFeatured: true })
+        .where(eq(churchImages.id, Number(featuredImageId)));
     }
 
-
+    // Remove deleted images from R2
+    for (const imagePath of imagesToRemove) {
+      await deleteImage(imagePath, c.env);
+    }
 
     // Parse and validate form data
     const parsedBody = parseFormBody(body);
@@ -863,15 +948,8 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Prepare church data for update
     const churchData = prepareChurchDataFromForm(validatedChurchData);
 
-    // Create the final update data with R2 image fields
-    const updateData = {
-      ...churchData,
-      ...(newImagePath !== null && { imagePath: newImagePath || null }),
-      ...(newImageAlt !== null && { imageAlt: newImageAlt }),
-    };
-
     // Update church
-    await db.update(churches).set(updateData).where(eq(churches.id, id));
+    await db.update(churches).set(churchData).where(eq(churches.id, id));
 
     // Update gatherings
     await db.delete(churchGatherings).where(eq(churchGatherings.churchId, id));
@@ -892,6 +970,34 @@ adminChurchesRoutes.post('/:id', async (c) => {
         affiliationId: Number(affiliationId),
       }));
       await db.insert(churchAffiliations).values(affiliationsToInsert);
+    }
+
+    // Insert new uploaded images
+    if (uploadedImages.length > 0) {
+      // Get current max sort order
+      const existingImagesCount = await db
+        .select({ count: sql`count(*)` })
+        .from(churchImages)
+        .where(eq(churchImages.churchId, id))
+        .get();
+
+      const sortOrder = (existingImagesCount?.count as number) || 0;
+
+      // Check if this is the first image (should be featured)
+      const hasExistingImages = sortOrder > 0;
+
+      const imagesToInsert = uploadedImages.map((img, index) => ({
+        churchId: id,
+        imagePath: img.path,
+        imageAlt: null,
+        caption: null,
+        isFeatured: !hasExistingImages && index === 0, // First image is featured if no existing images
+        sortOrder: sortOrder + index,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await db.insert(churchImages).values(imagesToInsert);
     }
 
     // Get new affiliations for audit trail
@@ -985,14 +1091,22 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
+  // Get all church images before deleting
+  const churchImagesList = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+
   // Delete related data first
   await db.delete(churchGatherings).where(eq(churchGatherings.churchId, id));
   await db.delete(churchAffiliations).where(eq(churchAffiliations.churchId, id));
   await db.delete(comments).where(eq(comments.churchId, id));
-
+  await db.delete(churchImages).where(eq(churchImages.churchId, id));
 
   // Delete church
   await db.delete(churches).where(eq(churches.id, id));
+
+  // Delete images from R2 bucket
+  for (const image of churchImagesList) {
+    await deleteImage(image.imagePath, c.env);
+  }
 
   return c.redirect('/admin/churches');
 });

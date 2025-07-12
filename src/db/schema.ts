@@ -106,6 +106,20 @@ export const churchGatherings = sqliteTable('church_gatherings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const churchImages = sqliteTable('church_images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  churchId: integer('church_id')
+    .notNull()
+    .references(() => churches.id),
+  imagePath: text('image_path').notNull(), // R2 path
+  imageAlt: text('image_alt'),
+  caption: text('caption'),
+  isFeatured: integer('is_featured', { mode: 'boolean' }).notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const pages = sqliteTable('pages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
@@ -125,7 +139,6 @@ export const settings = sqliteTable('settings', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
-
 
 export const churchSuggestions = sqliteTable('church_suggestions', {
   id: integer('id').primaryKey({ autoIncrement: true }),

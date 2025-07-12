@@ -11,6 +11,7 @@ import {
   churchAffiliations,
   churches,
   churchGatherings,
+  churchImages,
   comments,
   counties,
   settings,
@@ -113,6 +114,13 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .orderBy(affiliations.name)
       .all();
 
+    // Get church images
+    const churchImagesList = await db
+      .select()
+      .from(churchImages)
+      .where(eq(churchImages.churchId, church.id))
+      .orderBy(churchImages.sortOrder, churchImages.createdAt)
+      .all();
 
     // Get comments for this church with user info
     const allComments = await db
@@ -267,11 +275,32 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           url: church.statementOfFaith,
         },
       }),
+      ...(churchImagesList.length > 0 &&
+        (() => {
+          const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
+          return {
+            image: {
+              '@type': 'ImageObject',
+              url: `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${featuredImage.imagePath}`,
+              contentUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/${featuredImage.imagePath}`,
+              thumbnailUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/${featuredImage.imagePath}`,
+              ...(featuredImage.imageAlt && { description: featuredImage.imageAlt }),
+              ...(featuredImage.caption && { caption: featuredImage.caption }),
+            },
+          };
+        })()),
     };
+
+    const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
+    const ogImageUrl = featuredImage
+      ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${featuredImage.imagePath}`
+      : undefined;
 
     return c.html(
       <Layout
         title={`${church.name}`}
+        description={church.publicNotes || `Christian church in ${church.countyName || 'Utah'}`}
+        ogImage={ogImageUrl}
         jsonLd={jsonLd}
         user={user}
         churchId={church.id.toString()}
@@ -318,23 +347,30 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           </div>
 
           {/* Featured Image */}
-          {church.imagePath && (
-            <div class="bg-white">
-              <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="py-8">
-                  <OptimizedImage
-                    path={church.imagePath}
-                    alt={church.imageAlt || `${church.name} building`}
-                    width={1200}
-                    height={400}
-                    className="w-full h-64 md:h-80 lg:h-96 object-cover rounded-lg shadow-lg"
-                    domain={siteDomain}
-                    priority={true}
-                  />
+          {churchImagesList.length > 0 &&
+            (() => {
+              const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
+              return (
+                <div class="bg-white">
+                  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="py-8">
+                      <OptimizedImage
+                        path={featuredImage.imagePath}
+                        alt={featuredImage.imageAlt || `${church.name} building`}
+                        width={1200}
+                        height={400}
+                        className="w-full h-64 md:h-80 lg:h-96 object-cover rounded-lg shadow-lg"
+                        domain={siteDomain}
+                        priority={true}
+                      />
+                      {featuredImage.caption && (
+                        <p class="mt-2 text-sm text-gray-600 text-center">{featuredImage.caption}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              );
+            })()}
 
           {/* Church Content */}
           <div class="bg-gray-50">
@@ -583,7 +619,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </div>
                   )}
 
-
                   {/* Admin Actions */}
                   {user && (user.role === 'admin' || user.role === 'contributor') && church.youtube && (
                     <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -627,6 +662,59 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                   })()}
                 </div>
               </div>
+
+              {/* Image Gallery */}
+              {churchImagesList.length > 1 && (
+                <div class="mt-8">
+                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
+                    <div class="p-6 sm:p-8">
+                      <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-6">Photos</h3>
+                      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {churchImagesList.map((image, index) => (
+                          <div
+                            key={image.id}
+                            class="relative group cursor-pointer"
+                            onclick={`openImageModal({
+                              src: 'https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${image.imagePath}',
+                              alt: '${(image.imageAlt || `${church.name} photo ${index + 1}`).replace(/'/g, "\\'")}',
+                              caption: '${(image.caption || '').replace(/'/g, "\\'")}'
+                            })`}
+                          >
+                            <OptimizedImage
+                              path={image.imagePath}
+                              alt={image.imageAlt || `${church.name} photo ${index + 1}`}
+                              width={300}
+                              height={200}
+                              className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+                              domain={siteDomain}
+                            />
+                            {image.isFeatured && (
+                              <div class="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded">
+                                Featured
+                              </div>
+                            )}
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                              <svg
+                                class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                ></path>
+                              </svg>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Feedback Section */}
               <div class="mt-8">
@@ -696,7 +784,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
             </div>
           </div>
         </div>
-
 
         <script
           dangerouslySetInnerHTML={{
@@ -773,6 +860,50 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                   notification.remove();
                 }
               }, 5000);
+            }
+            
+            // Image modal functionality
+            function openImageModal(imageData) {
+              // Create modal
+              const modal = document.createElement('div');
+              modal.id = 'image-modal';
+              modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75';
+              modal.onclick = function(e) {
+                if (e.target === modal) closeImageModal();
+              };
+              
+              modal.innerHTML = \`
+                <div class="relative max-w-4xl max-h-full">
+                  <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 z-10">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                  <img src="\${imageData.src}" alt="\${imageData.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
+                  \${imageData.caption ? \`<p class="text-white text-center mt-4 text-sm">\${imageData.caption}</p>\` : ''}
+                </div>
+              \`;
+              
+              document.body.appendChild(modal);
+              document.body.style.overflow = 'hidden';
+              
+              // Close on escape key
+              document.addEventListener('keydown', handleEscapeKey);
+            }
+            
+            function closeImageModal() {
+              const modal = document.getElementById('image-modal');
+              if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', handleEscapeKey);
+              }
+            }
+            
+            function handleEscapeKey(e) {
+              if (e.key === 'Escape') {
+                closeImageModal();
+              }
             }
           `,
           }}

@@ -1,5 +1,5 @@
 import type { FC } from 'hono/jsx';
-import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, County } from '../types';
+import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, ChurchImage, County } from '../types';
 import { getImageUrl } from '../utils/r2-images';
 import { OptimizedImage } from './OptimizedImage';
 
@@ -9,6 +9,7 @@ type ChurchFormProps = {
   gatherings?: ChurchGathering[];
   affiliations?: Affiliation[];
   churchAffiliations?: ChurchAffiliation[];
+  churchImages?: ChurchImage[];
   counties?: County[];
   error?: string;
   isNew?: boolean;
@@ -21,6 +22,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   gatherings = [],
   affiliations = [],
   churchAffiliations = [],
+  churchImages = [],
   counties = [],
   error,
   isNew = false,
@@ -533,60 +535,97 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <p class="mt-1 text-sm text-gray-500">These notes are only visible to administrators.</p>
                 </div>
 
-                {/* R2 Featured Image */}
+                {/* Church Images */}
                 <div class="sm:col-span-6">
-                  <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Featured Image</label>
+                  <label class="block text-sm font-medium leading-6 text-gray-900 mb-4">Church Images</label>
 
-                  {/* Current featured image */}
-                  {church?.imagePath && (
-                    <div class="mb-4">
-                      <div class="flex items-start gap-4">
-                        <OptimizedImage
-                          path={church.imagePath}
-                          alt={church.imageAlt || church.name}
-                          width={300}
-                          height={200}
-                          className="rounded-lg border object-cover"
-                          domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
-                        />
-                        <div class="flex-1">
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Alt Text</label>
-                          <input
-                            type="text"
-                            name="imageAlt"
-                            value={church.imageAlt || ''}
-                            placeholder="Describe the image for accessibility"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                          />
-                          <button
-                            type="button"
-                            onclick="if(confirm('Remove featured image?')) { document.getElementById('removeImage').value='true'; this.closest('.mb-4').style.display='none'; }"
-                            class="mt-2 text-red-600 text-sm hover:text-red-800"
-                          >
-                            Remove Image
-                          </button>
-                        </div>
+                  {/* Existing Images */}
+                  {churchImages.length > 0 && (
+                    <div class="mb-6">
+                      <h4 class="text-sm font-medium text-gray-900 mb-3">Current Images</h4>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {churchImages.map((image, index) => (
+                          <div key={image.id} class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-start gap-4">
+                              <OptimizedImage
+                                path={image.imagePath}
+                                alt={image.imageAlt || `Church image ${index + 1}`}
+                                width={150}
+                                height={100}
+                                className="rounded-lg border object-cover flex-shrink-0"
+                                domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+                              />
+                              <div class="flex-1 min-w-0">
+                                <div class="mb-2">
+                                  <label class="inline-flex items-center">
+                                    <input
+                                      type="radio"
+                                      name="featuredImageId"
+                                      value={image.id}
+                                      checked={image.isFeatured}
+                                      class="form-radio h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                                    />
+                                    <span class="ml-2 text-sm font-medium text-gray-700">Featured</span>
+                                  </label>
+                                </div>
+                                <div class="mb-2">
+                                  <label class="block text-xs font-medium text-gray-700 mb-1">Alt Text</label>
+                                  <input
+                                    type="text"
+                                    name={`imageAlt_${image.id}`}
+                                    value={image.imageAlt || ''}
+                                    placeholder="Describe the image"
+                                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
+                                  />
+                                </div>
+                                <div class="mb-2">
+                                  <label class="block text-xs font-medium text-gray-700 mb-1">Caption (optional)</label>
+                                  <input
+                                    type="text"
+                                    name={`imageCaption_${image.id}`}
+                                    value={image.caption || ''}
+                                    placeholder="Image caption"
+                                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onclick={`if(confirm('Remove this image?')) { document.getElementById('removeImage_${image.id}').value='true'; this.closest('.border').style.display='none'; }`}
+                                  class="text-red-600 text-xs hover:text-red-800"
+                                >
+                                  Remove Image
+                                </button>
+                                <input
+                                  type="hidden"
+                                  id={`removeImage_${image.id}`}
+                                  name={`removeImage_${image.id}`}
+                                  value="false"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <input type="hidden" id="removeImage" name="removeImage" value="false" />
                     </div>
                   )}
 
-                  {/* Upload new featured image */}
+                  {/* Upload New Images */}
                   <div>
-                    <label for="featuredImage" class="block text-sm font-medium text-gray-700 mb-2">
-                      {church?.imagePath ? 'Replace with new image' : 'Upload featured image'}
-                    </label>
+                    <h4 class="text-sm font-medium text-gray-900 mb-3">Add New Images</h4>
                     <input
                       type="file"
-                      id="featuredImage"
-                      name="featuredImage"
+                      id="newImages"
+                      name="newImages"
                       accept="image/*"
+                      multiple
                       class="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
-                    <p class="mt-1 text-xs text-gray-500">Supported formats: JPG, PNG, WebP. Max size: 10MB.</p>
+                    <p class="mt-1 text-xs text-gray-500">
+                      Select multiple images. Supported formats: JPG, PNG, WebP. Max size: 10MB per image.
+                      {churchImages.length === 0 && ' The first image will automatically be set as featured.'}
+                    </p>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
