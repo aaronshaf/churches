@@ -89,9 +89,15 @@ export function getImageUrl(
 ): string {
   if (!path) return '';
 
-  // Use custom R2 domain for direct image access
-  // TODO: Configure Cloudflare Image Transformations to work with R2 bucket
-  const r2Domain = getR2Domain(domain);
+  // Use environment-only R2 domain (no hardcoded fallbacks)
+  // This requires R2_IMAGE_DOMAIN to be set or r2_image_domain in settings table
+  const r2Domain = getR2DomainFromEnv();
+  if (!r2Domain) {
+    throw new Error(
+      'R2 image domain not configured. Set R2_IMAGE_DOMAIN environment variable or r2_image_domain in settings table.'
+    );
+  }
+
   return `https://${r2Domain}/${path}`;
 
   // Original transformation code (commented out until configured):
@@ -143,25 +149,54 @@ export async function deleteImage(
 }
 
 /**
- * Get R2 domain based on the site domain
- * Can be overridden by R2_IMAGE_DOMAIN environment variable
+ * Get R2 domain from environment variable only (no hardcoded fallbacks)
+ * Hierarchy: Environment variable R2_IMAGE_DOMAIN
  */
-function getR2Domain(siteDomain: string): string {
-  // Check for environment variable override first
-  // This allows different deployments to use different R2 domains
-  const envR2Domain = typeof process !== 'undefined' ? process.env?.R2_IMAGE_DOMAIN : undefined;
-  if (envR2Domain) {
-    return envR2Domain;
+function getR2DomainFromEnv(): string | undefined {
+  // Check for environment variable (Workers environment or Node.js process)
+  return typeof process !== 'undefined' ? process.env?.R2_IMAGE_DOMAIN : undefined;
+}
+
+/**
+ * Get R2 domain with database lookup
+ * Hierarchy: Database settings → Environment variable → Error
+ */
+export async function getR2DomainWithDb(db: DrizzleD1Database<any>): Promise<string> {
+  // 1. Try database settings first
+  try {
+    const r2DomainSetting = await db.select().from(settings).where(eq(settings.key, 'r2_image_domain')).limit(1);
+    if (r2DomainSetting.length > 0 && r2DomainSetting[0].value) {
+      return r2DomainSetting[0].value;
+    }
+  } catch (error) {
+    console.error('Failed to fetch r2_image_domain from settings:', error);
   }
 
-  // Map site domains to their corresponding R2 image domains
-  const domainMap: Record<string, string> = {
-    'utahchurches.com': 'images.utahchurches.com',
-    'utahchurches.org': 'images.utahchurches.com', // Same R2 bucket
-    'localhost:8787': 'images.utahchurches.com', // Use prod images in dev
-  };
+  // 2. Fallback to environment variable
+  const envDomain = getR2DomainFromEnv();
+  if (envDomain) {
+    return envDomain;
+  }
 
-  return domainMap[siteDomain] || 'images.utahchurches.com'; // Default fallback
+  // 3. No fallback - configuration required
+  throw new Error(
+    'R2 image domain not configured. Set r2_image_domain in settings table or R2_IMAGE_DOMAIN environment variable.'
+  );
+}
+
+/**
+ * Get image URL with database lookup for R2 domain setting
+ * Hierarchy: Database settings → Environment variable → Error
+ */
+export async function getImageUrlWithDb(
+  path: string | null | undefined,
+  db: DrizzleD1Database<any>,
+  transformations?: ImageTransformations
+): Promise<string> {
+  if (!path) return '';
+
+  const r2Domain = await getR2DomainWithDb(db);
+  return `https://${r2Domain}/${path}`;
 }
 
 /**
