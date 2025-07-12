@@ -80,6 +80,7 @@ export async function getDomain(db: DrizzleD1Database<any>, env: Pick<Bindings, 
 
 /**
  * Generate a Cloudflare Image Transformation URL
+ * Falls back to direct R2 URL if transformations are not available
  */
 export function getImageUrl(
   path: string | null | undefined,
@@ -88,14 +89,20 @@ export function getImageUrl(
 ): string {
   if (!path) return '';
 
-  const baseUrl = `https://${domain}/cdn-cgi/image`;
+  // For now, use direct R2 URLs until image transformations are configured
+  // TODO: Configure Cloudflare Image Transformations to work with R2 bucket
+  const r2Domain = 'pub-6b52c2a5e274e0648403a316d35ca611.r2.dev'; // Your R2 custom domain
+  return `https://${r2Domain}/${path}`;
 
-  if (!transformations || Object.keys(transformations).length === 0) {
-    return `${baseUrl}/format=auto/${path}`;
-  }
-
-  const params = formatTransformations(transformations);
-  return `${baseUrl}/${params}/${path}`;
+  // Original transformation code (commented out until configured):
+  // const baseUrl = `https://${domain}/cdn-cgi/image`;
+  //
+  // if (!transformations || Object.keys(transformations).length === 0) {
+  //   return `${baseUrl}/format=auto/${path}`;
+  // }
+  //
+  // const params = formatTransformations(transformations);
+  // return `${baseUrl}/${params}/${path}`;
 }
 
 /**
