@@ -253,6 +253,38 @@ export const Layout: FC<LayoutProps> = ({
                 });
               });
             });
+            
+            // Search button tooltip functionality
+            document.addEventListener('DOMContentLoaded', function() {
+              const searchButtons = document.querySelectorAll('[data-testid="search-button"], [data-testid="mobile-search-button"]');
+              
+              searchButtons.forEach(button => {
+                let tooltip = null;
+                
+                // Show tooltip on hover
+                button.addEventListener('mouseenter', function() {
+                  // Create tooltip
+                  tooltip = document.createElement('div');
+                  tooltip.className = 'absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg pointer-events-none';
+                  tooltip.style.bottom = '100%';
+                  tooltip.style.left = '50%';
+                  tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+                  tooltip.innerHTML = 'Search <kbd class="ml-1 px-1 py-0.5 text-xs font-bold bg-gray-700 rounded">/ </kbd>';
+                  
+                  // Position relative to button
+                  button.style.position = 'relative';
+                  button.appendChild(tooltip);
+                });
+                
+                // Hide tooltip on leave
+                button.addEventListener('mouseleave', function() {
+                  if (tooltip) {
+                    tooltip.remove();
+                    tooltip = null;
+                  }
+                });
+              });
+            });
           `,
           }}
         />

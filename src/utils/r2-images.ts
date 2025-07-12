@@ -66,10 +66,6 @@ export function getImageUrl(
 ): string {
   if (!path) return '';
 
-  // Handle legacy Cloudflare Images URLs
-  if (path.startsWith('http')) {
-    return path;
-  }
 
   const baseUrl = `https://${domain}/cdn-cgi/image`;
 
@@ -108,7 +104,7 @@ export async function deleteImage(
   path: string | null | undefined,
   env: Pick<Bindings, 'IMAGES_BUCKET'>
 ): Promise<void> {
-  if (!path || path.startsWith('http')) return;
+  if (!path) return;
 
   try {
     await env.IMAGES_BUCKET.delete(path);

@@ -102,14 +102,51 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 ))}
             </div>
 
+            {/* Search icon */}
+            <div class="ml-4">
+              <button
+                type="button"
+                class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+                aria-label="Search churches, counties, and networks"
+                onclick="openQuickSearch()"
+                data-testid="search-button"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+            </div>
+
             {/* User menu for desktop */}
-            <div class={`hidden sm:block ${user ? 'ml-8' : 'ml-4'}`}>
+            <div class={`hidden sm:block ${user ? 'ml-4' : 'ml-4'}`}>
               <BetterAuthUserMenu user={user} />
             </div>
           </div>
 
           {/* Mobile menu button and user menu */}
           <div class="flex items-center space-x-3 sm:hidden">
+            {/* Search icon for mobile */}
+            <button
+              type="button"
+              class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              aria-label="Search churches, counties, and networks"
+              onclick="openQuickSearch()"
+              data-testid="mobile-search-button"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </button>
             <BetterAuthUserMenu user={user} />
             <button
               type="button"

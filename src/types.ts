@@ -10,8 +10,6 @@ export interface Bindings {
   // Optional environment variables
   GOOGLE_MAPS_API_KEY?: string;
   GOOGLE_SSR_KEY?: string;
-  CLOUDFLARE_ACCOUNT_ID?: string;
-  CLOUDFLARE_IMAGES_API_TOKEN?: string;
   OPENROUTER_API_KEY?: string;
   ENVIRONMENT?: string;
   SITE_DOMAIN?: string; // For image transformation URLs
@@ -130,10 +128,8 @@ export interface Church {
   youtube: string | null;
   spotify: string | null;
   language: string;
-  imageId: string | null; // Legacy Cloudflare Images field
-  imageUrl: string | null; // Legacy Cloudflare Images field
-  imagePath: string | null; // New R2 field
-  imageAlt: string | null; // New R2 field
+  imagePath: string | null; // R2 field
+  imageAlt: string | null; // R2 field
   createdAt: Date;
   updatedAt: Date;
   // Optional joined fields
@@ -176,16 +172,5 @@ export interface ChurchGathering {
 export interface ChurchAffiliation {
   churchId: number;
   affiliationId: number;
-  order: number;
 }
 
-export interface ChurchImage {
-  id: number;
-  churchId: number;
-  imageId: string;
-  imageUrl: string;
-  caption: string | null;
-  displayOrder: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}

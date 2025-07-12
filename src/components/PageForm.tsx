@@ -6,7 +6,6 @@ interface Page {
   path: string;
   navbarOrder?: number | null;
   content?: string | null;
-  featuredImageUrl?: string | null;
 }
 
 type PageFormProps = {
@@ -140,12 +139,6 @@ export const PageForm: FC<PageFormProps> = ({ action, page, error, isNew = false
                     Featured Image
                   </label>
                   <div class="mt-2">
-                    {page?.featuredImageUrl && (
-                      <div class="mb-4">
-                        <img src={page.featuredImageUrl} alt="" class="h-32 w-auto rounded-lg shadow-sm" />
-                        <p class="mt-2 text-sm text-gray-500">Current image</p>
-                      </div>
-                    )}
                     <input
                       type="file"
                       name="featuredImage"

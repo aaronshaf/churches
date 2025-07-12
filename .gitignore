@@ -38,6 +38,7 @@ coverage/
 
 # Backup files
 backup-*.json
+backups/
 TODO.md
 NOTES.md
 

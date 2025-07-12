@@ -25,10 +25,8 @@ export const churches = sqliteTable('churches', {
   youtube: text('youtube'),
   spotify: text('spotify'),
   language: text('language').notNull().default('English'),
-  imageId: text('image_id'), // Legacy Cloudflare Images field
-  imageUrl: text('image_url'), // Legacy Cloudflare Images field
-  imagePath: text('image_path'), // New R2 field
-  imageAlt: text('image_alt'), // New R2 field
+  imagePath: text('image_path'), // R2 field
+  imageAlt: text('image_alt'), // R2 field
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -66,7 +64,6 @@ export const churchAffiliations = sqliteTable(
     affiliationId: integer('affiliation_id')
       .notNull()
       .references(() => affiliations.id),
-    order: integer('order').notNull(), // Order of affiliation for display
   },
   (table) => ({
     pk: primaryKey({ columns: [table.churchId, table.affiliationId] }),
@@ -114,10 +111,8 @@ export const pages = sqliteTable('pages', {
   title: text('title').notNull(),
   path: text('path').notNull().unique(),
   content: text('content'),
-  featuredImageId: text('featured_image_id'), // Legacy Cloudflare Images field
-  featuredImageUrl: text('featured_image_url'), // Legacy Cloudflare Images field
-  featuredImagePath: text('featured_image_path'), // New R2 field
-  featuredImageAlt: text('featured_image_alt'), // New R2 field
+  featuredImagePath: text('featured_image_path'), // R2 field
+  featuredImageAlt: text('featured_image_alt'), // R2 field
   navbarOrder: integer('navbar_order'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -131,18 +126,6 @@ export const settings = sqliteTable('settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const churchImages = sqliteTable('church_images', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  churchId: integer('church_id')
-    .notNull()
-    .references(() => churches.id),
-  imageId: text('image_id').notNull(),
-  imageUrl: text('image_url').notNull(),
-  caption: text('caption'),
-  displayOrder: integer('display_order').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-});
 
 export const churchSuggestions = sqliteTable('church_suggestions', {
   id: integer('id').primaryKey({ autoIncrement: true }),

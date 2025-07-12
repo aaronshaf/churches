@@ -11,7 +11,6 @@ import {
   churchAffiliations,
   churches,
   churchGatherings,
-  churchImages,
   comments,
   counties,
   settings,
@@ -75,7 +74,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         countyId: churches.countyId,
         imagePath: churches.imagePath,
         imageAlt: churches.imageAlt,
-        countyName: sql<string | null>`${counties.name}`.as('countyName'),
+        countyName: counties.name,
       })
       .from(churches)
       .leftJoin(counties, eq(churches.countyId, counties.id))
@@ -114,13 +113,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .orderBy(affiliations.name)
       .all();
 
-    // Get church images
-    const churchImagesList = await db
-      .select()
-      .from(churchImages)
-      .where(eq(churchImages.churchId, church.id))
-      .orderBy(churchImages.displayOrder)
-      .all();
 
     // Get comments for this church with user info
     const allComments = await db
@@ -591,32 +583,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </div>
                   )}
 
-                  {/* Additional Church Images */}
-                  {churchImagesList.length > 0 && (
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                      <h3 class="text-base font-medium text-gray-500 mb-3">Additional Photos</h3>
-                      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {churchImagesList.map((image) => (
-                          <div
-                            key={image.id}
-                            class="relative group cursor-pointer"
-                            onclick={`openImageModal('${image.imageUrl}', '${image.caption || ''}')`}
-                          >
-                            <img
-                              src={image.imageUrl}
-                              alt={image.caption || `${church.name} photo`}
-                              class="w-full h-48 object-cover rounded-lg group-hover:opacity-90 transition-opacity"
-                            />
-                            {image.caption && (
-                              <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-sm p-2 rounded-b-lg">
-                                {image.caption}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Admin Actions */}
                   {user && (user.role === 'admin' || user.role === 'contributor') && church.youtube && (
@@ -731,67 +697,10 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           </div>
         </div>
 
-        {/* Image Modal */}
-        <div
-          id="imageModal"
-          class="hidden fixed inset-0 z-50 overflow-y-auto"
-          aria-labelledby="modal-title"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              aria-hidden="true"
-              onclick="closeImageModal()"
-            ></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="flex justify-end mb-2">
-                  <button
-                    type="button"
-                    onclick="closeImageModal()"
-                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <span class="sr-only">Close</span>
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <img id="modalImage" src="" alt="" class="w-full h-auto max-h-96 object-contain" />
-                <p id="modalCaption" class="mt-4 text-sm text-gray-600 text-center"></p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <script
           dangerouslySetInnerHTML={{
             __html: `
-            function openImageModal(imageUrl, caption) {
-              const modal = document.getElementById('imageModal');
-              const modalImage = document.getElementById('modalImage');
-              const modalCaption = document.getElementById('modalCaption');
-              
-              modalImage.src = imageUrl;
-              modalCaption.textContent = caption || '';
-              modal.classList.remove('hidden');
-              document.body.style.overflow = 'hidden';
-            }
-            
-            function closeImageModal() {
-              const modal = document.getElementById('imageModal');
-              modal.classList.add('hidden');
-              document.body.style.overflow = '';
-            }
-            
-            // Close modal on escape key
-            document.addEventListener('keydown', function(e) {
-              if (e.key === 'Escape') {
-                closeImageModal();
-              }
-            });
             
             
             // Edit hotkey for admins and contributors

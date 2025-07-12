@@ -407,18 +407,10 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     // Add new church affiliations
     if (churchesToAdd.length > 0) {
       // Get max order for new entries
-      const maxOrder = await db
-        .select({ maxOrder: sql<number>`MAX(${churchAffiliations.order})`.as('maxOrder') })
-        .from(churchAffiliations)
-        .where(eq(churchAffiliations.affiliationId, id))
-        .get();
-
-      const startOrder = (maxOrder?.maxOrder ?? 0) + 1;
 
       const newAffiliations = churchesToAdd.map((churchId, index) => ({
         churchId,
         affiliationId: id,
-        order: startOrder + index,
         createdAt: new Date(),
         updatedAt: new Date(),
       }));

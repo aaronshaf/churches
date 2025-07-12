@@ -1,5 +1,5 @@
 import type { FC } from 'hono/jsx';
-import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, ChurchImage, County } from '../types';
+import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, County } from '../types';
 import { getImageUrl } from '../utils/r2-images';
 import { OptimizedImage } from './OptimizedImage';
 
@@ -10,7 +10,6 @@ type ChurchFormProps = {
   affiliations?: Affiliation[];
   churchAffiliations?: ChurchAffiliation[];
   counties?: County[];
-  images?: ChurchImage[];
   error?: string;
   isNew?: boolean;
   cancelUrl?: string;
@@ -23,7 +22,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   affiliations = [],
   churchAffiliations = [],
   counties = [],
-  images = [],
   error,
   isNew = false,
   cancelUrl,
@@ -589,108 +587,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   </div>
                 </div>
 
-                <div class="sm:col-span-6">
-                  <label class="block text-sm font-medium leading-6 text-gray-900">Legacy Church Images</label>
-
-                  {/* Display existing images */}
-                  {images.length > 0 && (
-                    <div class="mt-4 mb-6">
-                      <p class="text-sm text-gray-500 mb-3">Current images (drag to reorder):</p>
-                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="existing-images">
-                        {images.map((image, index) => (
-                          <div class="relative group" data-image-id={image.id} draggable="true">
-                            <img
-                              src={image.imageUrl}
-                              alt={image.caption || `Church image ${index + 1}`}
-                              class="h-32 w-full object-cover rounded-lg shadow-sm"
-                            />
-                            <input type="hidden" name={`existingImages[${index}][id]`} value={image.id} />
-                            <input
-                              type="hidden"
-                              name={`existingImages[${index}][order]`}
-                              value={image.displayOrder || index}
-                              class="image-order"
-                            />
-                            <input
-                              type="text"
-                              name={`existingImages[${index}][caption]`}
-                              value={image.caption || ''}
-                              placeholder="Add caption..."
-                              class="mt-2 block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                            />
-                            <button
-                              type="button"
-                              onclick={`this.closest('.relative').style.display='none'; this.closest('.relative').querySelector('input[name*="delete"]').value='true';`}
-                              class="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Remove image"
-                            >
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
-                            <input type="hidden" name={`existingImages[${index}][delete]`} value="false" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Upload new images */}
-                  <div class="mt-2">
-                    <label for="churchImages" class="block text-sm font-medium text-gray-700 mb-2">
-                      Upload new images
-                    </label>
-                    <div
-                      id="drop-zone"
-                      class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
-                    >
-                      <div class="space-y-1 text-center">
-                        <svg
-                          class="mx-auto h-12 w-12 text-gray-400"
-                          stroke="currentColor"
-                          fill="none"
-                          viewBox="0 0 48 48"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                        <div class="flex text-sm text-gray-600">
-                          <label
-                            for="churchImages"
-                            class="relative cursor-pointer rounded-md bg-white font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2"
-                          >
-                            <span>Upload files</span>
-                            <input
-                              type="file"
-                              name="churchImages"
-                              id="churchImages"
-                              accept="image/*"
-                              multiple
-                              data-testid="input-churchImages"
-                              class="sr-only"
-                            />
-                          </label>
-                          <p class="pl-1">or drag and drop</p>
-                        </div>
-                        <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                      </div>
-                    </div>
-                    <div id="file-list" class="mt-4 hidden">
-                      <p class="text-sm font-medium text-gray-700 mb-2">Selected files:</p>
-                      <ul class="text-sm text-gray-600 space-y-1"></ul>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1452,64 +1348,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
             };
           }
           
-          // Handle image drag and drop reordering for existing images
-          const container = document.getElementById('existing-images');
-          if (!container) return;
-          
-          let draggedElement = null;
-          
-          container.addEventListener('dragstart', function(e) {
-            if (e.target.closest('[draggable="true"]')) {
-              draggedElement = e.target.closest('[draggable="true"]');
-              draggedElement.style.opacity = '0.5';
-            }
-          });
-          
-          container.addEventListener('dragend', function(e) {
-            if (e.target.closest('[draggable="true"]')) {
-              e.target.closest('[draggable="true"]').style.opacity = '';
-            }
-          });
-          
-          container.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(container, e.clientY);
-            if (afterElement == null) {
-              container.appendChild(draggedElement);
-            } else {
-              container.insertBefore(draggedElement, afterElement);
-            }
-          });
-          
-          container.addEventListener('drop', function(e) {
-            e.preventDefault();
-            updateImageOrder();
-          });
-          
-          function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not([style*="opacity: 0.5"])')];
-            
-            return draggableElements.reduce((closest, child) => {
-              const box = child.getBoundingClientRect();
-              const offset = y - box.top - box.height / 2;
-              
-              if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-              } else {
-                return closest;
-              }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-          }
-          
-          function updateImageOrder() {
-            const images = container.querySelectorAll('[draggable="true"]');
-            images.forEach((img, index) => {
-              const orderInput = img.querySelector('.image-order');
-              if (orderInput) {
-                orderInput.value = index;
-              }
-            });
-          }
         });
         
         // Also handle browser back/forward cache

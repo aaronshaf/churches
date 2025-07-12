@@ -99,24 +99,7 @@ export function getEnvVarStatus(env: Bindings): {
   };
 }
 
-// Check if Cloudflare image vars are available (but don't throw)
-export function hasCloudflareImageEnvVars(env: Bindings): boolean {
-  return !!(env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_IMAGES_API_TOKEN);
-}
 
-// Validate Cloudflare image vars only when needed
-export const validateCloudflareImageEnvVars: (
-  env: unknown
-) => asserts env is Pick<EnvVars, 'CLOUDFLARE_ACCOUNT_ID' | 'CLOUDFLARE_ACCOUNT_HASH' | 'CLOUDFLARE_IMAGES_API_TOKEN'> =
-  (env) => {
-    const envObj = env as Record<string, unknown>;
-    const requiredVars = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_HASH', 'CLOUDFLARE_IMAGES_API_TOKEN'];
-    const missingVars = requiredVars.filter((varName) => !envObj[varName]);
-
-    if (missingVars.length > 0) {
-      throw new EnvironmentError(missingVars);
-    }
-  };
 
 // Check if Google Maps API key is available
 export function hasGoogleMapsApiKey(env: Bindings): boolean {
@@ -128,19 +111,3 @@ export function hasOpenRouterApiKey(env: Bindings): boolean {
   return !!env.OPENROUTER_API_KEY;
 }
 
-// Get Cloudflare image env vars with validation
-export const getCloudflareImageEnvVars = (
-  env: Bindings
-): {
-  accountId: string;
-  accountHash: string;
-  apiToken: string;
-} => {
-  validateCloudflareImageEnvVars(env);
-  // After validation, we know these values exist
-  return {
-    accountId: env.CLOUDFLARE_ACCOUNT_ID as string,
-    accountHash: env.CLOUDFLARE_ACCOUNT_HASH as string,
-    apiToken: env.CLOUDFLARE_IMAGES_API_TOKEN as string,
-  };
-};

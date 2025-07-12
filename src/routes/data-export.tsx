@@ -57,7 +57,6 @@ dataExportRoutes.get('/churches.json', async (c) => {
     affiliationName: string | null;
     affiliationWebsite: string | null;
     affiliationPublicNotes: string | null;
-    order: number | null;
   }> = [];
 
   if (churchIds.length > 0) {
@@ -69,12 +68,11 @@ dataExportRoutes.get('/churches.json', async (c) => {
           affiliationName: affiliations.name,
           affiliationWebsite: affiliations.website,
           affiliationPublicNotes: affiliations.publicNotes,
-          order: churchAffiliations.order,
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
         .where(createInClause(churchAffiliations.churchId, batchIds))
-        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
   }
@@ -157,7 +155,6 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
     affiliationName: string | null;
     affiliationWebsite: string | null;
     affiliationPublicNotes: string | null;
-    order: number | null;
   }> = [];
 
   if (churchIds.length > 0) {
@@ -169,12 +166,11 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
           affiliationName: affiliations.name,
           affiliationWebsite: affiliations.website,
           affiliationPublicNotes: affiliations.publicNotes,
-          order: churchAffiliations.order,
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
         .where(createInClause(churchAffiliations.churchId, batchIds))
-        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
   }
@@ -279,7 +275,6 @@ dataExportRoutes.get('/churches.csv', async (c) => {
     affiliationName: string | null;
     affiliationWebsite: string | null;
     affiliationPublicNotes: string | null;
-    order: number | null;
   }> = [];
 
   if (churchIds.length > 0) {
@@ -291,12 +286,11 @@ dataExportRoutes.get('/churches.csv', async (c) => {
           affiliationName: affiliations.name,
           affiliationWebsite: affiliations.website,
           affiliationPublicNotes: affiliations.publicNotes,
-          order: churchAffiliations.order,
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
         .where(createInClause(churchAffiliations.churchId, batchIds))
-        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
   }
@@ -430,7 +424,6 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
     affiliationName: string | null;
     affiliationWebsite: string | null;
     affiliationPublicNotes: string | null;
-    order: number | null;
   }> = [];
 
   if (churchIds.length > 0) {
@@ -442,12 +435,11 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
           affiliationName: affiliations.name,
           affiliationWebsite: affiliations.website,
           affiliationPublicNotes: affiliations.publicNotes,
-          order: churchAffiliations.order,
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
         .where(createInClause(churchAffiliations.churchId, batchIds))
-        .orderBy(churchAffiliations.churchId, churchAffiliations.order)
+        .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
   }

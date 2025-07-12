@@ -19,7 +19,6 @@ import {
   churchAffiliations,
   churches,
   churchGatherings,
-  churchImages,
   churchSuggestions,
   comments,
   counties,
@@ -43,14 +42,8 @@ import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
-import {
-  deleteFromCloudflareImages,
-  getCloudflareImageUrl,
-  IMAGE_VARIANTS,
-  uploadToCloudflareImages,
-} from './utils/cloudflare-images';
 import { getGravatarUrl } from './utils/crypto';
-import { EnvironmentError, getCloudflareImageEnvVars } from './utils/env-validation';
+import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
@@ -474,7 +467,7 @@ app.get('/', async (c) => {
                       </svg>
                       <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
                     </div>
-                    <p class="text-primary-100">Explore an interactive map of evangelical churches</p>
+                    <p class="text-primary-100">Explore an map of evangelical churches</p>
                   </div>
                   <svg
                     class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
@@ -1986,7 +1979,7 @@ app.get('/map', async (c) => {
             loadingDiv = document.createElement('div');
             loadingDiv.id = 'loading-indicator';
             loadingDiv.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.875rem; z-index: 10; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);';
-            loadingDiv.innerHTML = '<div style="display: flex; align-items: center; gap: 0.5rem;"><svg style="animation: spin 1s linear infinite; width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span>Finding your location...</span></div>';
+            loadingDiv.innerHTML = '<div style="display: flex; align-items: center; gap: 0.5rem;"><svg style="animation: spin 1s linear infinite; width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span>Locating...</span></div>';
             
             // Add CSS animation for spinner
             const style = document.createElement('style');
@@ -4040,43 +4033,11 @@ app.post('/admin/pages', requireAdminBetter, async (c) => {
     return c.text(result.error.errors[0].message, 400);
   }
 
-  let featuredImageId = null;
-  let featuredImageUrl = null;
-
-  // Handle image upload
-  const featuredImage = body.featuredImage as File;
-  if (featuredImage && featuredImage.size > 0) {
-    try {
-      console.log('Cloudflare Account ID:', c.env.CLOUDFLARE_ACCOUNT_ID);
-      console.log('Has API Token:', !!c.env.CLOUDFLARE_IMAGES_API_TOKEN);
-
-      const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(
-        featuredImage,
-        c.env.CLOUDFLARE_ACCOUNT_ID!,
-        c.env.CLOUDFLARE_IMAGES_API_TOKEN!,
-        imagePrefix
-      );
-
-      if (uploadResult.success && uploadResult.result) {
-        featuredImageId = uploadResult.result.id;
-        featuredImageUrl = getCloudflareImageUrl(featuredImageId, c.env.CLOUDFLARE_ACCOUNT_HASH, IMAGE_VARIANTS.LARGE);
-      } else {
-        console.error('Image upload failed:', uploadResult.errors);
-        return c.text('Failed to upload image', 500);
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      return c.text('Error uploading image', 500);
-    }
-  }
 
   const pageData = {
     title,
     path,
     content: content || null,
-    featuredImageId,
-    featuredImageUrl,
     navbarOrder,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -4160,43 +4121,11 @@ app.post('/admin/pages/:id', requireAdminBetter, async (c) => {
     .where(eq(pages.id, Number(id)))
     .get();
 
-  let featuredImageId = currentPage?.featuredImageId;
-  let featuredImageUrl = currentPage?.featuredImageUrl;
-
-  // Handle image upload
-  const featuredImage = body.featuredImage as File;
-  if (featuredImage && featuredImage.size > 0) {
-    try {
-      // Get validated Cloudflare environment variables
-      const { accountId, accountHash, apiToken } = getCloudflareImageEnvVars(c.env);
-
-      // Delete old image if exists
-      if (currentPage?.featuredImageId) {
-        await deleteFromCloudflareImages(currentPage.featuredImageId, accountId, apiToken);
-      }
-
-      const imagePrefix = await getImagePrefix(c.env);
-      const uploadResult = await uploadToCloudflareImages(featuredImage, accountId, apiToken, imagePrefix);
-
-      if (uploadResult.success && uploadResult.result) {
-        featuredImageId = uploadResult.result.id;
-        featuredImageUrl = getCloudflareImageUrl(featuredImageId, accountHash, IMAGE_VARIANTS.LARGE);
-      } else {
-        console.error('Image upload failed:', uploadResult.errors);
-        return c.text('Failed to upload image', 500);
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      return c.text('Error uploading image', 500);
-    }
-  }
 
   const pageData = {
     title,
     path,
     content: content || null,
-    featuredImageId,
-    featuredImageUrl,
     navbarOrder,
     updatedAt: new Date(),
   };
@@ -4220,16 +4149,6 @@ app.post('/admin/pages/:id/delete', requireAdminBetter, async (c) => {
     .where(eq(pages.id, Number(id)))
     .get();
 
-  // Delete image from Cloudflare if exists
-  if (page?.featuredImageId) {
-    try {
-      // Get validated Cloudflare environment variables
-      const { accountId, apiToken } = getCloudflareImageEnvVars(c.env);
-      await deleteFromCloudflareImages(page.featuredImageId, accountId, apiToken);
-    } catch (error) {
-      console.error('Failed to delete image:', error);
-    }
-  }
 
   await db.delete(pages).where(eq(pages.id, Number(id)));
 
@@ -4556,11 +4475,6 @@ app.get('*', async (c) => {
               <div class="max-w-3xl mx-auto">
                 <h1 class="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
                 <div class="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: page.content || '' }} />
-                {page.featuredImageUrl && (
-                  <div class="mt-12 border-t pt-8">
-                    <img src={page.featuredImageUrl} alt={page.title} class="w-full rounded-lg shadow-lg" />
-                  </div>
-                )}
               </div>
             </div>
           </div>

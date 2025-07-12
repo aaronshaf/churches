@@ -28,10 +28,6 @@ export function OptimizedImage({
   priority = false,
   transformations = {},
 }: OptimizedImageProps) {
-  // Handle legacy Cloudflare Images URLs
-  if (path?.startsWith('http')) {
-    return <img src={path} alt={alt} className={className} loading={loading} decoding={priority ? 'sync' : 'async'} />;
-  }
 
   if (!path) {
     return (

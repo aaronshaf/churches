@@ -18,7 +18,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
         role="dialog"
         aria-modal="true"
       >
-        <div class="flex items-start justify-center min-h-screen pt-20 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:pt-20 sm:block sm:p-0">
           {/* Background overlay */}
           <div
             class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
@@ -27,7 +27,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
           ></div>
 
           {/* Modal panel */}
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full max-w-lg mx-auto sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
             <div class="bg-white">
               <div class="border-b border-gray-200 px-4 py-3">
                 <div class="flex items-center">
@@ -222,7 +222,13 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   const aPath = (a.path || '').toLowerCase();
                   const bPath = (b.path || '').toLowerCase();
                   
-                  // Prioritize exact name matches
+                  // First, prioritize listed churches over unlisted
+                  const aIsListed = a.status === 'Listed';
+                  const bIsListed = b.status === 'Listed';
+                  if (aIsListed && !bIsListed) return -1;
+                  if (!aIsListed && bIsListed) return 1;
+                  
+                  // Then prioritize exact name matches
                   const aNameStartsWith = aName.startsWith(searchQuery);
                   const bNameStartsWith = bName.startsWith(searchQuery);
                   if (aNameStartsWith && !bNameStartsWith) return -1;
@@ -301,7 +307,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 quickSearchResults = performFuzzySearch(searchQuery);
               }
               
-              selectedIndex = -1;
+              // Set first result as selected by default if there are results
+              selectedIndex = quickSearchResults.length > 0 ? 0 : -1;
               displayQuickSearchResults();
               
               // Set up debounce timer to prefetch first result after 200ms
@@ -336,6 +343,15 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   return searchWords.every(word => name.includes(word) || path.includes(word) || domain.includes(word));
                 })
                 .map(church => ({ ...church, type: 'church' }))
+                .sort((a, b) => {
+                  // First, prioritize listed churches over unlisted
+                  const aIsListed = a.status === 'Listed';
+                  const bIsListed = b.status === 'Listed';
+                  if (aIsListed && !bIsListed) return -1;
+                  if (!aIsListed && bIsListed) return 1;
+                  
+                  return a.name.localeCompare(b.name);
+                })
                 .slice(0, 5);
               
               // Fuzzy search counties
@@ -384,11 +400,17 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   href = \`/churches/\${result.path}\`;
                   title = result.name;
                   subtitle = result.gatheringAddress || '';
-                  typeLabel = result.status || 'Church';
-                  if (result.status === 'Listed') {
-                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
+                  // Only show status tags for admin and contributor users
+                  if (userRole === 'admin' || userRole === 'contributor') {
+                    typeLabel = result.status || 'Church';
+                    if (result.status === 'Listed') {
+                      typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
+                    } else {
+                      typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                    }
                   } else {
-                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                    typeLabel = 'Church';
+                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
                   }
                 } else if (result.type === 'county') {
                   href = \`/counties/\${result.path}\`;
