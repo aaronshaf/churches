@@ -700,7 +700,9 @@ adminChurchesRoutes.post('/', async (c) => {
           await db.insert(churchImages).values(imagesToInsert);
         } catch (error) {
           console.error('Failed to insert church images:', error);
-          // Continue without images if table doesn't exist
+          console.error('Images that failed to insert:', imagesToInsert);
+          // Re-throw to see the actual error
+          throw error;
         }
       }
     }
@@ -1018,7 +1020,9 @@ adminChurchesRoutes.post('/:id', async (c) => {
         await db.insert(churchImages).values(imagesToInsert);
       } catch (error) {
         console.error('Failed to insert new church images:', error);
-        // Continue without images if table doesn't exist
+        console.error('Upload attempt details:', { churchId: id, imageCount: uploadedImages.length });
+        // Re-throw to see the actual error
+        throw error;
       }
     }
 
