@@ -265,11 +265,19 @@ export const Layout: FC<LayoutProps> = ({
                 button.addEventListener('mouseenter', function() {
                   // Create tooltip
                   tooltip = document.createElement('div');
-                  tooltip.className = 'absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg pointer-events-none';
-                  tooltip.style.bottom = '100%';
+                  tooltip.className = 'absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg pointer-events-none whitespace-nowrap';
+                  tooltip.style.top = '100%';
                   tooltip.style.left = '50%';
-                  tooltip.style.transform = 'translateX(-50%) translateY(-8px)';
+                  tooltip.style.transform = 'translateX(-50%) translateY(8px)';
                   tooltip.innerHTML = 'Search <kbd class="ml-1 px-1 py-0.5 text-xs font-bold bg-gray-700 rounded">/ </kbd>';
+                  
+                  // Add arrow pointing up
+                  const arrow = document.createElement('div');
+                  arrow.className = 'absolute w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900';
+                  arrow.style.bottom = '100%';
+                  arrow.style.left = '50%';
+                  arrow.style.transform = 'translateX(-50%)';
+                  tooltip.appendChild(arrow);
                   
                   // Position relative to button
                   button.style.position = 'relative';

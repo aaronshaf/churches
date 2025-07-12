@@ -102,8 +102,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 ))}
             </div>
 
-            {/* Search icon */}
-            <div class="ml-4">
+            {/* Search icon - Desktop only */}
+            <div class="hidden sm:block ml-4">
               <button
                 type="button"
                 class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
