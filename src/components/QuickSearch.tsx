@@ -404,26 +404,26 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   if (userRole === 'admin' || userRole === 'contributor') {
                     typeLabel = result.status || 'Church';
                     if (result.status === 'Listed') {
-                      typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
+                      typeColor = 'bg-green-50 text-green-700';
                     } else {
-                      typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700';
+                      typeColor = 'bg-gray-100 text-gray-700';
                     }
                   } else {
                     typeLabel = 'Church';
-                    typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-50 text-green-700';
+                    typeColor = 'bg-green-50 text-green-700';
                   }
                 } else if (result.type === 'county') {
                   href = \`/counties/\${result.path}\`;
                   title = result.name;
                   subtitle = result.description || 'View all churches';
                   typeLabel = 'County';
-                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                  typeColor = 'bg-green-100 text-green-800';
                 } else if (result.type === 'affiliation') {
                   href = \`/networks/\${result.id}\`;
                   title = result.name;
                   subtitle = result.publicNotes || 'Church network';
                   typeLabel = 'Network';
-                  typeColor = isSelected ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+                  typeColor = 'bg-purple-100 text-purple-800';
                 }
                 
                 return \`
