@@ -114,13 +114,19 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .orderBy(affiliations.name)
       .all();
 
-    // Get church images
-    const churchImagesList = await db
-      .select()
-      .from(churchImages)
-      .where(eq(churchImages.churchId, church.id))
-      .orderBy(churchImages.sortOrder, churchImages.createdAt)
-      .all();
+    // Get church images (with error handling for missing table)
+    let churchImagesList: Array<typeof churchImages.$inferSelect> = [];
+    try {
+      churchImagesList = await db
+        .select()
+        .from(churchImages)
+        .where(eq(churchImages.churchId, church.id))
+        .orderBy(churchImages.sortOrder, churchImages.createdAt)
+        .all();
+    } catch (error) {
+      console.error('Failed to fetch church images:', error);
+      // Continue without images if table doesn't exist
+    }
 
     // Get comments for this church with user info
     const allComments = await db
