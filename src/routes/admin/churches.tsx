@@ -37,35 +37,6 @@ export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Var
 // Apply admin middleware to all routes
 adminChurchesRoutes.use('*', requireAdminWithRedirect);
 
-// Debug endpoint to check church_images table structure
-adminChurchesRoutes.get('/debug/church-images-schema', async (c) => {
-  try {
-    const d1 = c.env.DB;
-
-    // Get table schema
-    const schemaResult = await d1.prepare('PRAGMA table_info(church_images)').all();
-
-    // Try a test insert with minimal fields
-    const testResult = await d1
-      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='church_images'")
-      .first();
-
-    return c.json({
-      tableInfo: schemaResult,
-      createStatement: testResult,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      500
-    );
-  }
-});
-
 // List churches with search and filters
 adminChurchesRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);

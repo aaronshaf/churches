@@ -33,6 +33,7 @@ import { envCheckMiddleware } from './middleware/env-check';
 import { adminActivityRoutes } from './routes/admin/activity';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
 import { adminChurchesRoutes } from './routes/admin/churches';
+import { adminDebugRoutes } from './routes/admin/debug';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
 import { adminNotificationsRoutes } from './routes/admin/notifications';
 import { adminUsersApp } from './routes/admin-users';
@@ -330,6 +331,7 @@ app.route('/admin/churches', adminChurchesRoutes);
 app.route('/admin/affiliations', adminAffiliationsRoutes);
 app.route('/admin/feedback', adminFeedbackRoutes);
 app.route('/admin/activity', adminActivityRoutes);
+app.route('/admin/debug', adminDebugRoutes);
 app.route('/api/admin/notifications', adminNotificationsRoutes);
 app.route('/feedback', feedbackRoutes);
 
