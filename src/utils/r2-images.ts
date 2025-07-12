@@ -89,9 +89,9 @@ export function getImageUrl(
 ): string {
   if (!path) return '';
 
-  // For now, use direct R2 URLs until image transformations are configured
+  // Use custom R2 domain for direct image access
   // TODO: Configure Cloudflare Image Transformations to work with R2 bucket
-  const r2Domain = 'pub-6b52c2a5e274e0648403a316d35ca611.r2.dev'; // Your R2 custom domain
+  const r2Domain = getR2Domain(domain);
   return `https://${r2Domain}/${path}`;
 
   // Original transformation code (commented out until configured):
@@ -140,6 +140,20 @@ export async function deleteImage(
     console.error('Failed to delete image:', error);
     // Don't throw - allow operation to continue
   }
+}
+
+/**
+ * Get R2 domain based on the site domain
+ */
+function getR2Domain(siteDomain: string): string {
+  // Map site domains to their corresponding R2 image domains
+  const domainMap: Record<string, string> = {
+    'utahchurches.com': 'images.utahchurches.com',
+    'utahchurches.org': 'images.utahchurches.com', // Same R2 bucket
+    'localhost:8787': 'images.utahchurches.com', // Use prod images in dev
+  };
+
+  return domainMap[siteDomain] || 'images.utahchurches.com'; // Default fallback
 }
 
 /**
