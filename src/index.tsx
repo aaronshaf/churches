@@ -50,6 +50,7 @@ import { cacheInvalidation } from './utils/cache-invalidation';
 import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
+import { getCommonLayoutProps } from './utils/layout-props';
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
@@ -345,8 +346,8 @@ app.get('/', async (c) => {
   try {
     const db = createDbWithContext(c);
 
-    // Get all layout props
-    const layoutProps = await getLayoutProps(c);
+    // Get all layout props with i18n support
+    const layoutProps = await getCommonLayoutProps(c);
 
     // Check for missing critical settings
     const [siteDomainSetting, siteRegionSetting, siteTitleSetting, frontPageTitleSetting] = await Promise.all([

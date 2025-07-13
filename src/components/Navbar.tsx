@@ -8,9 +8,17 @@ type NavbarProps = {
   logoUrl?: string;
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
   showMap?: boolean;
+  t?: (key: string, options?: object) => string;
 };
 
-export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, pages = [], showMap = true }) => {
+export const Navbar: FC<NavbarProps> = ({
+  user,
+  currentPath = '/',
+  logoUrl,
+  pages = [],
+  showMap = true,
+  t = (key) => key,
+}) => {
   return (
     <nav class="bg-white shadow-sm border-b border-gray-200" aria-label="Main navigation" data-testid="navbar">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,7 +56,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 onmouseover="preloadAfterDelay('/', 200)"
                 onmouseout="cancelPreload()"
               >
-                Churches
+                {t('nav.home')}
               </a>
               {showMap && (
                 <a
@@ -63,7 +71,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   onmouseover="preloadAfterDelay('/map', 200)"
                   onmouseout="cancelPreload()"
                 >
-                  Map
+                  {t('nav.map')}
                 </a>
               )}
               <a
@@ -80,7 +88,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 onmouseover="preloadAfterDelay('/networks', 200)"
                 onmouseout="cancelPreload()"
               >
-                Networks
+                {t('nav.networks')}
               </a>
               {pages
                 .filter((page) => page.navbarOrder !== null)
@@ -187,7 +195,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             } block pl-3 pr-4 py-2 border-l text-base font-medium`}
             data-testid="mobile-nav-churches"
           >
-            Churches
+            {t('nav.home')}
           </a>
           {showMap && (
             <a
@@ -199,7 +207,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               } block pl-3 pr-4 py-2 border-l text-base font-medium`}
               data-testid="mobile-nav-map"
             >
-              Map
+              {t('nav.map')}
             </a>
           )}
           <a
@@ -211,7 +219,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
             } block pl-3 pr-4 py-2 border-l text-base font-medium`}
             data-testid="mobile-nav-networks"
           >
-            Networks
+            {t('nav.networks')}
           </a>
           {pages
             .filter((page) => page.navbarOrder !== null)
@@ -255,7 +263,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                 data-testid="mobile-nav-dashboard"
               >
-                Dashboard
+                {t('nav.admin')}
               </a>
               {user.role === 'admin' && (
                 <>
@@ -280,7 +288,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                 data-testid="mobile-nav-signout"
               >
-                Sign out
+                {t('nav.signout')}
               </a>
             </div>
           </div>

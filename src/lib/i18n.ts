@@ -96,18 +96,261 @@ const resources = {
       'footer.edit': 'Editar',
     },
   },
+  pt: {
+    translation: {
+      // Navigation
+      'nav.home': 'Início',
+      'nav.map': 'Mapa',
+      'nav.networks': 'Redes',
+      'nav.data': 'Dados',
+      'nav.admin': 'Admin',
+      'nav.signin': 'Entrar',
+      'nav.signout': 'Sair',
+
+      // Search
+      'search.placeholder': 'Pesquisar igrejas, condados ou redes...',
+      'search.loading': 'Carregando dados de pesquisa...',
+      'search.noResults': 'Nenhum resultado encontrado',
+      'search.typeToSearch': 'Digite para pesquisar igrejas, condados e redes',
+
+      // Common
+      'common.loading': 'Carregando...',
+      'common.error': 'Erro',
+      'common.save': 'Salvar',
+      'common.cancel': 'Cancelar',
+      'common.edit': 'Editar',
+      'common.delete': 'Excluir',
+      'common.back': 'Voltar',
+      'common.next': 'Próximo',
+      'common.previous': 'Anterior',
+
+      // Churches
+      'church.status': 'Estado',
+      'church.website': 'Site',
+      'church.phone': 'Telefone',
+      'church.address': 'Endereço',
+      'church.gatherings': 'Reuniões',
+      'church.language': 'Idioma',
+      'church.affiliations': 'Afiliações',
+      'church.notes': 'Notas',
+
+      // County pages
+      'county.churchesIn': 'Igrejas em {{county}}',
+      'county.totalChurches': '{{count}} igrejas',
+
+      // Footer
+      'footer.dataExport': 'Exportar Dados',
+      'footer.edit': 'Editar',
+    },
+  },
+  fr: {
+    translation: {
+      // Navigation
+      'nav.home': 'Accueil',
+      'nav.map': 'Carte',
+      'nav.networks': 'Réseaux',
+      'nav.data': 'Données',
+      'nav.admin': 'Admin',
+      'nav.signin': 'Connexion',
+      'nav.signout': 'Déconnexion',
+
+      // Search
+      'search.placeholder': 'Rechercher églises, comtés ou réseaux...',
+      'search.loading': 'Chargement des données de recherche...',
+      'search.noResults': 'Aucun résultat trouvé',
+      'search.typeToSearch': 'Tapez pour rechercher églises, comtés et réseaux',
+
+      // Common
+      'common.loading': 'Chargement...',
+      'common.error': 'Erreur',
+      'common.save': 'Enregistrer',
+      'common.cancel': 'Annuler',
+      'common.edit': 'Modifier',
+      'common.delete': 'Supprimer',
+      'common.back': 'Retour',
+      'common.next': 'Suivant',
+      'common.previous': 'Précédent',
+
+      // Churches
+      'church.status': 'Statut',
+      'church.website': 'Site Web',
+      'church.phone': 'Téléphone',
+      'church.address': 'Adresse',
+      'church.gatherings': 'Rassemblements',
+      'church.language': 'Langue',
+      'church.affiliations': 'Affiliations',
+      'church.notes': 'Notes',
+
+      // County pages
+      'county.churchesIn': 'Églises à {{county}}',
+      'county.totalChurches': '{{count}} églises',
+
+      // Footer
+      'footer.dataExport': 'Exporter les Données',
+      'footer.edit': 'Modifier',
+    },
+  },
+  de: {
+    translation: {
+      // Navigation
+      'nav.home': 'Startseite',
+      'nav.map': 'Karte',
+      'nav.networks': 'Netzwerke',
+      'nav.data': 'Daten',
+      'nav.admin': 'Admin',
+      'nav.signin': 'Anmelden',
+      'nav.signout': 'Abmelden',
+
+      // Search
+      'search.placeholder': 'Kirchen, Landkreise oder Netzwerke suchen...',
+      'search.loading': 'Suchdaten werden geladen...',
+      'search.noResults': 'Keine Ergebnisse gefunden',
+      'search.typeToSearch': 'Tippen Sie, um Kirchen, Landkreise und Netzwerke zu suchen',
+
+      // Common
+      'common.loading': 'Laden...',
+      'common.error': 'Fehler',
+      'common.save': 'Speichern',
+      'common.cancel': 'Abbrechen',
+      'common.edit': 'Bearbeiten',
+      'common.delete': 'Löschen',
+      'common.back': 'Zurück',
+      'common.next': 'Weiter',
+      'common.previous': 'Zurück',
+
+      // Churches
+      'church.status': 'Status',
+      'church.website': 'Webseite',
+      'church.phone': 'Telefon',
+      'church.address': 'Adresse',
+      'church.gatherings': 'Versammlungen',
+      'church.language': 'Sprache',
+      'church.affiliations': 'Zugehörigkeiten',
+      'church.notes': 'Notizen',
+
+      // County pages
+      'county.churchesIn': 'Kirchen in {{county}}',
+      'county.totalChurches': '{{count}} Kirchen',
+
+      // Footer
+      'footer.dataExport': 'Daten Exportieren',
+      'footer.edit': 'Bearbeiten',
+    },
+  },
+  ko: {
+    translation: {
+      // Navigation
+      'nav.home': '홈',
+      'nav.map': '지도',
+      'nav.networks': '네트워크',
+      'nav.data': '데이터',
+      'nav.admin': '관리자',
+      'nav.signin': '로그인',
+      'nav.signout': '로그아웃',
+
+      // Search
+      'search.placeholder': '교회, 카운티 또는 네트워크 검색...',
+      'search.loading': '검색 데이터 로딩 중...',
+      'search.noResults': '결과를 찾을 수 없습니다',
+      'search.typeToSearch': '교회, 카운티 및 네트워크를 검색하려면 입력하세요',
+
+      // Common
+      'common.loading': '로딩 중...',
+      'common.error': '오류',
+      'common.save': '저장',
+      'common.cancel': '취소',
+      'common.edit': '편집',
+      'common.delete': '삭제',
+      'common.back': '뒤로',
+      'common.next': '다음',
+      'common.previous': '이전',
+
+      // Churches
+      'church.status': '상태',
+      'church.website': '웹사이트',
+      'church.phone': '전화',
+      'church.address': '주소',
+      'church.gatherings': '모임',
+      'church.language': '언어',
+      'church.affiliations': '소속',
+      'church.notes': '노트',
+
+      // County pages
+      'county.churchesIn': '{{county}}의 교회들',
+      'county.totalChurches': '{{count}}개의 교회',
+
+      // Footer
+      'footer.dataExport': '데이터 내보내기',
+      'footer.edit': '편집',
+    },
+  },
+  zh: {
+    translation: {
+      // Navigation
+      'nav.home': '首页',
+      'nav.map': '地图',
+      'nav.networks': '网络',
+      'nav.data': '数据',
+      'nav.admin': '管理员',
+      'nav.signin': '登录',
+      'nav.signout': '登出',
+
+      // Search
+      'search.placeholder': '搜索教会、县或网络...',
+      'search.loading': '正在加载搜索数据...',
+      'search.noResults': '未找到结果',
+      'search.typeToSearch': '输入以搜索教会、县和网络',
+
+      // Common
+      'common.loading': '加载中...',
+      'common.error': '错误',
+      'common.save': '保存',
+      'common.cancel': '取消',
+      'common.edit': '编辑',
+      'common.delete': '删除',
+      'common.back': '返回',
+      'common.next': '下一个',
+      'common.previous': '上一个',
+
+      // Churches
+      'church.status': '状态',
+      'church.website': '网站',
+      'church.phone': '电话',
+      'church.address': '地址',
+      'church.gatherings': '聚会',
+      'church.language': '语言',
+      'church.affiliations': '隶属关系',
+      'church.notes': '备注',
+
+      // County pages
+      'county.churchesIn': '{{county}}的教会',
+      'county.totalChurches': '{{count}}个教会',
+
+      // Footer
+      'footer.dataExport': '导出数据',
+      'footer.edit': '编辑',
+    },
+  },
 };
 
 // Initialize i18next
-export function initI18n(language = 'en') {
-  return i18next.init({
-    lng: language,
-    fallbackLng: 'en',
-    resources,
-    interpolation: {
-      escapeValue: false, // React already does escaping
-    },
-  });
+let isInitialized = false;
+
+export async function initI18n(language = 'en') {
+  if (!isInitialized) {
+    await i18next.init({
+      lng: language,
+      fallbackLng: 'en',
+      resources,
+      interpolation: {
+        escapeValue: false, // React already does escaping
+      },
+    });
+    isInitialized = true;
+  } else {
+    await i18next.changeLanguage(language);
+  }
+  return i18next;
 }
 
 // Supported languages - top 20 for church/religious websites
@@ -138,10 +381,7 @@ export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 // Helper function to detect language from Accept-Language header
 export function detectLanguageFromHeader(acceptLanguage?: string): SupportedLanguage {
-  console.log('🌍 Accept-Language header:', acceptLanguage);
-
   if (!acceptLanguage) {
-    console.log('🌍 No Accept-Language header, defaulting to English');
     return 'en';
   }
 
@@ -156,17 +396,13 @@ export function detectLanguageFromHeader(acceptLanguage?: string): SupportedLang
     })
     .sort((a, b) => b.quality - a.quality);
 
-  console.log('🌍 Parsed languages:', languages);
-
   // Find the first supported language in the user's preferences
   for (const lang of languages) {
     if (SUPPORTED_LANGUAGES.includes(lang.code as SupportedLanguage)) {
-      console.log('🌍 Detected supported language:', lang.code);
       return lang.code as SupportedLanguage;
     }
   }
 
-  console.log('🌍 No supported language found, defaulting to English');
   return 'en';
 }
 

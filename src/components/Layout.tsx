@@ -308,7 +308,7 @@ export const Layout: FC<LayoutProps> = ({
         >
           Skip to main content
         </a>
-        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} showMap={showMap} />
+        <Navbar user={user} currentPath={currentPath} logoUrl={logoUrl} pages={pages} showMap={showMap} t={t} />
         <main id="main-content" class="flex-grow" data-testid="main-content">
           {children}
         </main>
