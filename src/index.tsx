@@ -298,7 +298,7 @@ app.get('/.well-known/traffic-advice', async (c) => {
     .where(eq(settings.key, 'site_domain'))
     .get();
 
-  const configuredDomain = siteDomainSetting?.value || 'utahchurches.org';
+  const configuredDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
   return c.json([
     {
@@ -702,6 +702,10 @@ app.get('/counties/:path', async (c) => {
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
+  // Get site domain for ChurchCard
+  const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+  const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
+
   return c.html(
     <Layout
       title={`${county.name} Churches`}
@@ -766,14 +770,14 @@ app.get('/counties/:path', async (c) => {
               {/* Listed Churches */}
               {listedChurches.map((church) => (
                 <div class="church-card listed-church">
-                  <ChurchCard church={church} />
+                  <ChurchCard church={church} domain={siteDomain} />
                 </div>
               ))}
 
               {/* Unlisted Churches (hidden by default unless no listed churches) */}
               {unlistedChurches.map((church) => (
                 <div class={`church-card unlisted-church ${listedChurches.length > 0 ? 'hidden' : ''}`}>
-                  <ChurchCard church={church} />
+                  <ChurchCard church={church} domain={siteDomain} />
                 </div>
               ))}
             </div>
@@ -1376,6 +1380,10 @@ app.get('/networks/:id', async (c) => {
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
+  // Get site domain for ChurchCard
+  const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
+  const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
+
   return c.html(
     <Layout
       title={`${affiliation.name}`}
@@ -1438,7 +1446,7 @@ app.get('/networks/:id', async (c) => {
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {listedChurches.map((church) => (
                   <div class="church-card listed-church">
-                    <ChurchCard church={church} showCounty={false} />
+                    <ChurchCard church={church} showCounty={false} domain={siteDomain} />
                   </div>
                 ))}
               </div>
@@ -1450,7 +1458,7 @@ app.get('/networks/:id', async (c) => {
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {unlistedChurches.map((church) => (
                   <div class="church-card unlisted-church">
-                    <ChurchCard church={church} showCounty={false} />
+                    <ChurchCard church={church} showCounty={false} domain={siteDomain} />
                   </div>
                 ))}
               </div>
@@ -1476,7 +1484,7 @@ app.get('/networks/:id', async (c) => {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {unlistedChurches.map((church) => (
                     <div class="church-card unlisted-church">
-                      <ChurchCard church={church} />
+                      <ChurchCard church={church} domain={siteDomain} />
                     </div>
                   ))}
                 </div>
