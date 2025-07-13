@@ -324,7 +324,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     return c.html(
       <Layout
         title={`${church.name}`}
-        description={church.publicNotes || `Christian church in ${church.countyName || 'Utah'}`}
+        description={church.gatheringAddress || `Christian church in ${church.countyName || 'Utah'}`}
         ogImage={ogImageUrl}
         jsonLd={jsonLd}
         user={user}
