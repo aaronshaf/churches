@@ -6,7 +6,11 @@ import type { Bindings } from '../types';
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   try {
     const db = createDb(env.DB);
-    const faviconUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'favicon_url')).get();
+    const faviconUrlSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'favicon_url'))
+      .get();
 
     return faviconUrlSetting?.value || undefined;
   } catch (error) {
@@ -18,7 +22,11 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
 export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   try {
     const db = createDb(env.DB);
-    const logoUrlSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'logo_url')).get();
+    const logoUrlSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'logo_url'))
+      .get();
 
     return logoUrlSetting?.value || undefined;
   } catch (error) {
@@ -30,7 +38,11 @@ export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 export async function getSiteTitle(env: Bindings): Promise<string> {
   try {
     const db = createDb(env.DB);
-    const siteTitleSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_title')).get();
+    const siteTitleSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'site_title'))
+      .get();
 
     return siteTitleSetting?.value || 'Churches';
   } catch (error) {
@@ -75,13 +87,21 @@ export async function getSiteSettings(env: Bindings): Promise<{
 export async function getImagePrefix(env: Bindings): Promise<string> {
   try {
     const db = createDb(env.DB);
-    const imagePrefixSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'image_prefix')).get();
+    const imagePrefixSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'image_prefix'))
+      .get();
 
     // If no setting exists, derive from site domain or use default
     if (!imagePrefixSetting?.value) {
-      const domainSetting = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get();
+      const domainSetting = await db
+        .select({ value: settings.value })
+        .from(settings)
+        .where(eq(settings.key, 'site_domain'))
+        .get();
       if (domainSetting?.value) {
-        // Extract domain name without TLD (e.g., "utahchurches" from "utahchurches.org")
+        // Extract domain name without TLD (e.g., "example" from "example.com")
         const domainParts = domainSetting.value.split('.');
         return domainParts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       }
