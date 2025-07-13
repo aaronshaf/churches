@@ -85,10 +85,25 @@ export async function getDomain(db: DrizzleD1Database<any>, env: Pick<Bindings, 
 export function getImageUrl(
   path: string | null | undefined,
   domain: string,
-  transformations?: ImageTransformations
+  transformations?: ImageTransformations,
+  r2Domain?: string
 ): string {
   if (!path) return '';
 
+  // If r2Domain is provided, use it as the source for Cloudflare Image Transformations
+  if (r2Domain) {
+    const sourceUrl = `https://${r2Domain}/${path}`;
+    const baseUrl = `https://${domain}/cdn-cgi/image`;
+
+    if (!transformations || Object.keys(transformations).length === 0) {
+      return `${baseUrl}/format=auto/${sourceUrl}`;
+    }
+
+    const params = formatTransformations(transformations);
+    return `${baseUrl}/${params}/${sourceUrl}`;
+  }
+
+  // Fallback to direct domain path (original behavior)
   const baseUrl = `https://${domain}/cdn-cgi/image`;
 
   if (!transformations || Object.keys(transformations).length === 0) {
@@ -194,13 +209,14 @@ export function generateSrcSet(
   path: string,
   domain: string,
   baseWidth: number,
-  transformations?: Omit<ImageTransformations, 'width'>
+  transformations?: Omit<ImageTransformations, 'width'>,
+  r2Domain?: string
 ): string {
   const widths = [Math.round(baseWidth * 0.5), baseWidth, Math.round(baseWidth * 1.5), Math.round(baseWidth * 2)];
 
   return widths
     .map((width) => {
-      const url = getImageUrl(path, domain, { ...transformations, width });
+      const url = getImageUrl(path, domain, { ...transformations, width }, r2Domain);
       return `${url} ${width}w`;
     })
     .join(', ');
