@@ -852,9 +852,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
             const imageGallery = ${JSON.stringify(
               churchImagesList.map((image, index) => ({
                 id: image.id,
-                src: r2ImageDomain
+                highResSrc: r2ImageDomain
                   ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/https://${r2ImageDomain}/${image.imagePath}`
                   : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${image.imagePath}`,
+                thumbnailSrc: r2ImageDomain
+                  ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=600,height=400/https://${r2ImageDomain}/${image.imagePath}`
+                  : `https://${siteDomain}/cdn-cgi/image/format=auto,width=600,height=400/${image.imagePath}`,
                 alt: image.imageAlt || `${church.name} photo ${index + 1}`,
                 caption: image.caption || '',
               }))
@@ -864,8 +867,8 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
             
             // Image modal functionality
             function openImageModal(imageData) {
-              // Find the current image index in the gallery
-              currentImageIndex = imageGallery.findIndex(img => img.src === imageData.src);
+              // Find the current image index in the gallery by matching the high-res src
+              currentImageIndex = imageGallery.findIndex(img => img.highResSrc === imageData.src);
               if (currentImageIndex === -1) currentImageIndex = 0;
               
               // Create modal
@@ -911,7 +914,20 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </button>
                   \` : ''}
                   
-                  <img src="\${currentImage.src}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
+                  <div class="relative max-w-full max-h-full">
+                    <img id="modal-thumbnail" src="\${currentImage.thumbnailSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
+                    <img id="modal-high-res" src="\${currentImage.highResSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg absolute inset-0 opacity-0 transition-opacity duration-300" onload="this.style.opacity='1'; document.getElementById('modal-thumbnail').style.opacity='0';" />
+                    
+                    <!-- Loading indicator -->
+                    <div id="modal-loading" class="absolute inset-0 flex items-center justify-center">
+                      <div class="bg-black bg-opacity-50 rounded-lg px-3 py-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
                   
                   \${currentImage.caption ? \`<p class="text-white text-center mt-4 text-sm">\${currentImage.caption}</p>\` : ''}
                   
@@ -922,6 +938,21 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                   \` : ''}
                 </div>
               \`;
+              
+              // Hide loading indicator once thumbnail loads
+              const thumbnail = modal.querySelector('#modal-thumbnail');
+              const loading = modal.querySelector('#modal-loading');
+              const highRes = modal.querySelector('#modal-high-res');
+              
+              thumbnail.onload = function() {
+                if (loading) loading.style.display = 'none';
+              };
+              
+              // Handle high-res load error by keeping thumbnail visible
+              highRes.onerror = function() {
+                console.warn('Failed to load high-resolution image, keeping thumbnail');
+                if (loading) loading.style.display = 'none';
+              };
             }
             
             function nextImage() {
