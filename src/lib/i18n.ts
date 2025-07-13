@@ -62,6 +62,8 @@ const resources = {
       'church.getDirections': 'Get Directions',
       'church.viewOnMap': 'View on Map',
       'church.updateSermons': 'Update Sermons',
+      'church.socialMedia': 'Social Media',
+      'church.privateNotes': 'Private Notes (Admin Only)',
 
       // Church Status
       'churchStatus.listed': 'Listed',
@@ -71,6 +73,12 @@ const resources = {
       'churchStatus.unlisted': 'Unlisted',
       'churchStatus.heretical': 'Heretical',
       'churchStatus.closed': 'Closed',
+
+      // Map
+      'map.showMoreChurches': 'Show more churches ({{count}})',
+
+      // Networks
+      'networks.title': 'Church Networks',
 
       // Church Form
       'churchForm.createNew': 'Create New Church',
@@ -168,6 +176,20 @@ const resources = {
 
       // Feedback
       'feedback.title': 'Submit Feedback',
+      'feedback.subtitle': 'Help us improve by sharing your thoughts and suggestions',
+      'feedback.providingFeedbackFor': 'Providing feedback for:',
+      'feedback.signInRequired': 'Sign in required',
+      'feedback.signInMessage':
+        'You must be signed in to submit feedback. This helps us maintain quality and respond to your suggestions.',
+      'feedback.signInToContinue': 'Sign in to continue',
+      'feedback.generalFeedback': 'General Feedback',
+      'feedback.churchFeedback': 'Church Feedback',
+      'feedback.suggestChurch': 'Suggest a Church',
+      'feedback.whatsOnYourMind': "What's on your mind?",
+      'feedback.yourFeedback': 'Your feedback',
+      'feedback.selectChurch': 'Select a church...',
+      'feedback.church': 'Church',
+      'feedback.cancel': 'Cancel',
       'feedback.submitChurchSuggestion': 'Submit Church Suggestion',
       'feedback.generalPlaceholder': 'Share your thoughts about Utah Churches...',
       'feedback.churchPlaceholder': 'Provide information about this church...',
@@ -177,6 +199,9 @@ const resources = {
       // Footer
       'footer.dataExport': 'Data Export',
       'footer.edit': 'Edit',
+      'footer.admin': 'Admin',
+      'footer.feedback': 'Feedback',
+      'footer.data': 'Data',
       'footer.browseCounties': 'Browse Churches by County',
       'footer.browseNetworks': 'Browse by Network',
       'footer.submitFeedback': 'Submit Feedback',
@@ -310,6 +335,8 @@ const resources = {
       'church.images': 'Imágenes',
       'church.getDirections': 'Obtener Direcciones',
       'church.viewOnMap': 'Ver en el Mapa',
+      'church.socialMedia': 'Redes Sociales',
+      'church.privateNotes': 'Notas Privadas (Solo Admin)',
       'church.updateSermons': 'Actualizar Sermones',
 
       // Church Status
@@ -320,6 +347,12 @@ const resources = {
       'churchStatus.unlisted': 'No listada',
       'churchStatus.heretical': 'Herética',
       'churchStatus.closed': 'Cerrada',
+
+      // Map
+      'map.showMoreChurches': 'Mostrar más iglesias ({{count}})',
+
+      // Networks
+      'networks.title': 'Redes de Iglesias',
 
       // Church Form
       'churchForm.createNew': 'Crear Nueva Iglesia',
@@ -417,6 +450,20 @@ const resources = {
 
       // Feedback
       'feedback.title': 'Enviar Comentarios',
+      'feedback.subtitle': 'Ayúdanos a mejorar compartiendo tus pensamientos y sugerencias',
+      'feedback.providingFeedbackFor': 'Proporcionando comentarios para:',
+      'feedback.signInRequired': 'Inicio de sesión requerido',
+      'feedback.signInMessage':
+        'Debes iniciar sesión para enviar comentarios. Esto nos ayuda a mantener la calidad y responder a tus sugerencias.',
+      'feedback.signInToContinue': 'Iniciar sesión para continuar',
+      'feedback.generalFeedback': 'Comentarios Generales',
+      'feedback.churchFeedback': 'Comentarios de Iglesia',
+      'feedback.suggestChurch': 'Sugerir una Iglesia',
+      'feedback.whatsOnYourMind': '¿Qué tienes en mente?',
+      'feedback.yourFeedback': 'Tus comentarios',
+      'feedback.selectChurch': 'Selecciona una iglesia...',
+      'feedback.church': 'Iglesia',
+      'feedback.cancel': 'Cancelar',
       'feedback.submitChurchSuggestion': 'Enviar Sugerencia de Iglesia',
       'feedback.generalPlaceholder': 'Comparte tus pensamientos sobre Iglesias de Utah...',
       'feedback.churchPlaceholder': 'Proporciona información sobre esta iglesia...',
@@ -426,6 +473,9 @@ const resources = {
       // Footer
       'footer.dataExport': 'Exportar Datos',
       'footer.edit': 'Editar',
+      'footer.admin': 'Administración',
+      'footer.feedback': 'Comentarios',
+      'footer.data': 'Datos',
       'footer.browseCounties': 'Navegar Iglesias por Condado',
       'footer.browseNetworks': 'Navegar por Red',
       'footer.submitFeedback': 'Enviar Comentarios',
@@ -528,6 +578,14 @@ const resources = {
       'common.next': 'Próximo',
       'common.previous': 'Anterior',
 
+      // Home page
+      'home.findChurch': 'Encontre uma Igreja Perto de Você',
+      'home.exploreMap': 'Explore o mapa de igrejas evangélicas',
+      'home.browseByCounty': 'Navegar por Condado',
+      'home.sortBy': 'Ordenar por:',
+      'home.population': 'População',
+      'home.name': 'Nome',
+
       // Churches
       'church.status': 'Estado',
       'church.website': 'Site',
@@ -537,14 +595,71 @@ const resources = {
       'church.language': 'Idioma',
       'church.affiliations': 'Afiliações',
       'church.notes': 'Notas',
+      'church.email': 'Email',
+      'church.gatheringAddress': 'Endereço das Reuniões',
+      'church.statementOfFaith': 'Declaração de Fé',
+      'church.primaryLanguage': 'Idioma Principal',
+      'church.publicNotes': 'Notas Públicas',
+      'church.gatheringTimes': 'Horários das Reuniões',
+      'church.images': 'Imagens',
+      'church.getDirections': 'Obter Direções',
+      'church.viewOnMap': 'Ver no Mapa',
+
+      // Church Status
+      'churchStatus.listed': 'Listado',
+      'churchStatus.readyToList': 'Pronto para listar',
+      'churchStatus.assess': 'Avaliar',
+      'churchStatus.needsData': 'Precisa de dados',
+      'churchStatus.unlisted': 'Não listado',
+      'churchStatus.heretical': 'Herético',
+      'churchStatus.closed': 'Fechado',
+
+      // Map
+      'map.showMoreChurches': 'Mostrar mais igrejas ({{count}})',
+
+      // Networks
+      'networks.title': 'Redes de Igrejas',
+
+      // Feedback
+      'feedback.title': 'Enviar Comentários',
+      'feedback.subtitle': 'Ajude-nos a melhorar compartilhando seus pensamentos e sugestões',
+      'feedback.providingFeedbackFor': 'Fornecendo feedback para:',
+      'feedback.signInRequired': 'Login necessário',
+      'feedback.signInMessage':
+        'Você deve estar logado para enviar comentários. Isso nos ajuda a manter a qualidade e responder às suas sugestões.',
+      'feedback.signInToContinue': 'Faça login para continuar',
+      'feedback.generalFeedback': 'Comentários Gerais',
+      'feedback.churchFeedback': 'Comentários da Igreja',
+      'feedback.suggestChurch': 'Sugerir uma Igreja',
+      'feedback.whatsOnYourMind': 'O que você tem em mente?',
+      'feedback.yourFeedback': 'Seus comentários',
+      'feedback.selectChurch': 'Selecione uma igreja...',
+      'feedback.church': 'Igreja',
+      'feedback.cancel': 'Cancelar',
+      'feedback.submit': 'Enviar Comentários',
+
+      // Footer
+      'footer.dataExport': 'Exportar Dados',
+      'footer.edit': 'Editar',
+      'footer.admin': 'Administração',
+      'footer.feedback': 'Comentários',
+      'footer.data': 'Dados',
 
       // County pages
       'county.churchesIn': 'Igrejas em {{county}}',
       'county.totalChurches': '{{count}} igrejas',
 
-      // Footer
-      'footer.dataExport': 'Exportar Dados',
-      'footer.edit': 'Editar',
+      // Direct English-as-key translations
+      'Browse by County': 'Navegar por Condado',
+      'Find a Church Near You': 'Encontre uma Igreja Perto de Você',
+      'Explore map of evangelical churches': 'Explore o mapa de igrejas evangélicas',
+      'Sort by:': 'Ordenar por:',
+      Population: 'População',
+      Name: 'Nome',
+      church: 'igreja',
+      churches: 'igrejas',
+      'Manage Churches': 'Gerenciar Igrejas',
+      'Manage Users': 'Gerenciar Usuários',
     },
   },
   fr: {
@@ -575,6 +690,14 @@ const resources = {
       'common.next': 'Suivant',
       'common.previous': 'Précédent',
 
+      // Home page
+      'home.findChurch': 'Trouvez une Église Près de Vous',
+      'home.exploreMap': 'Explorez la carte des églises évangéliques',
+      'home.browseByCounty': 'Parcourir par Comté',
+      'home.sortBy': 'Trier par:',
+      'home.population': 'Population',
+      'home.name': 'Nom',
+
       // Churches
       'church.status': 'Statut',
       'church.website': 'Site Web',
@@ -584,14 +707,71 @@ const resources = {
       'church.language': 'Langue',
       'church.affiliations': 'Affiliations',
       'church.notes': 'Notes',
+      'church.email': 'Email',
+      'church.gatheringAddress': 'Adresse des Rassemblements',
+      'church.statementOfFaith': 'Déclaration de Foi',
+      'church.primaryLanguage': 'Langue Principale',
+      'church.publicNotes': 'Notes Publiques',
+      'church.gatheringTimes': 'Horaires des Rassemblements',
+      'church.images': 'Images',
+      'church.getDirections': 'Obtenir les Directions',
+      'church.viewOnMap': 'Voir sur la Carte',
+
+      // Church Status
+      'churchStatus.listed': 'Répertorié',
+      'churchStatus.readyToList': 'Prêt à répertorier',
+      'churchStatus.assess': 'Évaluer',
+      'churchStatus.needsData': 'Besoin de données',
+      'churchStatus.unlisted': 'Non répertorié',
+      'churchStatus.heretical': 'Hérétique',
+      'churchStatus.closed': 'Fermé',
+
+      // Map
+      'map.showMoreChurches': "Afficher plus d'églises ({{count}})",
+
+      // Networks
+      'networks.title': "Réseaux d'Églises",
+
+      // Feedback
+      'feedback.title': 'Soumettre des Commentaires',
+      'feedback.subtitle': 'Aidez-nous à nous améliorer en partageant vos pensées et suggestions',
+      'feedback.providingFeedbackFor': 'Fournir des commentaires pour:',
+      'feedback.signInRequired': 'Connexion requise',
+      'feedback.signInMessage':
+        'Vous devez être connecté pour soumettre des commentaires. Cela nous aide à maintenir la qualité et répondre à vos suggestions.',
+      'feedback.signInToContinue': 'Se connecter pour continuer',
+      'feedback.generalFeedback': 'Commentaires Généraux',
+      'feedback.churchFeedback': "Commentaires d'Église",
+      'feedback.suggestChurch': 'Suggérer une Église',
+      'feedback.whatsOnYourMind': "Qu'avez-vous en tête?",
+      'feedback.yourFeedback': 'Vos commentaires',
+      'feedback.selectChurch': 'Sélectionnez une église...',
+      'feedback.church': 'Église',
+      'feedback.cancel': 'Annuler',
+      'feedback.submit': 'Soumettre les Commentaires',
+
+      // Footer
+      'footer.dataExport': 'Exporter les Données',
+      'footer.edit': 'Modifier',
+      'footer.admin': 'Administration',
+      'footer.feedback': 'Commentaires',
+      'footer.data': 'Données',
 
       // County pages
       'county.churchesIn': 'Églises à {{county}}',
       'county.totalChurches': '{{count}} églises',
 
-      // Footer
-      'footer.dataExport': 'Exporter les Données',
-      'footer.edit': 'Modifier',
+      // Direct English-as-key translations
+      'Browse by County': 'Parcourir par Comté',
+      'Find a Church Near You': 'Trouvez une Église Près de Vous',
+      'Explore map of evangelical churches': 'Explorez la carte des églises évangéliques',
+      'Sort by:': 'Trier par:',
+      Population: 'Population',
+      Name: 'Nom',
+      church: 'église',
+      churches: 'églises',
+      'Manage Churches': 'Gérer les Églises',
+      'Manage Users': 'Gérer les Utilisateurs',
     },
   },
   de: {
@@ -622,6 +802,14 @@ const resources = {
       'common.next': 'Weiter',
       'common.previous': 'Zurück',
 
+      // Home page
+      'home.findChurch': 'Finden Sie eine Kirche in Ihrer Nähe',
+      'home.exploreMap': 'Erkunden Sie die Karte evangelischer Kirchen',
+      'home.browseByCounty': 'Nach Landkreis durchsuchen',
+      'home.sortBy': 'Sortieren nach:',
+      'home.population': 'Bevölkerung',
+      'home.name': 'Name',
+
       // Churches
       'church.status': 'Status',
       'church.website': 'Webseite',
@@ -631,14 +819,71 @@ const resources = {
       'church.language': 'Sprache',
       'church.affiliations': 'Zugehörigkeiten',
       'church.notes': 'Notizen',
+      'church.email': 'E-Mail',
+      'church.gatheringAddress': 'Versammlungsadresse',
+      'church.statementOfFaith': 'Glaubensbekenntnis',
+      'church.primaryLanguage': 'Hauptsprache',
+      'church.publicNotes': 'Öffentliche Notizen',
+      'church.gatheringTimes': 'Versammlungszeiten',
+      'church.images': 'Bilder',
+      'church.getDirections': 'Wegbeschreibung',
+      'church.viewOnMap': 'Auf Karte anzeigen',
+
+      // Church Status
+      'churchStatus.listed': 'Gelistet',
+      'churchStatus.readyToList': 'Bereit zur Auflistung',
+      'churchStatus.assess': 'Bewerten',
+      'churchStatus.needsData': 'Benötigt Daten',
+      'churchStatus.unlisted': 'Nicht gelistet',
+      'churchStatus.heretical': 'Häretisch',
+      'churchStatus.closed': 'Geschlossen',
+
+      // Map
+      'map.showMoreChurches': 'Mehr Kirchen anzeigen ({{count}})',
+
+      // Networks
+      'networks.title': 'Kirchennetzwerke',
+
+      // Feedback
+      'feedback.title': 'Feedback senden',
+      'feedback.subtitle': 'Helfen Sie uns zu verbessern, indem Sie Ihre Gedanken und Vorschläge teilen',
+      'feedback.providingFeedbackFor': 'Feedback geben für:',
+      'feedback.signInRequired': 'Anmeldung erforderlich',
+      'feedback.signInMessage':
+        'Sie müssen angemeldet sein, um Feedback zu senden. Dies hilft uns, die Qualität zu erhalten und auf Ihre Vorschläge zu antworten.',
+      'feedback.signInToContinue': 'Anmelden, um fortzufahren',
+      'feedback.generalFeedback': 'Allgemeines Feedback',
+      'feedback.churchFeedback': 'Kirchen-Feedback',
+      'feedback.suggestChurch': 'Eine Kirche vorschlagen',
+      'feedback.whatsOnYourMind': 'Was haben Sie im Sinn?',
+      'feedback.yourFeedback': 'Ihr Feedback',
+      'feedback.selectChurch': 'Eine Kirche auswählen...',
+      'feedback.church': 'Kirche',
+      'feedback.cancel': 'Abbrechen',
+      'feedback.submit': 'Feedback senden',
+
+      // Footer
+      'footer.dataExport': 'Daten Exportieren',
+      'footer.edit': 'Bearbeiten',
+      'footer.admin': 'Verwaltung',
+      'footer.feedback': 'Feedback',
+      'footer.data': 'Daten',
 
       // County pages
       'county.churchesIn': 'Kirchen in {{county}}',
       'county.totalChurches': '{{count}} Kirchen',
 
-      // Footer
-      'footer.dataExport': 'Daten Exportieren',
-      'footer.edit': 'Bearbeiten',
+      // Direct English-as-key translations
+      'Browse by County': 'Nach Landkreis durchsuchen',
+      'Find a Church Near You': 'Finden Sie eine Kirche in Ihrer Nähe',
+      'Explore map of evangelical churches': 'Erkunden Sie die Karte evangelischer Kirchen',
+      'Sort by:': 'Sortieren nach:',
+      Population: 'Bevölkerung',
+      Name: 'Name',
+      church: 'Kirche',
+      churches: 'Kirchen',
+      'Manage Churches': 'Kirchen verwalten',
+      'Manage Users': 'Benutzer verwalten',
     },
   },
   ko: {
@@ -669,6 +914,14 @@ const resources = {
       'common.next': '다음',
       'common.previous': '이전',
 
+      // Home page
+      'home.findChurch': '가까운 교회 찾기',
+      'home.exploreMap': '복음주의 교회 지도 탐색',
+      'home.browseByCounty': '카운티별 탐색',
+      'home.sortBy': '정렬 기준:',
+      'home.population': '인구',
+      'home.name': '이름',
+
       // Churches
       'church.status': '상태',
       'church.website': '웹사이트',
@@ -678,14 +931,71 @@ const resources = {
       'church.language': '언어',
       'church.affiliations': '소속',
       'church.notes': '노트',
+      'church.email': '이메일',
+      'church.gatheringAddress': '모임 주소',
+      'church.statementOfFaith': '신앙고백서',
+      'church.primaryLanguage': '주요 언어',
+      'church.publicNotes': '공개 노트',
+      'church.gatheringTimes': '모임 시간',
+      'church.images': '이미지',
+      'church.getDirections': '길찾기',
+      'church.viewOnMap': '지도에서 보기',
+
+      // Church Status
+      'churchStatus.listed': '등록됨',
+      'churchStatus.readyToList': '등록 준비됨',
+      'churchStatus.assess': '평가',
+      'churchStatus.needsData': '데이터 필요',
+      'churchStatus.unlisted': '미등록',
+      'churchStatus.heretical': '이단',
+      'churchStatus.closed': '폐쇄됨',
+
+      // Map
+      'map.showMoreChurches': '더 많은 교회 보기 ({{count}})',
+
+      // Networks
+      'networks.title': '교회 네트워크',
+
+      // Feedback
+      'feedback.title': '피드백 제출',
+      'feedback.subtitle': '생각과 제안을 공유하여 개선에 도움을 주세요',
+      'feedback.providingFeedbackFor': '피드백 제공 대상:',
+      'feedback.signInRequired': '로그인 필요',
+      'feedback.signInMessage':
+        '피드백을 제출하려면 로그인해야 합니다. 이는 품질을 유지하고 제안에 응답하는 데 도움이 됩니다.',
+      'feedback.signInToContinue': '계속하려면 로그인',
+      'feedback.generalFeedback': '일반 피드백',
+      'feedback.churchFeedback': '교회 피드백',
+      'feedback.suggestChurch': '교회 제안',
+      'feedback.whatsOnYourMind': '무엇을 생각하고 계신가요?',
+      'feedback.yourFeedback': '귀하의 피드백',
+      'feedback.selectChurch': '교회를 선택하세요...',
+      'feedback.church': '교회',
+      'feedback.cancel': '취소',
+      'feedback.submit': '피드백 제출',
+
+      // Footer
+      'footer.dataExport': '데이터 내보내기',
+      'footer.edit': '편집',
+      'footer.admin': '관리',
+      'footer.feedback': '피드백',
+      'footer.data': '데이터',
 
       // County pages
       'county.churchesIn': '{{county}}의 교회들',
       'county.totalChurches': '{{count}}개의 교회',
 
-      // Footer
-      'footer.dataExport': '데이터 내보내기',
-      'footer.edit': '편집',
+      // Direct English-as-key translations
+      'Browse by County': '카운티별 탐색',
+      'Find a Church Near You': '가까운 교회 찾기',
+      'Explore map of evangelical churches': '복음주의 교회 지도 탐색',
+      'Sort by:': '정렬 기준:',
+      Population: '인구',
+      Name: '이름',
+      church: '교회',
+      churches: '교회들',
+      'Manage Churches': '교회 관리',
+      'Manage Users': '사용자 관리',
     },
   },
   zh: {
@@ -716,6 +1026,14 @@ const resources = {
       'common.next': '下一个',
       'common.previous': '上一个',
 
+      // Home page
+      'home.findChurch': '寻找您附近的教会',
+      'home.exploreMap': '浏览福音教会地图',
+      'home.browseByCounty': '按县浏览',
+      'home.sortBy': '排序方式：',
+      'home.population': '人口',
+      'home.name': '名称',
+
       // Churches
       'church.status': '状态',
       'church.website': '网站',
@@ -725,14 +1043,70 @@ const resources = {
       'church.language': '语言',
       'church.affiliations': '隶属关系',
       'church.notes': '备注',
+      'church.email': '电子邮件',
+      'church.gatheringAddress': '聚会地址',
+      'church.statementOfFaith': '信仰声明',
+      'church.primaryLanguage': '主要语言',
+      'church.publicNotes': '公开备注',
+      'church.gatheringTimes': '聚会时间',
+      'church.images': '图片',
+      'church.getDirections': '获取路线',
+      'church.viewOnMap': '在地图上查看',
+
+      // Church Status
+      'churchStatus.listed': '已列出',
+      'churchStatus.readyToList': '准备列出',
+      'churchStatus.assess': '评估',
+      'churchStatus.needsData': '需要数据',
+      'churchStatus.unlisted': '未列出',
+      'churchStatus.heretical': '异端',
+      'churchStatus.closed': '已关闭',
+
+      // Map
+      'map.showMoreChurches': '显示更多教会（{{count}}）',
+
+      // Networks
+      'networks.title': '教会网络',
+
+      // Feedback
+      'feedback.title': '提交反馈',
+      'feedback.subtitle': '通过分享您的想法和建议帮助我们改进',
+      'feedback.providingFeedbackFor': '为以下提供反馈：',
+      'feedback.signInRequired': '需要登录',
+      'feedback.signInMessage': '您必须登录才能提交反馈。这有助于我们保持质量并回应您的建议。',
+      'feedback.signInToContinue': '登录以继续',
+      'feedback.generalFeedback': '一般反馈',
+      'feedback.churchFeedback': '教会反馈',
+      'feedback.suggestChurch': '建议教会',
+      'feedback.whatsOnYourMind': '您在想什么？',
+      'feedback.yourFeedback': '您的反馈',
+      'feedback.selectChurch': '选择教会...',
+      'feedback.church': '教会',
+      'feedback.cancel': '取消',
+      'feedback.submit': '提交反馈',
+
+      // Footer
+      'footer.dataExport': '导出数据',
+      'footer.edit': '编辑',
+      'footer.admin': '管理',
+      'footer.feedback': '反馈',
+      'footer.data': '数据',
 
       // County pages
       'county.churchesIn': '{{county}}的教会',
       'county.totalChurches': '{{count}}个教会',
 
-      // Footer
-      'footer.dataExport': '导出数据',
-      'footer.edit': '编辑',
+      // Direct English-as-key translations
+      'Browse by County': '按县浏览',
+      'Find a Church Near You': '寻找您附近的教会',
+      'Explore map of evangelical churches': '浏览福音教会地图',
+      'Sort by:': '排序方式：',
+      Population: '人口',
+      Name: '名称',
+      church: '教会',
+      churches: '教会',
+      'Manage Churches': '管理教会',
+      'Manage Users': '管理用户',
     },
   },
 };

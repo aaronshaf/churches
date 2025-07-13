@@ -57,11 +57,13 @@ export interface BetterAuthSession {
   userAgent?: string | null;
 }
 
-// Context variables that get set by auth middleware
+// Context variables that get set by auth middleware and i18n middleware
 export interface AuthVariables {
   betterUser?: BetterAuthUser;
   betterSession?: BetterAuthSession;
   betterAuth?: any; // Better-auth instance - will be typed properly later
+  language?: string;
+  t?: (key: string, options?: object) => string;
 }
 
 // Context variables for authenticated routes (where user is guaranteed to exist)

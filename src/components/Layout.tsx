@@ -319,6 +319,7 @@ export const Layout: FC<LayoutProps> = ({
             countyId={countyId}
             affiliationId={affiliationId}
             currentPath={currentPath}
+            t={t}
           />
         )}
         {currentPath === '/admin/churches' && <script src="/js/church-filters.js"></script>}

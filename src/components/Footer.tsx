@@ -7,9 +7,10 @@ type FooterProps = {
   countyId?: string;
   affiliationId?: string;
   currentPath?: string;
+  t?: (key: string, options?: object) => string;
 };
 
-export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, currentPath }) => {
+export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationId, currentPath, t = (key) => key }) => {
   return (
     <footer class="bg-white border-t border-gray-200 mt-auto" data-testid="footer">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -36,7 +37,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                Edit
+                {t('footer.edit')}
               </a>
             )}
             {user && countyId && (
@@ -53,7 +54,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                Edit
+                {t('footer.edit')}
               </a>
             )}
             {user && affiliationId && (
@@ -70,7 +71,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                Edit
+                {t('footer.edit')}
               </a>
             )}
             {user && !churchId && !countyId && !affiliationId && (
@@ -93,7 +94,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                Admin
+                {t('footer.admin')}
               </a>
             )}
             <a
@@ -109,7 +110,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              Feedback
+              {t('footer.feedback')}
             </a>
             <a
               href="/data"
@@ -124,7 +125,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
                 />
               </svg>
-              Data
+              {t('footer.data')}
             </a>
           </nav>
         </div>

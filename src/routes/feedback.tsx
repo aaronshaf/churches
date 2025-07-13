@@ -5,8 +5,7 @@ import { createDbWithContext } from '../db';
 import { churches, churchSuggestions, comments } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
 import type { AuthVariables, Bindings } from '../types';
-import { getNavbarPages } from '../utils/pages';
-import { getLogoUrl } from '../utils/settings';
+import { getCommonLayoutProps } from '../utils/layout-props';
 
 type Variables = AuthVariables;
 
@@ -14,9 +13,8 @@ export const feedbackRoutes = new Hono<{ Bindings: Bindings; Variables: Variable
 
 // Main feedback page
 feedbackRoutes.get('/', async (c) => {
-  const user = await getUser(c);
-  const logoUrl = await getLogoUrl(c.env);
-  const navbarPages = await getNavbarPages(c.env);
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t, user } = layoutProps;
   const db = createDbWithContext(c);
 
   // Check referrer for church context
@@ -66,13 +64,13 @@ feedbackRoutes.get('/', async (c) => {
     .all();
 
   return c.html(
-    <Layout title="Submit Feedback" user={user} currentPath="/feedback" logoUrl={logoUrl} pages={navbarPages}>
+    <Layout title={t('feedback.title')} currentPath="/feedback" {...layoutProps}>
       <div class="min-h-full bg-gray-50">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}
           <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-gray-900">Submit Feedback</h1>
-            <p class="mt-3 text-lg text-gray-600">Help us improve by sharing your thoughts and suggestions</p>
+            <h1 class="text-3xl font-bold text-gray-900">{t('feedback.title')}</h1>
+            <p class="mt-3 text-lg text-gray-600">{t('feedback.subtitle')}</p>
             {church && feedbackType === 'church' && (
               <div class="mt-4 inline-flex items-center text-sm text-gray-500">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +81,7 @@ feedbackRoutes.get('/', async (c) => {
                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                   />
                 </svg>
-                Providing feedback for: <span class="font-medium ml-1">{church.name}</span>
+                {t('feedback.providingFeedbackFor')} <span class="font-medium ml-1">{church.name}</span>
               </div>
             )}
           </div>
@@ -98,17 +96,14 @@ feedbackRoutes.get('/', async (c) => {
                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
-              <h3 class="mt-4 text-lg font-medium text-gray-900">Sign in required</h3>
-              <p class="mt-2 text-sm text-gray-600">
-                You must be signed in to submit feedback. This helps us maintain quality and respond to your
-                suggestions.
-              </p>
+              <h3 class="mt-4 text-lg font-medium text-gray-900">{t('feedback.signInRequired')}</h3>
+              <p class="mt-2 text-sm text-gray-600">{t('feedback.signInMessage')}</p>
               <div class="mt-6">
                 <a
                   href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
-                  Sign in to continue
+                  {t('feedback.signInToContinue')}
                 </a>
               </div>
             </div>
@@ -140,7 +135,7 @@ feedbackRoutes.get('/', async (c) => {
                       </svg>
                     </div>
                     <div class="mt-4">
-                      <p class="font-semibold text-gray-900">General Feedback</p>
+                      <p class="font-semibold text-gray-900">{t('feedback.generalFeedback')}</p>
                     </div>
                   </button>
 
@@ -167,7 +162,7 @@ feedbackRoutes.get('/', async (c) => {
                       </svg>
                     </div>
                     <div class="mt-4">
-                      <p class="font-semibold text-gray-900">Church Feedback</p>
+                      <p class="font-semibold text-gray-900">{t('feedback.churchFeedback')}</p>
                     </div>
                   </button>
 
@@ -189,7 +184,7 @@ feedbackRoutes.get('/', async (c) => {
                       </svg>
                     </div>
                     <div class="mt-4">
-                      <p class="font-semibold text-gray-900">Suggest a Church</p>
+                      <p class="font-semibold text-gray-900">{t('feedback.suggestChurch')}</p>
                     </div>
                   </button>
                 </div>

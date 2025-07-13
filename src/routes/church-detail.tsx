@@ -21,8 +21,7 @@ import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
 import type { AuthVariables, Bindings } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
-import { getNavbarPages } from '../utils/pages';
-import { getFaviconUrl, getLogoUrl } from '../utils/settings';
+import { getCommonLayoutProps } from '../utils/layout-props';
 
 type Variables = AuthVariables;
 
@@ -32,8 +31,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
   const db = createDbWithContext(c);
   const churchPath = c.req.param('path');
 
-  // Check for admin user (optional)
-  const user = await getUser(c);
+  // Get common layout props (includes user, i18n, favicon, etc.)
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t, user } = layoutProps;
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -85,7 +85,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     if (!church) {
       return c.html(
-        <Layout title="Church Not Found">
+        <Layout title="Church Not Found" {...layoutProps}>
           <ErrorPage error="Church not found" statusCode={404} />
         </Layout>,
         404
@@ -198,12 +198,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     const siteRegion = siteRegionSetting?.value || 'UT';
     const r2ImageDomain = r2ImageDomainSetting?.value;
 
-    // Get favicon URL and logo URL
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-
-    // Get navbar pages
-    const navbarPages = await getNavbarPages(c.env);
+    // Layout props already fetched above
 
     // Create events for JSON-LD
     const events = churchGatheringsList.map((gathering) => ({
@@ -328,12 +323,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         description={church.gatheringAddress || `Christian church in ${church.countyName || 'Utah'}`}
         ogImage={ogImageUrl}
         jsonLd={jsonLd}
-        user={user}
         churchId={church.id.toString()}
-        faviconUrl={faviconUrl}
-        logoUrl={logoUrl}
-        pages={navbarPages}
         currentPath={`/churches/${church.path}`}
+        {...layoutProps}
       >
         <div>
           {/* Header */}
@@ -380,7 +372,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     <div class="space-y-4" data-testid="church-details">
                       {church.gatheringAddress && (
                         <div data-testid="church-directions">
-                          <h3 class="text-base font-medium text-gray-500">Directions</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.getDirections')}</h3>
                           {church.latitude && church.longitude && (
                             <div class="flex gap-2 mt-3">
                               <a
@@ -424,7 +416,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                       {churchGatheringsList.length > 0 && (
                         <div data-testid="church-gatherings">
-                          <h3 class="text-base font-medium text-gray-500">Gatherings</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.gatherings')}</h3>
                           <div class="mt-1 space-y-1">
                             {churchGatheringsList.map((gathering, index) => (
                               <div class="text-base text-gray-900" data-testid={`gathering-${index}`}>
@@ -445,7 +437,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                       {church.phone && (
                         <div data-testid="church-phone">
-                          <h3 class="text-base font-medium text-gray-500">Phone</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.phone')}</h3>
                           <a
                             href={`tel:${church.phone}`}
                             class="mt-1 text-base text-primary-600 hover:text-primary-500"
@@ -457,7 +449,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                       {church.email && (
                         <div data-testid="church-email">
-                          <h3 class="text-base font-medium text-gray-500">Email</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.email')}</h3>
                           <a
                             href={`mailto:${church.email}`}
                             class="mt-1 text-base text-primary-600 hover:text-primary-500"
@@ -471,7 +463,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     <div class="space-y-4">
                       {church.website && (
                         <div data-testid="church-website">
-                          <h3 class="text-base font-medium text-gray-500">Website</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.website')}</h3>
                           <a
                             href={church.website}
                             rel="noopener noreferrer"
@@ -484,7 +476,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                       {church.statementOfFaith && (
                         <div data-testid="church-statement-of-faith">
-                          <h3 class="text-base font-medium text-gray-500">Statement of Faith</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.statementOfFaith')}</h3>
                           <a
                             href={church.statementOfFaith}
                             rel="noopener noreferrer"
@@ -498,7 +490,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                       {/* Social Media Links */}
                       {(church.facebook || church.instagram || church.youtube || church.spotify) && (
                         <div>
-                          <h3 class="text-base font-medium text-gray-500">Social Media</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.socialMedia')}</h3>
                           <div class="flex gap-2 mt-3 flex-wrap" data-testid="social-media-links">
                             {church.facebook && (
                               <a
@@ -578,7 +570,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                       {churchAffiliationsList.length > 0 && (
                         <div data-testid="church-affiliations">
-                          <h3 class="text-base font-medium text-gray-500">Affiliations</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.affiliations')}</h3>
                           <div class="mt-1 space-y-1">
                             {churchAffiliationsList.map((affiliation) => (
                               <div key={affiliation.affiliationId}>
@@ -602,13 +594,13 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     <div class="mt-6 pt-6 border-t border-gray-200">
                       {church.publicNotes && (
                         <div>
-                          <h3 class="text-base font-medium text-gray-500">Notes</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.publicNotes')}</h3>
                           <p class="mt-1 text-base text-gray-900 whitespace-pre-wrap">{church.publicNotes}</p>
                         </div>
                       )}
                       {church.privateNotes && user && (user.role === 'admin' || user.role === 'contributor') && (
                         <div class="mt-4">
-                          <h3 class="text-base font-medium text-gray-500">Private Notes (Admin Only)</h3>
+                          <h3 class="text-base font-medium text-gray-500">{t('church.privateNotes')}</h3>
                           <p class="mt-1 text-base text-gray-900 whitespace-pre-wrap bg-yellow-50 p-3 rounded-md border border-yellow-200">
                             {church.privateNotes}
                           </p>
@@ -1076,7 +1068,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     const { message, type, details } = sanitizeErrorMessage(error);
 
     return c.html(
-      <Layout title="Error">
+      <Layout title="Error" {...layoutProps}>
         <ErrorPage error={details || message} errorType={type} statusCode={statusCode} errorId={errorId} />
       </Layout>,
       statusCode

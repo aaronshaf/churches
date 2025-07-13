@@ -640,15 +640,16 @@ app.get('/counties/:path', async (c) => {
   const db = createDbWithContext(c);
   const countyPath = c.req.param('path');
 
-  // Check if user is logged in
-  const user = await getUser(c);
+  // Get common layout props (includes user, i18n, favicon, etc.)
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t } = layoutProps;
 
   // Get county by path
   const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
 
   if (!county) {
     return c.html(
-      <Layout title="Page Not Found" user={user}>
+      <Layout title="Page Not Found" {...layoutProps}>
         <NotFound />
       </Layout>,
       404
@@ -705,28 +706,14 @@ app.get('/counties/:path', async (c) => {
   const listedChurches = churchesWithGatherings.filter((c) => c.status === 'Listed');
   const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
 
-  // Get favicon URL
-  const faviconUrl = await getFaviconUrl(c.env);
-
-  // Get logo URL
-  const logoUrl = await getLogoUrl(c.env);
-
-  // Get navbar pages
-  const navbarPages = await getNavbarPages(c.env);
+  // Layout props already fetched above
 
   // Get site domain for ChurchCard
   const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
   const response = await c.html(
-    <Layout
-      title={`${county.name} Churches`}
-      user={user}
-      countyId={county.id.toString()}
-      faviconUrl={faviconUrl}
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title={`${county.name} Churches`} countyId={county.id.toString()} {...layoutProps}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -841,8 +828,9 @@ app.get('/counties/:path', async (c) => {
 app.get('/networks', async (c) => {
   const db = createDbWithContext(c);
 
-  // Check for user session
-  const user = await getUser(c);
+  // Get common layout props (includes user, i18n, favicon, etc.)
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t } = layoutProps;
 
   // Get all listed affiliations with church count (only count churches with 'Listed' status)
   const listedAffiliations = await db
@@ -863,29 +851,13 @@ app.get('/networks', async (c) => {
     .orderBy(affiliations.name)
     .all();
 
-  // Get favicon URL
-  const faviconUrl = await getFaviconUrl(c.env);
-
-  // Get logo URL
-  const logoUrl = await getLogoUrl(c.env);
-
-  // Get navbar pages
-  const navbarPages = await getNavbarPages(c.env);
-
   const response = await c.html(
-    <Layout
-      title="Church Networks"
-      currentPath="/networks"
-      user={user}
-      faviconUrl={faviconUrl}
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title={t('networks.title')} currentPath="/networks" {...layoutProps}>
       <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Church Networks</h1>
+            <h1 class="text-3xl font-bold text-gray-900">{t('networks.title')}</h1>
           </div>
 
           {/* Affiliations Grid */}
@@ -1337,8 +1309,9 @@ app.get('/networks/:id', async (c) => {
   const db = createDbWithContext(c);
   const affiliationIdOrPath = c.req.param('id');
 
-  // Check for user session
-  const user = await getUser(c);
+  // Get common layout props (includes user, i18n, favicon, etc.)
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t, user } = layoutProps;
 
   // Helper function to format URLs for display
   const formatUrlForDisplay = (url: string, maxLength: number = 40): string => {
@@ -1392,24 +1365,14 @@ app.get('/networks/:id', async (c) => {
   const listedChurches = affiliationChurches.filter((c) => c.status === 'Listed');
   const unlistedChurches = affiliationChurches.filter((c) => c.status === 'Unlisted');
 
-  // Get logo URL
-  const logoUrl = await getLogoUrl(c.env);
-
-  // Get navbar pages
-  const navbarPages = await getNavbarPages(c.env);
+  // Layout props already fetched above
 
   // Get site domain for ChurchCard
   const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
   const response = await c.html(
-    <Layout
-      title={`${affiliation.name}`}
-      user={user}
-      affiliationId={affiliation.id.toString()}
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title={`${affiliation.name}`} affiliationId={affiliation.id.toString()} {...layoutProps}>
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -1714,7 +1677,9 @@ app.get('/map', async (c) => {
                   id="showUnlisted"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700">Show more churches ({unlistedChurches.length})</span>
+                <span class="ml-2 text-sm text-gray-700">
+                  {t('map.showMoreChurches', { count: unlistedChurches.length })}
+                </span>
               </label>
             </div>
 
@@ -4413,15 +4378,8 @@ app.get('*', async (c) => {
     const slug = path.substring(1);
     const db = createDbWithContext(c);
 
-    // Check for user session
-    const user = await getUser(c);
-
-    // Get favicon URL and logo URL
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-
-    // Get navbar pages
-    const navbarPages = await getNavbarPages(c.env);
+    // Get common layout props (includes user, i18n, favicon, etc.)
+    const layoutProps = await getCommonLayoutProps(c);
 
     // First check if it's a page
     const page = await db.select().from(pages).where(eq(pages.path, slug)).get();
@@ -4429,14 +4387,7 @@ app.get('*', async (c) => {
     if (page) {
       // Render the page content
       return c.html(
-        <Layout
-          title={`${page.title} - Utah Churches`}
-          user={user}
-          faviconUrl={faviconUrl}
-          logoUrl={logoUrl}
-          pages={navbarPages}
-          currentPath={`/${slug}`}
-        >
+        <Layout title={`${page.title} - Utah Churches`} currentPath={`/${slug}`} {...layoutProps}>
           <div class="bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
               <div class="max-w-3xl mx-auto">
