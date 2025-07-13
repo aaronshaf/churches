@@ -18,6 +18,7 @@ import {
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
+import { cacheInvalidation } from '../../utils/cache-invalidation';
 import { batchedInQuery, createInClause } from '../../utils/db-helpers';
 import { deleteImage, uploadImage } from '../../utils/r2-images';
 import { getLogoUrl } from '../../utils/settings';
@@ -770,6 +771,9 @@ adminChurchesRoutes.post('/', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
+    // Invalidate cache for new church
+    await cacheInvalidation.church(c, church.id.toString());
+
     // Redirect to the church page
     if (church.path) {
       return c.redirect(`/churches/${church.path}`);
@@ -1150,6 +1154,9 @@ adminChurchesRoutes.post('/:id', async (c) => {
     // Get the church name for the success message
     const updatedChurch = await db.select().from(churches).where(eq(churches.id, id)).get();
 
+    // Invalidate cache for updated church
+    await cacheInvalidation.church(c, id.toString());
+
     // Check if this was a "save and continue" action
     if (body.continue === 'true') {
       // Redirect back to edit page with success message
@@ -1225,6 +1232,9 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   for (const image of churchImagesList) {
     await deleteImage(image.imagePath, c.env);
   }
+
+  // Invalidate cache for deleted church
+  await cacheInvalidation.church(c, id.toString());
 
   return c.redirect('/admin/churches');
 });

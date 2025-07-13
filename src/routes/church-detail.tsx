@@ -17,6 +17,7 @@ import {
   settings,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
+import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
 import type { AuthVariables, Bindings } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
@@ -321,7 +322,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${firstImage.imagePath}`
       : undefined;
 
-    return c.html(
+    const response = await c.html(
       <Layout
         title={`${church.name}`}
         description={church.gatheringAddress || `Christian church in ${church.countyName || 'Utah'}`}
@@ -1065,6 +1066,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         />
       </Layout>
     );
+
+    // Apply cache headers if not authenticated
+    return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'churches');
   } catch (error) {
     console.error('Error loading church:', error);
     const errorId = generateErrorId();

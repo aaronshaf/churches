@@ -7,6 +7,7 @@ import { Layout } from '../components/Layout';
 import { createDbWithContext } from '../db';
 import { affiliations, churchAffiliations, churches, counties } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
+import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
 import type { AuthVariables, Bindings } from '../types';
 import { batchedInQuery, createInClause } from '../utils/db-helpers';
 import { getNavbarPages } from '../utils/pages';
@@ -108,10 +109,13 @@ dataExportRoutes.get('/churches.json', async (c) => {
     affiliations: affiliationsByChurch[church.id] || [],
   }));
 
-  return c.json({
+  const response = c.json({
     total: churchesWithAffiliations.length,
     churches: churchesWithAffiliations,
   });
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'dataExports');
 });
 
 // YAML Export
@@ -229,9 +233,12 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
     churches: churchesWithAffiliations,
   });
 
-  return c.text(yamlData, 200, {
+  const response = c.text(yamlData, 200, {
     'Content-Type': 'text/yaml',
   });
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'dataExports');
 });
 
 // CSV Export
@@ -352,10 +359,13 @@ dataExportRoutes.get('/churches.csv', async (c) => {
   // Combine header and rows
   const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
-  return c.text(csvContent, 200, {
+  const response = c.text(csvContent, 200, {
     'Content-Type': 'text/csv',
     'Content-Disposition': 'attachment; filename="churches.csv"',
   });
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'dataExports');
 });
 
 // Excel Export

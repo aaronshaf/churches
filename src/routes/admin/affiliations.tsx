@@ -7,6 +7,7 @@ import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations, churches, counties } from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings } from '../../types';
+import { cacheInvalidation } from '../../utils/cache-invalidation';
 import { getNavbarPages } from '../../utils/pages';
 import { getFaviconUrl, getLogoUrl } from '../../utils/settings';
 import { affiliationSchema, parseFormBody, validateFormData } from '../../utils/validation';
@@ -188,13 +189,21 @@ adminAffiliationsRoutes.post('/', async (c) => {
 
     const validatedData = validationResult.data;
 
-    await db.insert(affiliations).values({
-      name: validatedData.name,
-      path: validatedData.path,
-      status: validatedData.status,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const result = await db
+      .insert(affiliations)
+      .values({
+        name: validatedData.name,
+        path: validatedData.path,
+        status: validatedData.status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    // Invalidate cache for affiliation changes
+    if (result[0]) {
+      await cacheInvalidation.affiliation(c, result[0].id.toString());
+    }
 
     return c.redirect('/admin/affiliations');
   } catch (error) {
@@ -427,6 +436,9 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         );
     }
 
+    // Invalidate cache for affiliation changes
+    await cacheInvalidation.affiliation(c, id.toString());
+
     return c.redirect('/admin/affiliations');
   } catch (error) {
     console.error('Error updating affiliation:', error);
@@ -459,6 +471,9 @@ adminAffiliationsRoutes.post('/:id/delete', async (c) => {
 
   // Then delete the affiliation
   await db.delete(affiliations).where(eq(affiliations.id, id));
+
+  // Invalidate cache for affiliation changes
+  await cacheInvalidation.affiliation(c, id.toString());
 
   return c.redirect('/admin/affiliations');
 });

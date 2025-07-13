@@ -28,6 +28,7 @@ import {
 } from './db/schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
+import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
 import { domainRedirectMiddleware } from './middleware/domain-redirect';
 import { envCheckMiddleware } from './middleware/env-check';
 import { adminActivityRoutes } from './routes/admin/activity';
@@ -44,6 +45,7 @@ import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
+import { cacheInvalidation } from './utils/cache-invalidation';
 import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
@@ -376,7 +378,7 @@ app.get('/', async (c) => {
 
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
-    return c.html(
+    const response = await c.html(
       <Layout title={frontPageTitle} currentPath="/" {...layoutProps}>
         <div class="bg-gray-50">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:py-8">
@@ -612,6 +614,9 @@ app.get('/', async (c) => {
         </div>
       </Layout>
     );
+
+    // Apply cache headers if not authenticated
+    return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'homepage');
   } catch (error) {
     console.error('Error loading home page:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to load churches';
@@ -706,7 +711,7 @@ app.get('/counties/:path', async (c) => {
   const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
-  return c.html(
+  const response = await c.html(
     <Layout
       title={`${county.name} Churches`}
       user={user}
@@ -821,6 +826,9 @@ app.get('/counties/:path', async (c) => {
       />
     </Layout>
   );
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'counties');
 });
 
 app.get('/networks', async (c) => {
@@ -857,7 +865,7 @@ app.get('/networks', async (c) => {
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
-  return c.html(
+  const response = await c.html(
     <Layout
       title="Church Networks"
       currentPath="/networks"
@@ -923,6 +931,9 @@ app.get('/networks', async (c) => {
       </div>
     </Layout>
   );
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'networks');
 });
 
 // Suggest a Church page
@@ -1384,7 +1395,7 @@ app.get('/networks/:id', async (c) => {
   const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
   const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
-  return c.html(
+  const response = await c.html(
     <Layout
       title={`${affiliation.name}`}
       user={user}
@@ -1531,6 +1542,9 @@ app.get('/networks/:id', async (c) => {
       </div>
     </Layout>
   );
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'networks');
 });
 
 app.get('/map', async (c) => {
@@ -1680,7 +1694,7 @@ app.get('/map', async (c) => {
   // Get navbar pages
   const navbarPages = await getNavbarPages(c.env);
 
-  return c.html(
+  const response = await c.html(
     <Layout
       title="Church Map"
       currentPath="/map"
@@ -2122,6 +2136,9 @@ app.get('/map', async (c) => {
       ></script>
     </Layout>
   );
+
+  // Apply cache headers if not authenticated
+  return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'map');
 });
 
 // Debug route
@@ -3786,12 +3803,20 @@ app.post('/admin/counties', requireAdminBetter, async (c) => {
     );
   }
 
-  await db.insert(counties).values({
-    name,
-    path: path || null,
-    description: description || null,
-    population,
-  });
+  const result = await db
+    .insert(counties)
+    .values({
+      name,
+      path: path || null,
+      description: description || null,
+      population,
+    })
+    .returning();
+
+  // Invalidate cache for county changes
+  if (result[0]) {
+    await cacheInvalidation.county(c, result[0].id.toString());
+  }
 
   return c.redirect('/admin/counties');
 });
@@ -3844,6 +3869,9 @@ app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
     })
     .where(eq(counties.id, Number(id)));
 
+  // Invalidate cache for county changes
+  await cacheInvalidation.county(c, id);
+
   return c.redirect('/admin/counties');
 });
 
@@ -3854,6 +3882,9 @@ app.post('/admin/counties/:id/delete', requireAdminBetter, async (c) => {
 
   // TODO: Check if any churches are using this county before deleting
   await db.delete(counties).where(eq(counties.id, Number(id)));
+
+  // Invalidate cache for county changes
+  await cacheInvalidation.county(c, id);
 
   return c.redirect('/admin/counties');
 });
@@ -4370,6 +4401,9 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
       });
     }
   }
+
+  // Invalidate all cache when settings change (affects all pages)
+  await cacheInvalidation.settings(c);
 
   return c.redirect('/admin/settings');
 });
