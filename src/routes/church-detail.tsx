@@ -187,9 +187,15 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .from(settings)
       .where(eq(settings.key, 'site_region'))
       .get();
+    const r2ImageDomainSetting = await db
+      .select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, 'r2_image_domain'))
+      .get();
 
     const siteDomain = siteDomainSetting?.value || 'utahchurches.org';
     const siteRegion = siteRegionSetting?.value || 'UT';
+    const r2ImageDomain = r2ImageDomainSetting?.value;
 
     // Get favicon URL and logo URL
     const faviconUrl = await getFaviconUrl(c.env);
@@ -667,6 +673,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                               height={200}
                               className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
                               domain={siteDomain}
+                              r2Domain={r2ImageDomain || undefined}
                             />
                             <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
                               <svg
