@@ -1754,11 +1754,6 @@ app.get('/map', async (c) => {
         {`
         .map-popup-link {
           color: #4299e1;
-          text-decoration: none;
-        }
-        .map-popup-link:hover,
-        .map-popup-link:focus,
-        .map-popup-link:active {
           text-decoration: underline;
         }
         `}
