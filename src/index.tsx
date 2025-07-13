@@ -1707,7 +1707,7 @@ app.get('/map', async (c) => {
                   id="showUnlisted"
                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700">Show more churches ({unlistedChurches.length} unlisted)</span>
+                <span class="ml-2 text-sm text-gray-700">Show more churches ({unlistedChurches.length})</span>
               </label>
             </div>
 
