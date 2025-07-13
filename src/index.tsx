@@ -383,6 +383,8 @@ app.get('/', async (c) => {
 
     const _totalChurches = countiesWithChurches.reduce((sum, county) => sum + county.churchCount, 0);
 
+    const { t } = layoutProps;
+
     const response = await c.html(
       <Layout title={frontPageTitle} currentPath="/" {...layoutProps}>
         <div class="bg-gray-50">
@@ -409,7 +411,7 @@ app.get('/', async (c) => {
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900">Complete your site setup</p>
+                    <p class="text-sm font-medium text-gray-900">{t('Complete your site setup')}</p>
                     <p class="mt-1 text-sm text-gray-500">
                       {missingSettings.length} setting{missingSettings.length !== 1 ? 's' : ''} need
                       {missingSettings.length === 1 ? 's' : ''} configuration:{' '}
@@ -422,7 +424,7 @@ app.get('/', async (c) => {
                     </p>
                     <div class="mt-3">
                       <a href="/admin/settings" class="text-sm font-medium text-amber-600 hover:text-amber-500">
-                        Configure now →
+                        {t('Configure now →')}
                       </a>
                     </div>
                   </div>
@@ -474,10 +476,10 @@ app.get('/', async (c) => {
                         />
                       </svg>
                       <h2 class="text-2xl font-semibold group-hover:underline group-focus:underline group-active:underline">
-                        Find a Church<span class="hidden sm:inline"> Near You</span>
+                        {t('Find a Church Near You')}
                       </h2>
                     </div>
-                    <p class="text-primary-100">Explore map of evangelical churches</p>
+                    <p class="text-primary-100">{t('Explore map of evangelical churches')}</p>
                   </div>
                   <svg
                     class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
@@ -494,9 +496,9 @@ app.get('/', async (c) => {
             {/* Counties Grid */}
             <div>
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Browse by County</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">{t('Browse by County')}</h2>
                 <div class="flex items-center space-x-2">
-                  <span class="text-sm text-gray-700">Sort by:</span>
+                  <span class="text-sm text-gray-700">{t('Sort by:')}</span>
                   <fieldset class="inline-flex rounded-md shadow-sm">
                     <button
                       type="button"
@@ -504,7 +506,7 @@ app.get('/', async (c) => {
                       class="sort-button-population px-3 py-1.5 text-sm font-medium border rounded-l-md focus:z-10 focus:ring-2 focus:ring-primary-500"
                       onclick="sortCounties('population')"
                     >
-                      Population
+                      {t('Population')}
                     </button>
                     <button
                       type="button"
@@ -512,7 +514,7 @@ app.get('/', async (c) => {
                       class="sort-button-name px-3 py-1.5 text-sm font-medium border rounded-r-md focus:z-10 focus:ring-2 focus:ring-primary-500"
                       onclick="sortCounties('name')"
                     >
-                      Name
+                      {t('Name')}
                     </button>
                   </fieldset>
                   <script

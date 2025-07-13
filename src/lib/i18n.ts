@@ -1,6 +1,6 @@
 import i18next from 'i18next';
 
-// Translation resources
+// Translation resources - using English text as keys for better DX
 const resources = {
   en: {
     translation: {
@@ -217,6 +217,16 @@ const resources = {
       'toast.info': 'Info',
       'toast.viewChurch': 'View Church',
       'toast.dismiss': 'Dismiss',
+
+      // Direct English-as-key translations
+      'Browse by County': 'Browse by County',
+      'Find a Church Near You': 'Find a Church Near You',
+      'Explore map of evangelical churches': 'Explore map of evangelical churches',
+      'Sort by:': 'Sort by:',
+      Population: 'Population',
+      Name: 'Name',
+      'Complete your site setup': 'Complete your site setup',
+      'Configure now →': 'Configure now →',
     },
   },
   es: {
@@ -434,6 +444,16 @@ const resources = {
       'toast.info': 'Información',
       'toast.viewChurch': 'Ver Iglesia',
       'toast.dismiss': 'Descartar',
+
+      // Direct English-as-key translations
+      'Browse by County': 'Navegar por Condado',
+      'Find a Church Near You': 'Encuentra una Iglesia Cerca de Ti',
+      'Explore map of evangelical churches': 'Explora el mapa de iglesias evangélicas',
+      'Sort by:': 'Ordenar por:',
+      Population: 'Población',
+      Name: 'Nombre',
+      'Complete your site setup': 'Completa la configuración de tu sitio',
+      'Configure now →': 'Configurar ahora →',
     },
   },
   pt: {
@@ -685,6 +705,11 @@ export async function initI18n(language = 'en') {
       interpolation: {
         escapeValue: false, // React already does escaping
       },
+      // Allow using English text as keys with auto-fallback
+      returnNull: false,
+      returnEmptyString: false,
+      keySeparator: false, // Allow periods in keys
+      nsSeparator: false, // Disable namespace separator
     });
     isInitialized = true;
   } else {
