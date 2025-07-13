@@ -28,20 +28,6 @@ export const NotFound: FC = () => {
             <h1 class="text-[10rem] sm:text-[12rem] font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600 leading-none select-none animate-pulse">
               404
             </h1>
-
-            {/* Church icon overlay */}
-            <div class="absolute inset-0 flex items-center justify-center mt-8">
-              <div class="bg-white rounded-full p-8 shadow-2xl">
-                <svg class="h-20 w-20 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
-            </div>
           </div>
 
           {/* Error message */}
