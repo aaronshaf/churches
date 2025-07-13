@@ -661,7 +661,11 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                             key={image.id}
                             class="relative group cursor-pointer"
                             onclick={`openImageModal({
-                              src: 'https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${image.imagePath}',
+                              src: '${
+                                r2ImageDomain
+                                  ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/https://${r2ImageDomain}/${image.imagePath}`
+                                  : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${image.imagePath}`
+                              }',
                               alt: '${(image.imageAlt || `${church.name} photo ${index + 1}`).replace(/'/g, "\\'")}',
                               caption: '${(image.caption || '').replace(/'/g, "\\'")}'
                             })`}
