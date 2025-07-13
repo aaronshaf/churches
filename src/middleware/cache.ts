@@ -7,13 +7,13 @@ export interface CacheConfig {
 }
 
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
-  homepage: { ttl: 300, swr: 3600 }, // 5min fresh, 1h stale
-  counties: { ttl: 600, swr: 3600 }, // 10min fresh, 1h stale
-  churches: { ttl: 1800, swr: 7200 }, // 30min fresh, 2h stale
-  networks: { ttl: 3600, swr: 86400 }, // 1h fresh, 24h stale
-  dataExports: { ttl: 3600, swr: 86400 }, // 1h fresh, 24h stale
-  map: { ttl: 600, swr: 3600 }, // 10min fresh, 1h stale
-  pages: { ttl: 1800, swr: 7200 }, // 30min fresh, 2h stale (custom pages)
+  homepage: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
+  counties: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
+  churches: { ttl: 86400, swr: 172800 }, // 24h fresh, 48h stale
+  networks: { ttl: 172800, swr: 259200 }, // 48h fresh, 72h stale
+  dataExports: { ttl: 172800, swr: 259200 }, // 48h fresh, 72h stale
+  map: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
+  pages: { ttl: 86400, swr: 172800 }, // 24h fresh, 48h stale
 };
 
 export function shouldSkipCache(c: Context): boolean {

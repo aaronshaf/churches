@@ -625,8 +625,17 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                       class="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                     />
                     <p class="mt-1 text-xs text-gray-500">
-                      Select multiple images. Supported formats: JPG, PNG, WebP. Max size: 10MB per image.
+                      Select multiple images or paste an image from clipboard. Supported formats: JPG, PNG, WebP. Max
+                      size: 10MB per image.
                     </p>
+
+                    {/* Preview New Images */}
+                    <div id="newImagePreviews" class="mt-4 hidden">
+                      <h5 class="text-sm font-medium text-gray-900 mb-3">New Images to Upload</h5>
+                      <div id="previewContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Preview items will be inserted here by JavaScript */}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -731,6 +740,151 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           
           return element;
         };
+        
+        // Function to create image preview
+        function createImagePreview(file, index) {
+          const previewId = 'preview_' + Date.now() + '_' + index;
+          const objectUrl = URL.createObjectURL(file);
+          
+          const previewDiv = h('div', {
+            className: 'border border-gray-200 rounded-lg p-4 relative',
+            'data-preview-id': previewId
+          }, [
+            h('div', { className: 'space-y-4' }, [
+              h('div', { className: 'aspect-w-16 aspect-h-9 w-full' }, [
+                h('img', {
+                  src: objectUrl,
+                  alt: 'Preview',
+                  className: 'w-full h-48 object-cover rounded-lg'
+                })
+              ]),
+              h('div', { className: 'space-y-3' }, [
+                h('div', { className: 'mb-2' }, [
+                  h('label', { className: 'block text-xs font-medium text-gray-700 mb-1' }, 'Alt Text'),
+                  h('input', {
+                    type: 'text',
+                    name: 'newImageAlt_' + index,
+                    placeholder: 'Describe the image',
+                    className: 'w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500'
+                  })
+                ]),
+                h('button', {
+                  type: 'button',
+                  className: 'text-red-600 text-xs hover:text-red-800',
+                  onclick: () => removeImagePreview(previewId, index)
+                }, 'Remove Image')
+              ])
+            ])
+          ]);
+          
+          return previewDiv;
+        }
+        
+        // Function to remove image preview
+        function removeImagePreview(previewId, index) {
+          const fileInput = document.getElementById('newImages');
+          const previewElement = document.querySelector('[data-preview-id="' + previewId + '"]');
+          
+          if (previewElement) {
+            // Clean up object URL
+            const img = previewElement.querySelector('img');
+            if (img && img.src.startsWith('blob:')) {
+              URL.revokeObjectURL(img.src);
+            }
+            previewElement.remove();
+          }
+          
+          // Remove file from input
+          if (fileInput && fileInput.files) {
+            const dataTransfer = new DataTransfer();
+            const files = Array.from(fileInput.files);
+            files.forEach((file, i) => {
+              if (i !== index) {
+                dataTransfer.items.add(file);
+              }
+            });
+            fileInput.files = dataTransfer.files;
+            updateImagePreviews();
+          }
+        }
+        
+        // Function to update all image previews
+        function updateImagePreviews() {
+          const fileInput = document.getElementById('newImages');
+          const previewSection = document.getElementById('newImagePreviews');
+          const previewContainer = document.getElementById('previewContainer');
+          
+          if (!fileInput || !previewSection || !previewContainer) return;
+          
+          // Clear existing previews
+          previewContainer.innerHTML = '';
+          
+          if (fileInput.files && fileInput.files.length > 0) {
+            previewSection.classList.remove('hidden');
+            
+            Array.from(fileInput.files).forEach((file, index) => {
+              const preview = createImagePreview(file, index);
+              previewContainer.appendChild(preview);
+            });
+          } else {
+            previewSection.classList.add('hidden');
+          }
+        }
+        
+        // Handle file input change
+        const fileInput = document.getElementById('newImages');
+        if (fileInput) {
+          fileInput.addEventListener('change', updateImagePreviews);
+        }
+        
+        // Handle paste event for image upload
+        document.addEventListener('paste', async (e) => {
+          const items = e.clipboardData?.items;
+          if (!items) return;
+          
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+              const blob = item.getAsFile();
+              if (!blob) continue;
+              
+              const fileInput = document.getElementById('newImages');
+              if (!fileInput) continue;
+              
+              // Create a new FileList with the pasted image
+              const dataTransfer = new DataTransfer();
+              const file = new File([blob], 'pasted-image.png', { type: item.type });
+              dataTransfer.items.add(file);
+              
+              // Add existing files if any
+              const existingFiles = fileInput.files;
+              for (let j = 0; j < existingFiles.length; j++) {
+                dataTransfer.items.add(existingFiles[j]);
+              }
+              
+              // Update the file input
+              fileInput.files = dataTransfer.files;
+              
+              // Update previews
+              updateImagePreviews();
+              
+              // Notify user
+              const notification = h('div', { 
+                className: 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in',
+                style: { animationDuration: '300ms' }
+              }, 'Image pasted and ready to upload!');
+              document.body.appendChild(notification);
+              
+              // Auto-remove notification
+              setTimeout(() => {
+                notification.classList.add('animate-fade-out');
+                setTimeout(() => notification.remove(), 300);
+              }, 3000);
+              
+              break;
+            }
+          }
+        });
         
         const svg = (props = {}, ...children) => {
           const element = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
