@@ -470,7 +470,7 @@ app.get('/', async (c) => {
                       </svg>
                       <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
                     </div>
-                    <p class="text-primary-100">Explore an map of evangelical churches</p>
+                    <p class="text-primary-100">Explore map of evangelical churches</p>
                   </div>
                   <svg
                     class="h-8 w-8 text-primary-200 group-hover:translate-x-1 transition-transform"
