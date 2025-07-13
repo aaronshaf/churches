@@ -1,20 +1,16 @@
 import type { Context, Next } from 'hono';
-import { detectLanguageFromHeader, initI18n } from '../lib/i18n';
+import { detectLanguageFromHeader, initI18n, SUPPORTED_LANGUAGES, type SupportedLanguage } from '../lib/i18n';
 
 export async function i18nMiddleware(c: Context, next: Next) {
   // Detect language from Accept-Language header
   const acceptLanguage = c.req.header('Accept-Language');
   const detectedLanguage = detectLanguageFromHeader(acceptLanguage);
 
-  // Debug logging (remove in production)
-  console.log('Accept-Language:', acceptLanguage);
-  console.log('Detected language:', detectedLanguage);
-
   // Allow override via query parameter (?lang=es)
-  const queryLang = c.req.query('lang') as 'en' | 'es' | undefined;
-  const language = queryLang && ['en', 'es'].includes(queryLang) ? queryLang : detectedLanguage;
+  const queryLang = c.req.query('lang') as SupportedLanguage | undefined;
+  const language = queryLang && SUPPORTED_LANGUAGES.includes(queryLang) ? queryLang : detectedLanguage;
 
-  console.log('Final language:', language);
+  console.log('🌍 Final language for request:', language, 'URL:', c.req.url);
 
   // Initialize i18next for this request
   await initI18n(language);

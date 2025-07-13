@@ -1,10 +1,13 @@
 import type { FC } from 'hono/jsx';
+import type { SupportedLanguage } from '../lib/i18n';
 
 type QuickSearchProps = {
   userRole?: string;
+  language?: SupportedLanguage;
+  t?: (key: string, options?: object) => string;
 };
 
-export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
+export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t = (key: string) => key }) => {
   // Quick search is available for all users
   // userRole determines which churches are searchable
 
@@ -41,7 +44,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                       type="text"
                       id="quick-search-input"
                       class="w-full pl-10 pr-4 py-2 border-0 focus:ring-0 focus:outline-none text-lg"
-                      placeholder="Search for a church, county, or network..."
+                      placeholder="${t('search.placeholder')}"
                       autocomplete="off"
                       oninput="performQuickSearch(this.value)"
                       onkeydown="handleQuickSearchKeydown(event)"
@@ -160,23 +163,38 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                 
                 // Load data only when search is opened
                 if (!dataLoaded) {
-                  // Show loading state
                   const resultsContainer = document.getElementById('quick-search-results');
+                  let spinnerTimeout = null;
+                  
+                  // Show spinner only if loading takes more than 1 second
                   if (resultsContainer) {
-                    resultsContainer.innerHTML = \`
-                      <div class="px-4 py-8 text-center text-gray-500">
-                        <div class="animate-spin h-8 w-8 mx-auto mb-2">
-                          <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                          </svg>
-                        </div>
-                        <span class="text-sm">Loading search data...</span>
-                      </div>\`;
+                    spinnerTimeout = setTimeout(() => {
+                      resultsContainer.innerHTML = \`
+                        <div class="px-4 py-8 text-center text-gray-500">
+                          <div class="animate-spin h-8 w-8 mx-auto mb-2 opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">
+                            <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                          </div>
+                          <span class="text-sm opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">${t('search.loading')}</span>
+                        </div>\`;
+                      
+                      // Fade in the spinner
+                      setTimeout(() => {
+                        const spinner = resultsContainer.querySelector('.animate-spin');
+                        const text = resultsContainer.querySelector('.text-sm');
+                        if (spinner) spinner.classList.remove('opacity-0');
+                        if (text) text.classList.remove('opacity-0');
+                      }, 50);
+                    }, 1000);
                   }
                   
                   await loadAllData();
                   
-                  // Reset to default state after loading
+                  // Clear spinner timeout and reset to default state
+                  if (spinnerTimeout) {
+                    clearTimeout(spinnerTimeout);
+                  }
                   if (resultsContainer) {
                     resetQuickSearch();
                   }
@@ -207,7 +225,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                     <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <p class="mt-2 text-sm">Start typing to search for churches</p>
+                    <p class="mt-2 text-sm">${t('search.typeToSearch')}</p>
                   </div>
                 \`;
               }
@@ -418,7 +436,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
               if (quickSearchResults.length === 0) {
                 resultsContainer.innerHTML = \`
                   <div class="px-4 py-8 text-center text-gray-500">
-                    <p class="text-sm">No churches found</p>
+                    <p class="text-sm">${t('search.noResults')}</p>
                   </div>
                 \`;
                 return;

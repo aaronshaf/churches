@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import type { SupportedLanguage } from '../lib/i18n';
 import type { BetterAuthUser } from '../types';
 import { Footer } from './Footer';
 import { Navbar } from './Navbar';
@@ -21,6 +22,8 @@ type LayoutProps = {
   pages?: Array<{ id: number; title: string; path: string; navbarOrder: number | null }>;
   showMap?: boolean;
   hideFooter?: boolean;
+  language?: SupportedLanguage;
+  t?: (key: string, options?: object) => string;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -40,10 +43,12 @@ export const Layout: FC<LayoutProps> = ({
   pages = [],
   showMap = true,
   hideFooter = false,
+  language = 'en',
+  t,
 }) => {
   const pageTitle = title ? `${title} - ${siteTitle}` : siteTitle;
   return (
-    <html lang="en">
+    <html lang={language}>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -317,7 +322,7 @@ export const Layout: FC<LayoutProps> = ({
           />
         )}
         {currentPath === '/admin/churches' && <script src="/js/church-filters.js"></script>}
-        <QuickSearch userRole={user?.role} />
+        <QuickSearch userRole={user?.role} language={language} t={t} />
       </body>
     </html>
   );

@@ -31,6 +31,7 @@ import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/
 import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
 import { domainRedirectMiddleware } from './middleware/domain-redirect';
 import { envCheckMiddleware } from './middleware/env-check';
+import { i18nMiddleware } from './middleware/i18n';
 import { adminActivityRoutes } from './routes/admin/activity';
 import { adminAffiliationsRoutes } from './routes/admin/affiliations';
 import { adminChurchesRoutes } from './routes/admin/churches';
@@ -61,6 +62,9 @@ app.use('*', envCheckMiddleware);
 
 // Apply domain redirect middleware globally (but after env check)
 app.use('*', domainRedirectMiddleware);
+
+// Apply i18n middleware globally
+app.use('*', i18nMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
