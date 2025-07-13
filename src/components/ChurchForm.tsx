@@ -547,20 +547,22 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   {churchImages.length > 0 && (
                     <div class="mb-6">
                       <h4 class="text-sm font-medium text-gray-900 mb-3">Current Images</h4>
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {churchImages.map((image, index) => (
                           <div key={image.id} class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-start gap-4">
-                              <OptimizedImage
-                                path={image.imagePath}
-                                alt={image.imageAlt || `Church image ${index + 1}`}
-                                width={150}
-                                height={100}
-                                className="rounded-lg border object-cover flex-shrink-0"
-                                domain={domain}
-                                r2Domain={r2Domain}
-                              />
-                              <div class="flex-1 min-w-0">
+                            <div class="space-y-4">
+                              <div class="aspect-w-16 aspect-h-9 w-full">
+                                <OptimizedImage
+                                  path={image.imagePath}
+                                  alt={image.imageAlt || `Church image ${index + 1}`}
+                                  width={400}
+                                  height={225}
+                                  className="w-full h-48 object-cover rounded-lg"
+                                  domain={domain}
+                                  r2Domain={r2Domain}
+                                />
+                              </div>
+                              <div class="space-y-3">
                                 <div class="mb-2">
                                   <label class="block text-xs font-medium text-gray-700 mb-1">Alt Text</label>
                                   <input
@@ -614,7 +616,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
 
           <div class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8">
             <a
-              href="/admin/churches"
+              href={church?.path ? `/churches/${church.path}` : cancelUrl || '/admin/churches'}
               class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
               data-testid="btn-cancel"
             >
