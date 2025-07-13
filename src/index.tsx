@@ -468,7 +468,9 @@ app.get('/', async (c) => {
                           d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                         />
                       </svg>
-                      <h2 class="text-2xl font-semibold">Find Churches Near You</h2>
+                      <h2 class="text-2xl font-semibold">
+                        Find a Church<span class="hidden sm:inline"> Near You</span>
+                      </h2>
                     </div>
                     <p class="text-primary-100">Explore map of evangelical churches</p>
                   </div>
