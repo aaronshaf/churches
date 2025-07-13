@@ -557,18 +557,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                               />
                               <div class="flex-1 min-w-0">
                                 <div class="mb-2">
-                                  <label class="inline-flex items-center">
-                                    <input
-                                      type="radio"
-                                      name="featuredImageId"
-                                      value={image.id}
-                                      checked={image.isFeatured}
-                                      class="form-radio h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                                    />
-                                    <span class="ml-2 text-sm font-medium text-gray-700">Featured</span>
-                                  </label>
-                                </div>
-                                <div class="mb-2">
                                   <label class="block text-xs font-medium text-gray-700 mb-1">Alt Text</label>
                                   <input
                                     type="text"
@@ -622,7 +610,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                     />
                     <p class="mt-1 text-xs text-gray-500">
                       Select multiple images. Supported formats: JPG, PNG, WebP. Max size: 10MB per image.
-                      {churchImages.length === 0 && ' The first image will automatically be set as featured.'}
                     </p>
                   </div>
                 </div>

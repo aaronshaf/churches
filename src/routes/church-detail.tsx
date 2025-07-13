@@ -283,23 +283,23 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       }),
       ...(churchImagesList.length > 0 &&
         (() => {
-          const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
+          const firstImage = churchImagesList[0];
           return {
             image: {
               '@type': 'ImageObject',
-              url: `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${featuredImage.imagePath}`,
-              contentUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/${featuredImage.imagePath}`,
-              thumbnailUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/${featuredImage.imagePath}`,
-              ...(featuredImage.imageAlt && { description: featuredImage.imageAlt }),
-              ...(featuredImage.caption && { caption: featuredImage.caption }),
+              url: `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${firstImage.imagePath}`,
+              contentUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/${firstImage.imagePath}`,
+              thumbnailUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/${firstImage.imagePath}`,
+              ...(firstImage.imageAlt && { description: firstImage.imageAlt }),
+              ...(firstImage.caption && { caption: firstImage.caption }),
             },
           };
         })()),
     };
 
-    const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
-    const ogImageUrl = featuredImage
-      ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${featuredImage.imagePath}`
+    const firstImage = churchImagesList[0];
+    const ogImageUrl = firstImage
+      ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${firstImage.imagePath}`
       : undefined;
 
     return c.html(
@@ -351,32 +351,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               </div>
             </div>
           </div>
-
-          {/* Featured Image */}
-          {churchImagesList.length > 0 &&
-            (() => {
-              const featuredImage = churchImagesList.find((img) => img.isFeatured) || churchImagesList[0];
-              return (
-                <div class="bg-white">
-                  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="py-8">
-                      <OptimizedImage
-                        path={featuredImage.imagePath}
-                        alt={featuredImage.imageAlt || `${church.name} building`}
-                        width={1200}
-                        height={400}
-                        className="w-full h-64 md:h-80 lg:h-96 object-cover rounded-lg shadow-lg"
-                        domain={siteDomain}
-                        priority={true}
-                      />
-                      {featuredImage.caption && (
-                        <p class="mt-2 text-sm text-gray-600 text-center">{featuredImage.caption}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
           {/* Church Content */}
           <div class="bg-gray-50">
@@ -670,7 +644,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               </div>
 
               {/* Image Gallery */}
-              {churchImagesList.length > 1 && (
+              {churchImagesList.length > 0 && (
                 <div class="mt-8">
                   <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
                     <div class="p-6 sm:p-8">
@@ -694,11 +668,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                               className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
                               domain={siteDomain}
                             />
-                            {image.isFeatured && (
-                              <div class="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded">
-                                Featured
-                              </div>
-                            )}
                             <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
                               <svg
                                 class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"

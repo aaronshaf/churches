@@ -4164,17 +4164,27 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
   const layoutProps = await getLayoutProps(c);
 
   // Get current settings
-  const [siteTitle, tagline, frontPageTitle, siteDomain, siteRegion, imagePrefix, faviconUrl, logoUrlSetting] =
-    await Promise.all([
-      db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
-      db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
-      db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
-      db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
-      db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
-      db.select().from(settings).where(eq(settings.key, 'image_prefix')).get(),
-      db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
-      db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
-    ]);
+  const [
+    siteTitle,
+    tagline,
+    frontPageTitle,
+    siteDomain,
+    siteRegion,
+    imagePrefix,
+    r2ImageDomain,
+    faviconUrl,
+    logoUrlSetting,
+  ] = await Promise.all([
+    db.select().from(settings).where(eq(settings.key, 'site_title')).get(),
+    db.select().from(settings).where(eq(settings.key, 'tagline')).get(),
+    db.select().from(settings).where(eq(settings.key, 'front_page_title')).get(),
+    db.select().from(settings).where(eq(settings.key, 'site_domain')).get(),
+    db.select().from(settings).where(eq(settings.key, 'site_region')).get(),
+    db.select().from(settings).where(eq(settings.key, 'image_prefix')).get(),
+    db.select().from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
+    db.select().from(settings).where(eq(settings.key, 'favicon_url')).get(),
+    db.select().from(settings).where(eq(settings.key, 'logo_url')).get(),
+  ]);
 
   return c.html(
     <Layout title="Settings" {...layoutProps}>
@@ -4203,6 +4213,7 @@ app.get('/admin/settings', requireAdminBetter, async (c) => {
             siteDomain={siteDomain?.value || undefined}
             siteRegion={siteRegion?.value || undefined}
             imagePrefix={imagePrefix?.value || undefined}
+            r2ImageDomain={r2ImageDomain?.value || undefined}
             faviconUrl={faviconUrl?.value || undefined}
             logoUrl={logoUrlSetting?.value || undefined}
           />
@@ -4225,6 +4236,7 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
     ?.trim()
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '');
+  const r2ImageDomain = (body.r2ImageDomain as string)?.trim();
 
   // Update or insert site title
   const existingSiteTitle = await db.select().from(settings).where(eq(settings.key, 'site_title')).get();
@@ -4312,6 +4324,25 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
       await db.insert(settings).values({
         key: 'image_prefix',
         value: imagePrefix,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+  }
+
+  // Update or insert R2 image domain (only if explicitly provided)
+  if (r2ImageDomain) {
+    const existingR2ImageDomain = await db.select().from(settings).where(eq(settings.key, 'r2_image_domain')).get();
+
+    if (existingR2ImageDomain) {
+      await db
+        .update(settings)
+        .set({ value: r2ImageDomain, updatedAt: new Date() })
+        .where(eq(settings.key, 'r2_image_domain'));
+    } else {
+      await db.insert(settings).values({
+        key: 'r2_image_domain',
+        value: r2ImageDomain,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
