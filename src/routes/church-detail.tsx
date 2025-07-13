@@ -848,8 +848,26 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               }, 5000);
             }
             
+            // Image gallery data (populated when page loads)
+            const imageGallery = ${JSON.stringify(
+              churchImagesList.map((image, index) => ({
+                id: image.id,
+                src: r2ImageDomain
+                  ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/https://${r2ImageDomain}/${image.imagePath}`
+                  : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${image.imagePath}`,
+                alt: image.imageAlt || `${church.name} photo ${index + 1}`,
+                caption: image.caption || '',
+              }))
+            )};
+            
+            let currentImageIndex = 0;
+            
             // Image modal functionality
             function openImageModal(imageData) {
+              // Find the current image index in the gallery
+              currentImageIndex = imageGallery.findIndex(img => img.src === imageData.src);
+              if (currentImageIndex === -1) currentImageIndex = 0;
+              
               // Create modal
               const modal = document.createElement('div');
               modal.id = 'image-modal';
@@ -858,6 +876,19 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                 if (e.target === modal) closeImageModal();
               };
               
+              updateModalContent(modal);
+              
+              document.body.appendChild(modal);
+              document.body.style.overflow = 'hidden';
+              
+              // Add keyboard event listeners
+              document.addEventListener('keydown', handleModalKeydown);
+            }
+            
+            function updateModalContent(modal) {
+              const currentImage = imageGallery[currentImageIndex];
+              const showNavigation = imageGallery.length > 1;
+              
               modal.innerHTML = \`
                 <div class="relative max-w-4xl max-h-full">
                   <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 z-10">
@@ -865,16 +896,52 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                   </button>
-                  <img src="\${imageData.src}" alt="\${imageData.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
-                  \${imageData.caption ? \`<p class="text-white text-center mt-4 text-sm">\${imageData.caption}</p>\` : ''}
+                  
+                  \${showNavigation ? \`
+                    <button onclick="previousImage()" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                      </svg>
+                    </button>
+                    
+                    <button onclick="nextImage()" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </button>
+                  \` : ''}
+                  
+                  <img src="\${currentImage.src}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
+                  
+                  \${currentImage.caption ? \`<p class="text-white text-center mt-4 text-sm">\${currentImage.caption}</p>\` : ''}
+                  
+                  \${showNavigation ? \`
+                    <div class="text-white text-center mt-2 text-xs opacity-75">
+                      \${currentImageIndex + 1} of \${imageGallery.length}
+                    </div>
+                  \` : ''}
                 </div>
               \`;
-              
-              document.body.appendChild(modal);
-              document.body.style.overflow = 'hidden';
-              
-              // Close on escape key
-              document.addEventListener('keydown', handleEscapeKey);
+            }
+            
+            function nextImage() {
+              if (imageGallery.length > 1) {
+                currentImageIndex = (currentImageIndex + 1) % imageGallery.length;
+                const modal = document.getElementById('image-modal');
+                if (modal) {
+                  updateModalContent(modal);
+                }
+              }
+            }
+            
+            function previousImage() {
+              if (imageGallery.length > 1) {
+                currentImageIndex = currentImageIndex === 0 ? imageGallery.length - 1 : currentImageIndex - 1;
+                const modal = document.getElementById('image-modal');
+                if (modal) {
+                  updateModalContent(modal);
+                }
+              }
             }
             
             function closeImageModal() {
@@ -882,13 +949,23 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               if (modal) {
                 modal.remove();
                 document.body.style.overflow = '';
-                document.removeEventListener('keydown', handleEscapeKey);
+                document.removeEventListener('keydown', handleModalKeydown);
               }
             }
             
-            function handleEscapeKey(e) {
-              if (e.key === 'Escape') {
-                closeImageModal();
+            function handleModalKeydown(e) {
+              switch(e.key) {
+                case 'Escape':
+                  closeImageModal();
+                  break;
+                case 'ArrowLeft':
+                  e.preventDefault();
+                  previousImage();
+                  break;
+                case 'ArrowRight':
+                  e.preventDefault();
+                  nextImage();
+                  break;
               }
             }
           `,
