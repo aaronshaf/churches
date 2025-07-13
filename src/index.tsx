@@ -468,7 +468,7 @@ app.get('/', async (c) => {
                           d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                         />
                       </svg>
-                      <h2 class="text-2xl font-semibold">
+                      <h2 class="text-2xl font-semibold group-hover:underline group-focus:underline group-active:underline">
                         Find a Church<span class="hidden sm:inline"> Near You</span>
                       </h2>
                     </div>
