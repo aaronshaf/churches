@@ -2,7 +2,7 @@ import type { FC } from 'hono/jsx';
 
 export const NotFound: FC = () => {
   return (
-    <div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 flex flex-col justify-center relative overflow-hidden">
+    <div class="h-full bg-gradient-to-br from-primary-50 via-white to-primary-50 flex flex-col justify-center relative overflow-hidden">
       {/* Background decoration */}
       <div class="absolute inset-0 overflow-hidden">
         <svg
