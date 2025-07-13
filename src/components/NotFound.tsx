@@ -33,9 +33,6 @@ export const NotFound: FC = () => {
           {/* Error message */}
           <div class="mt-6">
             <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Oops! Page not found</h2>
-            <p class="mt-4 text-lg text-gray-600 max-w-md mx-auto">
-              Looks like you've wandered off the beaten path. The page you're looking for has moved or doesn't exist.
-            </p>
           </div>
 
           {/* Quick links grid */}
