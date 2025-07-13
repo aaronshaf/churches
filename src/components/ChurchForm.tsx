@@ -838,33 +838,20 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           const previewSection = document.getElementById('newImagePreviews');
           const previewContainer = document.getElementById('previewContainer');
           
-          console.log('updateImagePreviews called');
-          console.log('fileInput:', fileInput);
-          console.log('previewSection:', previewSection);
-          console.log('previewContainer:', previewContainer);
-          
-          if (!fileInput || !previewSection || !previewContainer) {
-            console.log('Missing required elements');
-            return;
-          }
+          if (!fileInput || !previewSection || !previewContainer) return;
           
           // Clear existing previews
           previewContainer.innerHTML = '';
           
-          console.log('Files count:', fileInput.files ? fileInput.files.length : 0);
-          
           if (fileInput.files && fileInput.files.length > 0) {
             previewSection.classList.remove('hidden');
-            console.log('Showing preview section');
             
             Array.from(fileInput.files).forEach((file, index) => {
-              console.log('Creating preview for file:', file.name, 'index:', index);
               const preview = createImagePreview(file, index);
               previewContainer.appendChild(preview);
             });
           } else {
             previewSection.classList.add('hidden');
-            console.log('Hiding preview section');
           }
         }
         
