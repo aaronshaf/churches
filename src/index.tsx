@@ -1753,13 +1753,12 @@ app.get('/map', async (c) => {
       <style>
         {`
         .map-popup-link {
-          color: #0d7377;
+          color: #2563eb;
           text-decoration: none;
+          transition: color 0.15s ease-in-out;
         }
         .map-popup-link:hover {
-          color: #0f5c60;
-        }
-        .map-popup-link:active {
+          color: #1d4ed8;
           text-decoration: underline;
         }
         `}
