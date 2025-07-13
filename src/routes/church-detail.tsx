@@ -893,13 +893,14 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               const showNavigation = imageGallery.length > 1;
               
               modal.innerHTML = \`
-                <div class="relative max-w-4xl max-h-full">
-                  <button onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-gray-300 z-10 p-1">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                  
+                <!-- Close button positioned relative to viewport, not container -->
+                <button onclick="closeImageModal()" class="fixed top-4 right-4 text-white hover:text-gray-300 z-50 p-2 rounded-full bg-black bg-opacity-30 hover:bg-opacity-60 transition-all">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+                
+                <div class="relative w-full h-full flex items-center justify-center">
                   \${showNavigation ? \`
                     <button onclick="previousImage()" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all">
                       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -914,9 +915,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </button>
                   \` : ''}
                   
-                  <div class="relative">
-                    <img id="modal-thumbnail" src="\${currentImage.thumbnailSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-[80vh] object-contain rounded-lg" />
-                    <img id="modal-high-res" src="\${currentImage.highResSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-[80vh] object-contain rounded-lg absolute inset-0 opacity-0 transition-opacity duration-300" onload="this.style.opacity='1'; document.getElementById('modal-thumbnail').style.opacity='0';" />
+                  <div class="relative max-w-[95vw] max-h-[95vh]">
+                    <img id="modal-thumbnail" src="\${currentImage.thumbnailSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
+                    <img id="modal-high-res" src="\${currentImage.highResSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg absolute inset-0 opacity-0 transition-opacity duration-300" onload="this.style.opacity='1'; document.getElementById('modal-thumbnail').style.opacity='0';" />
                     
                     <!-- Loading indicator -->
                     <div id="modal-loading" class="absolute inset-0 flex items-center justify-center">
@@ -929,7 +930,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </div>
                   </div>
                   
-                  \${currentImage.caption ? \`<p class="text-white text-center mt-4 text-sm">\${currentImage.caption}</p>\` : ''}
+                  \${currentImage.caption ? \`<p class="text-white text-center mt-4 text-sm max-w-[95vw]">\${currentImage.caption}</p>\` : ''}
                   
                   \${showNavigation ? \`
                     <div class="text-white text-center mt-2 text-xs opacity-75">
