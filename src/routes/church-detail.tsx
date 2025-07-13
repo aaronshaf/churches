@@ -290,12 +290,22 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       ...(churchImagesList.length > 0 &&
         (() => {
           const firstImage = churchImagesList[0];
+          const baseImageUrl = r2ImageDomain
+            ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/https://${r2ImageDomain}/${firstImage.imagePath}`
+            : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${firstImage.imagePath}`;
+          const contentImageUrl = r2ImageDomain
+            ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/https://${r2ImageDomain}/${firstImage.imagePath}`
+            : `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/${firstImage.imagePath}`;
+          const thumbnailImageUrl = r2ImageDomain
+            ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/https://${r2ImageDomain}/${firstImage.imagePath}`
+            : `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/${firstImage.imagePath}`;
+
           return {
             image: {
               '@type': 'ImageObject',
-              url: `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200/${firstImage.imagePath}`,
-              contentUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=800/${firstImage.imagePath}`,
-              thumbnailUrl: `https://${siteDomain}/cdn-cgi/image/format=auto,width=300/${firstImage.imagePath}`,
+              url: baseImageUrl,
+              contentUrl: contentImageUrl,
+              thumbnailUrl: thumbnailImageUrl,
               ...(firstImage.imageAlt && { description: firstImage.imageAlt }),
               ...(firstImage.caption && { caption: firstImage.caption }),
             },
@@ -303,9 +313,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         })()),
     };
 
+    // Use the first image (by sortOrder) for social media sharing
     const firstImage = churchImagesList[0];
     const ogImageUrl = firstImage
-      ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${firstImage.imagePath}`
+      ? r2ImageDomain
+        ? `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/https://${r2ImageDomain}/${firstImage.imagePath}`
+        : `https://${siteDomain}/cdn-cgi/image/format=auto,width=1200,height=630,fit=cover/${firstImage.imagePath}`
       : undefined;
 
     return c.html(
