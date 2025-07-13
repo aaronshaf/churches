@@ -1750,6 +1750,20 @@ app.get('/map', async (c) => {
         </div>
       </div>
 
+      <style>
+        {`
+        .map-popup-link {
+          color: #4299e1;
+          text-decoration: none;
+        }
+        .map-popup-link:hover,
+        .map-popup-link:focus,
+        .map-popup-link:active {
+          text-decoration: underline;
+        }
+        `}
+      </style>
+
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -1946,25 +1960,25 @@ app.get('/map', async (c) => {
           // Build website links
           let websiteLinks = [];
           if (church.website) {
-            websiteLinks.push(\`<a href="\${church.website}" target="_blank" style="color: #4299e1;">Website</a>\`);
+            websiteLinks.push(\`<a href="\${church.website}" target="_blank" class="map-popup-link">Website</a>\`);
           }
           if (church.statementOfFaith) {
-            websiteLinks.push(\`<a href="\${church.statementOfFaith}" target="_blank" style="color: #4299e1;">Statement of Faith</a>\`);
+            websiteLinks.push(\`<a href="\${church.statementOfFaith}" target="_blank" class="map-popup-link">Statement of Faith</a>\`);
           }
           
           // Build social media links
           let socialLinks = [];
           if (church.facebook) {
-            socialLinks.push(\`<a href="\${church.facebook}" target="_blank" style="color: #4299e1;">Facebook</a>\`);
+            socialLinks.push(\`<a href="\${church.facebook}" target="_blank" class="map-popup-link">Facebook</a>\`);
           }
           if (church.instagram) {
-            socialLinks.push(\`<a href="\${church.instagram}" target="_blank" style="color: #4299e1;">Instagram</a>\`);
+            socialLinks.push(\`<a href="\${church.instagram}" target="_blank" class="map-popup-link">Instagram</a>\`);
           }
           if (church.youtube) {
-            socialLinks.push(\`<a href="\${church.youtube}" target="_blank" style="color: #4299e1;">YouTube</a>\`);
+            socialLinks.push(\`<a href="\${church.youtube}" target="_blank" class="map-popup-link">YouTube</a>\`);
           }
           if (church.spotify) {
-            socialLinks.push(\`<a href="\${church.spotify}" target="_blank" style="color: #4299e1;">Spotify</a>\`);
+            socialLinks.push(\`<a href="\${church.spotify}" target="_blank" class="map-popup-link">Spotify</a>\`);
           }
           
           content.innerHTML = \`
@@ -1972,10 +1986,10 @@ app.get('/map', async (c) => {
             \${church.gatheringAddress ? \`<div style="margin-bottom: 0.25rem;">\${church.gatheringAddress}</div>\` : ''}
             \${gatheringTimes ? \`<div style="margin-bottom: 0.25rem;">Gathering times: \${gatheringTimes}</div>\` : ''}
             \${websiteLinks.length > 0 ? \`<div style="margin-bottom: 0.25rem;">\${websiteLinks.join(' | ')}</div>\` : ''}
-            \${church.email ? \`<div style="margin-bottom: 0.25rem;"><a href="mailto:\${church.email}" style="color: #4299e1;">\${church.email}</a></div>\` : ''}
-            \${church.phone ? \`<div style="margin-bottom: 0.25rem;"><a href="tel:\${church.phone}" style="color: #4299e1;">\${church.phone}</a></div>\` : ''}
+            \${church.email ? \`<div style="margin-bottom: 0.25rem;"><a href="mailto:\${church.email}" class="map-popup-link">\${church.email}</a></div>\` : ''}
+            \${church.phone ? \`<div style="margin-bottom: 0.25rem;"><a href="tel:\${church.phone}" class="map-popup-link">\${church.phone}</a></div>\` : ''}
             \${socialLinks.length > 0 ? \`<div style="margin-bottom: 0.5rem;">\${socialLinks.join(' | ')}</div>\` : ''}
-            \${church.path ? \`<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb;"><a href="/churches/\${church.path}" style="color: #4299e1; font-weight: 500;">View Details →</a></div>\` : ''}
+            \${church.path ? \`<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb;"><a href="/churches/\${church.path}" class="map-popup-link" style="font-weight: 500;">View Details →</a></div>\` : ''}
           \`;
           
           return content;
