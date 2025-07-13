@@ -151,6 +151,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 }
                 
                 dataLoaded = true;
+                
+                // Re-run search if user has already typed something
+                const input = document.getElementById('quick-search-input');
+                if (input && input.value.trim()) {
+                  performQuickSearch(input.value);
+                }
               } catch (error) {
                 console.error('Failed to load data:', error);
               }
@@ -245,6 +251,23 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
 
               if (!query || query.length < 1) {
                 resetQuickSearch();
+                return;
+              }
+
+              // If data isn't loaded yet, show loading state but don't return
+              if (!dataLoaded) {
+                const resultsContainer = document.getElementById('quick-search-results');
+                if (resultsContainer) {
+                  resultsContainer.innerHTML = \`
+                    <div class="px-4 py-8 text-center text-gray-500">
+                      <div class="animate-spin h-6 w-6 mx-auto mb-2">
+                        <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                      </div>
+                      <span class="text-sm">\${translations.loading}</span>
+                    </div>\`;
+                }
                 return;
               }
 
