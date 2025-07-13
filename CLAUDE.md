@@ -349,7 +349,7 @@ wrangler secret put SITE_DOMAIN
 - **Where**: Only on individual church detail pages (`/churches/:path`)
 - **Schema Type**: Church with Event sub-schemas for gatherings
 - **Dynamic Values**: Domain and region are configurable via settings table
-  - `site_domain` setting (defaults to utahchurches.org)
+  - `site_domain` setting (defaults to SITE_DOMAIN env var or localhost)
   - `site_region` setting (defaults to UT)
 - **Features**:
   - Church information with address, geo coordinates, contact details
