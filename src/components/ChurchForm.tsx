@@ -14,6 +14,7 @@ type ChurchFormProps = {
   error?: string;
   isNew?: boolean;
   cancelUrl?: string;
+  r2Domain?: string;
 };
 
 export const ChurchForm: FC<ChurchFormProps> = ({
@@ -27,6 +28,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   error,
   isNew = false,
   cancelUrl,
+  r2Domain,
 }) => {
   const statusOptions = ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed'];
   const selectedAffiliationIds = churchAffiliations.map((ca) => ca.affiliationId);
@@ -554,6 +556,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                                 height={100}
                                 className="rounded-lg border object-cover flex-shrink-0"
                                 domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+                                r2Domain={r2Domain}
                               />
                               <div class="flex-1 min-w-0">
                                 <div class="mb-2">
@@ -563,16 +566,6 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                                     name={`imageAlt_${image.id}`}
                                     value={image.imageAlt || ''}
                                     placeholder="Describe the image"
-                                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
-                                  />
-                                </div>
-                                <div class="mb-2">
-                                  <label class="block text-xs font-medium text-gray-700 mb-1">Caption (optional)</label>
-                                  <input
-                                    type="text"
-                                    name={`imageCaption_${image.id}`}
-                                    value={image.caption || ''}
-                                    placeholder="Image caption"
                                     class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
                                   />
                                 </div>
