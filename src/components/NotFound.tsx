@@ -30,7 +30,7 @@ export const NotFound: FC = () => {
             </h1>
 
             {/* Church icon overlay */}
-            <div class="absolute inset-0 flex items-center justify-center">
+            <div class="absolute inset-0 flex items-center justify-center mt-8">
               <div class="bg-white rounded-full p-8 shadow-2xl">
                 <svg class="h-20 w-20 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -97,23 +97,11 @@ export const NotFound: FC = () => {
                 </div>
                 <div class="ml-4 text-left">
                   <p class="text-base font-semibold text-gray-900">Church Map</p>
-                  <p class="text-sm text-gray-500">Find churches near you</p>
+                  <p class="text-sm text-gray-500">Find churches</p>
                 </div>
               </div>
             </a>
           </div>
-
-          {/* Footer text */}
-          <p class="mt-8 text-sm text-gray-500">
-            Need help?{' '}
-            <a href="/data" class="font-medium text-primary-600 hover:text-primary-700">
-              Download church data
-            </a>{' '}
-            or{' '}
-            <a href="/networks" class="font-medium text-primary-600 hover:text-primary-700">
-              browse networks
-            </a>
-          </p>
         </div>
       </div>
     </div>
