@@ -52,7 +52,7 @@ export async function uploadImage(
     },
   });
 
-  const domain = db ? await getDomain(db, env) : env.SITE_DOMAIN || 'utahchurches.org';
+  const domain = db ? await getDomain(db, env) : env.SITE_DOMAIN || 'localhost';
 
   return {
     path,
@@ -75,7 +75,7 @@ export async function getDomain(db: DrizzleD1Database<any>, env: Pick<Bindings, 
   }
 
   // Fallback to environment variable or default
-  return env.SITE_DOMAIN || 'utahchurches.org';
+  return env.SITE_DOMAIN || 'localhost';
 }
 
 /**

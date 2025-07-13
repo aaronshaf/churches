@@ -193,7 +193,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .where(eq(settings.key, 'r2_image_domain'))
       .get();
 
-    const siteDomain = siteDomainSetting?.value || 'utahchurches.org';
+    const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
     const siteRegion = siteRegionSetting?.value || 'UT';
     const r2ImageDomain = r2ImageDomainSetting?.value;
 

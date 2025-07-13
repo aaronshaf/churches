@@ -25,6 +25,7 @@ type Church = {
 type ChurchCardProps = {
   church: Church;
   showCounty?: boolean;
+  domain?: string;
 };
 
 const statusStyles: Record<string, string> = {
@@ -37,7 +38,7 @@ const statusStyles: Record<string, string> = {
   Closed: 'bg-gray-800 text-white ring-gray-800',
 };
 
-export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) => {
+export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, domain = 'localhost' }) => {
   const statusStyle = church.status ? statusStyles[church.status] || '' : '';
 
   return (
@@ -51,7 +52,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true }) =
             width={400}
             height={225}
             className="w-full h-48 object-cover"
-            domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+            domain={domain}
           />
         </div>
       )}

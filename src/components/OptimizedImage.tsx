@@ -24,7 +24,7 @@ export function OptimizedImage({
   quality = 80,
   className = '',
   responsive = true,
-  domain = 'utahchurches.org',
+  domain = 'localhost',
   r2Domain,
   loading = 'lazy',
   priority = false,

@@ -16,7 +16,7 @@ export async function domainRedirectMiddleware(c: Context<{ Bindings: Bindings }
   if (!c.env.DB) {
     console.error('Domain redirect middleware: DB environment variable not found');
     // Fall back to default behavior without database lookup
-    const defaultDomain = 'utahchurches.org';
+    const defaultDomain = c.env.SITE_DOMAIN || 'localhost';
 
     if (hostname.includes('.workers.dev') || (hostname !== defaultDomain && hostname !== `www.${defaultDomain}`)) {
       const url = new URL(c.req.url);
@@ -36,7 +36,7 @@ export async function domainRedirectMiddleware(c: Context<{ Bindings: Bindings }
       .where(eq(settings.key, 'site_domain'))
       .get();
 
-    const configuredDomain = siteDomainSetting?.value || 'utahchurches.org';
+    const configuredDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
     // If we're on workers.dev domain or not on the configured domain, redirect
     if (

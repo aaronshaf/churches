@@ -563,13 +563,15 @@ adminChurchesRoutes.get('/new', async (c) => {
   const user = c.get('betterUser');
   const logoUrl = await getLogoUrl(c.env);
 
-  const [allCounties, allAffiliations, r2ImageDomainSetting] = await Promise.all([
+  const [allCounties, allAffiliations, r2ImageDomainSetting, siteDomainSetting] = await Promise.all([
     db.select().from(counties).orderBy(counties.name).all(),
     db.select().from(affiliations).orderBy(affiliations.name).all(),
     db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
+    db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get(),
   ]);
 
   const r2ImageDomain = r2ImageDomainSetting?.value;
+  const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
   const content = (
     <Layout title="Add Church" currentPath="/admin/churches" logoUrl={logoUrl} user={user}>
@@ -587,6 +589,7 @@ adminChurchesRoutes.get('/new', async (c) => {
           action="/admin/churches"
           cancelUrl="/admin/churches"
           r2Domain={r2ImageDomain || undefined}
+          domain={siteDomain}
         />
       </div>
     </Layout>
@@ -822,16 +825,19 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
     // Continue without images if table doesn't exist
   }
 
-  const [church, gatherings, churchAffils, allCounties, allAffiliations, r2ImageDomainSetting] = await Promise.all([
-    db.select().from(churches).where(eq(churches.id, id)).get(),
-    db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
-    db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, id)).all(),
-    db.select().from(counties).orderBy(counties.name).all(),
-    db.select().from(affiliations).orderBy(affiliations.name).all(),
-    db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
-  ]);
+  const [church, gatherings, churchAffils, allCounties, allAffiliations, r2ImageDomainSetting, siteDomainSetting] =
+    await Promise.all([
+      db.select().from(churches).where(eq(churches.id, id)).get(),
+      db.select().from(churchGatherings).where(eq(churchGatherings.churchId, id)).all(),
+      db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, id)).all(),
+      db.select().from(counties).orderBy(counties.name).all(),
+      db.select().from(affiliations).orderBy(affiliations.name).all(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get(),
+    ]);
 
   const r2ImageDomain = r2ImageDomainSetting?.value;
+  const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
 
   if (!church) {
     return c.html(<NotFound />, 404);
@@ -856,6 +862,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
           action={`/admin/churches/${id}`}
           cancelUrl="/admin/churches"
           r2Domain={r2ImageDomain || undefined}
+          domain={siteDomain}
         />
       </div>
     </Layout>

@@ -15,6 +15,7 @@ type ChurchFormProps = {
   isNew?: boolean;
   cancelUrl?: string;
   r2Domain?: string;
+  domain?: string;
 };
 
 export const ChurchForm: FC<ChurchFormProps> = ({
@@ -29,6 +30,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   isNew = false,
   cancelUrl,
   r2Domain,
+  domain = 'localhost',
 }) => {
   const statusOptions = ['Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted', 'Heretical', 'Closed'];
   const selectedAffiliationIds = churchAffiliations.map((ca) => ca.affiliationId);
@@ -555,7 +557,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                                 width={150}
                                 height={100}
                                 className="rounded-lg border object-cover flex-shrink-0"
-                                domain={typeof window !== 'undefined' ? window.location.hostname : 'utahchurches.org'}
+                                domain={domain}
                                 r2Domain={r2Domain}
                               />
                               <div class="flex-1 min-w-0">
