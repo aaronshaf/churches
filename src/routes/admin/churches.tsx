@@ -698,7 +698,7 @@ adminChurchesRoutes.post('/', async (c) => {
           imagePath: img.path,
           imageAlt: null,
           caption: null,
-          isFeatured: index === 0, // First image is featured
+          isFeatured: false, // No longer using isFeatured - first image by sortOrder is featured
           sortOrder: index,
         }));
 
@@ -711,7 +711,7 @@ adminChurchesRoutes.post('/', async (c) => {
               imagePath: img.imagePath,
               imageAlt: img.imageAlt || null,
               caption: img.caption || null,
-              isFeatured: img.isFeatured,
+              isFeatured: false, // No longer using isFeatured
               sortOrder: img.sortOrder,
               // Let Drizzle handle timestamps with its defaults
             };
@@ -737,7 +737,7 @@ adminChurchesRoutes.post('/', async (c) => {
                   `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
                    VALUES (?, ?, ?, ?, ?, ?)`
                 )
-                .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+                .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, 0, img.sortOrder)
                 .run();
               console.log('Fallback result:', fallbackResult);
             }
@@ -924,7 +924,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
     const imagesToRemove: string[] = [];
     try {
       const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
-      const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string; isFeatured?: boolean }> = [];
+      const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string }> = [];
 
       for (const image of existingImages) {
         // Check if image should be removed
@@ -938,13 +938,17 @@ adminChurchesRoutes.post('/:id', async (c) => {
         // Update image metadata
         const altKey = `imageAlt_${image.id}`;
         const captionKey = `imageCaption_${image.id}`;
+        const sortOrderKey = `sortOrder_${image.id}`;
 
-        const updates: { imageAlt?: string | null; caption?: string | null } = {};
+        const updates: { imageAlt?: string | null; caption?: string | null; sortOrder?: number } = {};
         if (typeof body[altKey] === 'string') {
           updates.imageAlt = body[altKey] || null;
         }
         if (typeof body[captionKey] === 'string') {
           updates.caption = body[captionKey] || null;
+        }
+        if (typeof body[sortOrderKey] === 'string') {
+          updates.sortOrder = parseInt(body[sortOrderKey] as string) || 0;
         }
 
         if (Object.keys(updates).length > 0) {
@@ -952,18 +956,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
         }
       }
 
-      // Handle featured image selection
-      const featuredImageId = body.featuredImageId;
-      if (featuredImageId) {
-        // Clear all featured flags first
-        await db.update(churchImages).set({ isFeatured: false }).where(eq(churchImages.churchId, id));
-
-        // Set the selected image as featured
-        await db
-          .update(churchImages)
-          .set({ isFeatured: true })
-          .where(eq(churchImages.id, Number(featuredImageId)));
-      }
+      // Note: Featured image is now determined by sortOrder (first image is featured)
 
       // Remove deleted images from R2
       for (const imagePath of imagesToRemove) {
@@ -1055,15 +1048,12 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
         const sortOrder = (existingImagesCount?.count as number) || 0;
 
-        // Check if this is the first image (should be featured)
-        const hasExistingImages = sortOrder > 0;
-
         const imagesToInsert = uploadedImages.map((img, index) => ({
           churchId: id,
           imagePath: img.path,
           imageAlt: null,
           caption: null,
-          isFeatured: !hasExistingImages && index === 0, // First image is featured if no existing images
+          isFeatured: false, // No longer using isFeatured - first image by sortOrder is featured
           sortOrder: sortOrder + index,
         }));
 
@@ -1075,7 +1065,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
             imagePath: img.imagePath,
             imageAlt: img.imageAlt || null,
             caption: img.caption || null,
-            isFeatured: img.isFeatured,
+            isFeatured: false, // No longer using isFeatured
             sortOrder: img.sortOrder,
             // Let Drizzle handle timestamps with its defaults
           };
@@ -1101,7 +1091,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
                 `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
                  VALUES (?, ?, ?, ?, ?, ?)`
               )
-              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, img.isFeatured ? 1 : 0, img.sortOrder)
+              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, 0, img.sortOrder)
               .run();
             console.log('Fallback result:', fallbackResult);
           }

@@ -546,10 +546,26 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   {/* Existing Images */}
                   {churchImages.length > 0 && (
                     <div class="mb-6">
-                      <h4 class="text-sm font-medium text-gray-900 mb-3">Current Images</h4>
-                      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <h4 class="text-sm font-medium text-gray-900 mb-3">
+                        Current Images
+                        <span class="text-xs font-normal text-gray-500 ml-2">
+                          (Drag to reorder - first image is featured)
+                        </span>
+                      </h4>
+                      <div id="sortable-images" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {churchImages.map((image, index) => (
-                          <div key={image.id} class="border border-gray-200 rounded-lg p-4">
+                          <div
+                            key={image.id}
+                            class="border border-gray-200 rounded-lg p-4 cursor-move relative"
+                            draggable="true"
+                            data-image-id={image.id}
+                            data-sort-order={index}
+                          >
+                            {index === 0 && (
+                              <div class="absolute -top-2 -left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded z-10">
+                                Featured
+                              </div>
+                            )}
                             <div class="space-y-4">
                               <div class="aspect-w-16 aspect-h-9 w-full">
                                 <OptimizedImage
@@ -1568,6 +1584,107 @@ export const ChurchForm: FC<ChurchFormProps> = ({
               }
             }
           });
+        }
+
+        // Drag and drop functionality for image reordering
+        const sortableContainer = document.getElementById('sortable-images');
+        if (sortableContainer) {
+          let draggedElement = null;
+          let draggedOverElement = null;
+
+          // Add event listeners to all draggable items
+          const draggableItems = sortableContainer.querySelectorAll('[draggable="true"]');
+          
+          draggableItems.forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+              draggedElement = this;
+              this.classList.add('opacity-50');
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/html', this.innerHTML);
+            });
+
+            item.addEventListener('dragend', function(e) {
+              this.classList.remove('opacity-50');
+              // Update all sort order data attributes and featured badges
+              updateSortOrder();
+            });
+
+            item.addEventListener('dragover', function(e) {
+              if (e.preventDefault) {
+                e.preventDefault();
+              }
+              e.dataTransfer.dropEffect = 'move';
+              
+              if (this !== draggedElement) {
+                this.classList.add('border-primary-500', 'border-2');
+                draggedOverElement = this;
+              }
+              return false;
+            });
+
+            item.addEventListener('dragleave', function(e) {
+              this.classList.remove('border-primary-500', 'border-2');
+            });
+
+            item.addEventListener('drop', function(e) {
+              if (e.stopPropagation) {
+                e.stopPropagation();
+              }
+
+              if (draggedElement !== this) {
+                // Get all items
+                const items = Array.from(sortableContainer.querySelectorAll('[draggable="true"]'));
+                const draggedIndex = items.indexOf(draggedElement);
+                const targetIndex = items.indexOf(this);
+
+                // Reorder in DOM
+                if (draggedIndex < targetIndex) {
+                  this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                  this.parentNode.insertBefore(draggedElement, this);
+                }
+              }
+
+              this.classList.remove('border-primary-500', 'border-2');
+              return false;
+            });
+          });
+
+          function updateSortOrder() {
+            const items = sortableContainer.querySelectorAll('[draggable="true"]');
+            items.forEach((item, index) => {
+              item.setAttribute('data-sort-order', index);
+              
+              // Update featured badge
+              const existingBadge = item.querySelector('.bg-primary-600');
+              if (index === 0) {
+                if (!existingBadge) {
+                  const badge = document.createElement('div');
+                  badge.className = 'absolute -top-2 -left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded z-10';
+                  badge.textContent = 'Featured';
+                  item.appendChild(badge);
+                }
+              } else {
+                if (existingBadge) {
+                  existingBadge.remove();
+                }
+              }
+
+              // Add hidden input for sort order
+              const imageId = item.getAttribute('data-image-id');
+              let sortInput = item.querySelector(\`input[name="sortOrder_\${imageId}"]\`);
+              if (!sortInput) {
+                sortInput = document.createElement('input');
+                sortInput.type = 'hidden';
+                sortInput.name = \`sortOrder_\${imageId}\`;
+                item.appendChild(sortInput);
+              }
+              sortInput.value = index;
+            });
+          }
+
+          // Initialize sort order inputs
+          updateSortOrder();
         }
       `,
         }}
