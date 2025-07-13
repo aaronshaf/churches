@@ -297,7 +297,7 @@ export const Layout: FC<LayoutProps> = ({
           }}
         />
       </head>
-      <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
+      <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col" data-testid="layout-body">
         <a
           href="#main-content"
           class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded-md"

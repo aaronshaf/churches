@@ -42,10 +42,13 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
   const statusStyle = church.status ? statusStyles[church.status] || '' : '';
 
   return (
-    <div class="group relative bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden">
+    <div
+      class="group relative bg-white rounded-lg shadow-sm ring-1 ring-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+      data-testid="church-card"
+    >
       {/* Featured Image */}
       {church.imagePath && (
-        <div class="aspect-w-16 aspect-h-9">
+        <div class="aspect-w-16 aspect-h-9" data-testid="church-card-image">
           <OptimizedImage
             path={church.imagePath}
             alt={church.imageAlt || church.name}
@@ -57,15 +60,16 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
         </div>
       )}
 
-      <div class="p-6">
+      <div class="p-6" data-testid="church-card-content">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             {/* Church Name */}
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3" data-testid="church-card-name">
               {church.path ? (
                 <a
                   href={`/churches/${church.path}`}
                   class="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                  data-testid="church-card-link"
                   onmouseover={`preloadAfterDelay('/churches/${church.path}', 200)`}
                   onmouseout="cancelPreload()"
                 >
@@ -77,9 +81,9 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
             </h3>
 
             {/* Church Details */}
-            <div class="space-y-2">
+            <div class="space-y-2" data-testid="church-card-details">
               {church.gatheringAddress && (
-                <div class="flex items-start text-sm text-gray-600">
+                <div class="flex items-start text-sm text-gray-600" data-testid="church-card-address">
                   <svg
                     class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
                     fill="none"
@@ -104,7 +108,7 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
               )}
 
               {showCounty && church.countyName && (
-                <div class="flex items-start text-sm text-gray-600">
+                <div class="flex items-start text-sm text-gray-600" data-testid="church-card-county">
                   <svg
                     class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
                     fill="none"
@@ -124,9 +128,12 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
 
               {/* Display gatherings if available, otherwise fall back to serviceTimes */}
               {church.gatherings && church.gatherings.length > 0 ? (
-                <div class="space-y-1">
+                <div class="space-y-1" data-testid="church-card-gatherings">
                   {church.gatherings.map((gathering) => (
-                    <div class="flex items-start text-sm text-gray-600">
+                    <div
+                      class="flex items-start text-sm text-gray-600"
+                      data-testid={`church-card-gathering-${gathering.id}`}
+                    >
                       <svg
                         class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5"
                         fill="none"
@@ -192,9 +199,10 @@ export const ChurchCard: FC<ChurchCardProps> = ({ church, showCounty = true, dom
 
             {/* Status Badge */}
             {church.status && church.status !== 'Listed' && (
-              <div class="mt-4">
+              <div class="mt-4" data-testid="church-card-status-container">
                 <span
                   class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusStyle}`}
+                  data-testid="church-card-status"
                 >
                   {church.status}
                 </span>

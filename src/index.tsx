@@ -440,10 +440,8 @@ app.get('/', async (c) => {
             )}
 
             {/* Header */}
-            <div class="mb-2 sm:mb-4">
-              <h1 class="sr-only">Churches</h1>
-              <p class="sr-only">A directory of evangelical churches</p>
-            </div>
+            <h1 class="sr-only">Churches</h1>
+            <p class="sr-only">A directory of evangelical churches</p>
 
             {/* Map Card */}
             <div class="mb-4 sm:mb-8">
@@ -748,7 +746,7 @@ app.get('/counties/:path', async (c) => {
         </div>
 
         {/* Churches Grid */}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
           {listedChurches.length === 0 && unlistedChurches.length === 0 ? (
             <div class="text-center py-12">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1553,7 +1551,7 @@ app.get('/map', async (c) => {
         logoUrl={logoUrl}
         pages={navbarPages}
       >
-        <div class="max-w-4xl mx-auto px-6 py-12">
+        <div class="max-w-4xl mx-auto px-6 py-6 sm:py-12">
           <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
             <div class="flex">
               <div class="flex-shrink-0">
@@ -4396,7 +4394,7 @@ app.get('*', async (c) => {
           currentPath={`/${slug}`}
         >
           <div class="bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
               <div class="max-w-3xl mx-auto">
                 <h1 class="text-3xl font-bold text-gray-900 mb-8">{page.title}</h1>
                 <div class="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: page.content || '' }} />

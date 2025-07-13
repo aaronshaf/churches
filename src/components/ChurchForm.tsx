@@ -253,9 +253,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                   <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Gatherings</h3>
                   <p class="text-sm text-gray-500 mb-4">Add gathering times and optional notes</p>
 
-                  <div id="gatherings-container" class="space-y-4">
+                  <div id="gatherings-container" class="space-y-4" data-testid="gatherings-container">
                     {gatherings.map((gathering, index) => (
-                      <div class="flex gap-4 items-start p-4 bg-gray-50 rounded-lg">
+                      <div class="flex gap-4 items-start p-4 bg-gray-50 rounded-lg" data-testid={`gathering-${index}`}>
                         <div class="flex-1">
                           <label class="block text-sm font-medium text-gray-700 mb-1">
                             Time <span class="text-red-500">*</span>
@@ -263,6 +263,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                           <input
                             type="text"
                             name={`gatherings[${index}][time]`}
+                            data-testid={`input-gathering-time-${index}`}
                             value={gathering.time}
                             placeholder="e.g., Sunday 10:30 AM"
                             required
@@ -274,6 +275,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                           <input
                             type="text"
                             name={`gatherings[${index}][notes]`}
+                            data-testid={`input-gathering-notes-${index}`}
                             value={gathering.notes || ''}
                             placeholder="e.g., Children's ministry available"
                             class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -593,6 +595,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                                   type="button"
                                   onclick={`if(confirm('Remove this image?')) { document.getElementById('removeImage_${image.id}').value='true'; this.closest('.border').style.display='none'; }`}
                                   class="text-red-600 text-xs hover:text-red-800"
+                                  data-testid={`btn-remove-image-${image.id}`}
                                 >
                                   Remove Image
                                 </button>

@@ -17,6 +17,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
         aria-labelledby="quick-search-title"
         role="dialog"
         aria-modal="true"
+        data-testid="quick-search-modal"
       >
         <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:pt-20 sm:block sm:p-0">
           {/* Background overlay */}
@@ -24,10 +25,14 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
             class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
             aria-hidden="true"
             onclick="closeQuickSearch()"
+            data-testid="quick-search-overlay"
           ></div>
 
           {/* Modal panel */}
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full max-w-lg mx-auto sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          <div
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full max-w-lg mx-auto sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+            data-testid="quick-search-panel"
+          >
             <div class="bg-white">
               <div class="border-b border-gray-200 px-4 py-3">
                 <div class="flex items-center">
@@ -40,6 +45,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                       autocomplete="off"
                       oninput="performQuickSearch(this.value)"
                       onkeydown="handleQuickSearchKeydown(event)"
+                      data-testid="quick-search-input"
                     />
                     <div class="absolute left-3 top-3">
                       <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +58,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                       </svg>
                     </div>
                   </div>
-                  <button type="button" class="ml-3 text-gray-400 hover:text-gray-500" onclick="closeQuickSearch()">
+                  <button
+                    type="button"
+                    class="ml-3 text-gray-400 hover:text-gray-500"
+                    onclick="closeQuickSearch()"
+                    data-testid="quick-search-close"
+                  >
                     <span class="sr-only">Close</span>
                     <kbd class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
                       ESC
@@ -60,7 +71,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole }) => {
                   </button>
                 </div>
               </div>
-              <div id="quick-search-results" class="max-h-96 overflow-y-auto">
+              <div id="quick-search-results" class="max-h-96 overflow-y-auto" data-testid="quick-search-results">
                 <div class="px-4 py-8 text-center text-gray-500">
                   <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

@@ -185,6 +185,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 ? 'bg-primary-50 border-primary-500 text-primary-700'
                 : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
             } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+            data-testid="mobile-nav-churches"
           >
             Churches
           </a>
@@ -196,6 +197,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   ? 'bg-primary-50 border-primary-500 text-primary-700'
                   : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
               } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+              data-testid="mobile-nav-map"
             >
               Map
             </a>
@@ -207,6 +209,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 ? 'bg-primary-50 border-primary-500 text-primary-700'
                 : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
             } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+            data-testid="mobile-nav-networks"
           >
             Networks
           </a>
@@ -221,6 +224,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                     ? 'bg-primary-50 border-primary-500 text-primary-700'
                     : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
                 } block pl-3 pr-4 py-2 border-l text-base font-medium`}
+                data-testid={`mobile-nav-page-${page.path}`}
               >
                 {page.title}
               </a>
@@ -229,8 +233,8 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
 
         {/* User section for mobile */}
         {user && (
-          <div class="pt-4 pb-3 border-t border-gray-200">
-            <div class="flex items-center px-4 mb-3">
+          <div class="pt-4 pb-3 border-t border-gray-200" data-testid="mobile-user-section">
+            <div class="flex items-center px-4 mb-3" data-testid="mobile-user-info">
               <div class="flex-shrink-0">
                 {user.image ? (
                   <img class="h-10 w-10 rounded-full" src={user.image} alt={user.name || 'User'} />
@@ -245,10 +249,11 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 <div class="text-sm font-medium text-gray-500">{user.email}</div>
               </div>
             </div>
-            <div class="space-y-1">
+            <div class="space-y-1" data-testid="mobile-user-menu">
               <a
                 href="/admin"
                 class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                data-testid="mobile-nav-dashboard"
               >
                 Dashboard
               </a>
@@ -257,12 +262,14 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                   <a
                     href="/admin/churches"
                     class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    data-testid="mobile-nav-manage-churches"
                   >
                     Manage Churches
                   </a>
                   <a
                     href="/admin/users"
                     class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                    data-testid="mobile-nav-manage-users"
                   >
                     Manage Users
                   </a>
@@ -271,6 +278,7 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               <a
                 href="/auth/signout"
                 class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                data-testid="mobile-nav-signout"
               >
                 Sign out
               </a>

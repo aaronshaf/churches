@@ -41,7 +41,7 @@ export async function envCheckMiddleware(c: Context, next: Next): Promise<Respon
     // For HTML requests, return a user-friendly error page
     return c.html(
       <Layout title="Configuration Error" currentPath={c.req.path}>
-        <div class="max-w-4xl mx-auto px-6 py-12">
+        <div class="max-w-4xl mx-auto px-6 py-6 sm:py-12">
           <div class="bg-red-50 border border-red-200 rounded-lg p-8">
             <h1 class="text-2xl font-bold text-red-800 mb-4">Configuration Error</h1>
             <p class="text-red-700 mb-6">

@@ -373,11 +373,11 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
           {/* Church Content */}
           <div class="bg-gray-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
-                <div class="p-6 sm:p-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+              <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg" data-testid="church-content-card">
+                <div class="p-6 sm:p-8" data-testid="church-content">
                   {/* Church Details Grid */}
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="church-details-grid">
                     <div class="space-y-4" data-testid="church-details">
                       {church.gatheringAddress && (
                         <div data-testid="church-directions">
@@ -664,11 +664,14 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
               {/* Image Gallery */}
               {churchImagesList.length > 0 && (
-                <div class="mt-8">
-                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
-                    <div class="p-6 sm:p-8">
+                <div class="mt-8" data-testid="church-gallery-section">
+                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg" data-testid="church-gallery-card">
+                    <div class="p-6 sm:p-8" data-testid="church-gallery-content">
                       <h3 class="sr-only">Photos</h3>
-                      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div
+                        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                        data-testid="church-gallery-grid"
+                      >
                         {churchImagesList.map((image, index) => (
                           <div
                             key={image.id}
@@ -716,12 +719,13 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               )}
 
               {/* Feedback Section */}
-              <div class="mt-8">
+              <div class="mt-8" data-testid="feedback-section">
                 {!user ? (
                   <div class="text-center py-4">
                     <a
                       href={`/auth/signin?redirect=${encodeURIComponent(c.req.url)}`}
                       class="inline-flex items-center text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                      data-testid="signin-to-feedback-link"
                     >
                       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -735,14 +739,14 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </a>
                   </div>
                 ) : (
-                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
-                    <div class="p-6 sm:p-8">
+                  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg" data-testid="feedback-form-card">
+                    <div class="p-6 sm:p-8" data-testid="feedback-form-content">
                       <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4">Submit Feedback</h3>
                       <p class="text-sm text-gray-600 mb-6">
                         Help us maintain accurate information about {church.name}. Your feedback is important to us.
                       </p>
 
-                      <form method="post" action="/feedback/submit">
+                      <form method="post" action="/feedback/submit" data-testid="feedback-form">
                         <input type="hidden" name="type" value="church" />
                         <input type="hidden" name="churchId" value={church.id} />
 
@@ -758,6 +762,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                                 rows={4}
                                 required
                                 class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                                data-testid="feedback-textarea"
                                 placeholder="Provide information about this church..."
                               ></textarea>
                             </div>
@@ -770,6 +775,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                             <button
                               type="submit"
                               class="rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                              data-testid="feedback-submit-button"
                             >
                               Submit Feedback
                             </button>
