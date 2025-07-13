@@ -718,7 +718,7 @@ app.get('/counties/:path', async (c) => {
       <div>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8">
             <div class="py-12 md:py-16">
               <div class="md:flex md:items-center md:justify-between">
                 <div class="flex-1 min-w-0">
@@ -746,7 +746,7 @@ app.get('/counties/:path', async (c) => {
         </div>
 
         {/* Churches Grid */}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8 py-6 sm:py-12">
           {listedChurches.length === 0 && unlistedChurches.length === 0 ? (
             <div class="text-center py-12">
               <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

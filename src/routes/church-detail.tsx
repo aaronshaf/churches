@@ -337,7 +337,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         <div>
           {/* Header */}
           <div class="bg-gradient-to-r from-primary-600 to-primary-700" data-testid="church-header">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8">
               <div class="py-12 md:py-16">
                 <div class="md:flex md:items-center md:justify-between">
                   <div class="flex-1 min-w-0">
@@ -371,7 +371,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
           {/* Church Content */}
           <div class="bg-gray-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+            <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8 py-6 sm:py-12">
               <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg" data-testid="church-content-card">
                 <div class="p-6 sm:p-8" data-testid="church-content">
                   {/* Church Details Grid */}
