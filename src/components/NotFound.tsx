@@ -73,7 +73,7 @@ export const NotFound: FC = () => {
                 </div>
                 <div class="ml-4 text-left">
                   <p class="text-base font-semibold text-gray-900">Homepage</p>
-                  <p class="text-sm text-gray-500">Browse all counties</p>
+                  <p class="text-sm text-gray-500">Browse counties</p>
                 </div>
               </div>
             </a>
