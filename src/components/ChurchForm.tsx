@@ -746,36 +746,60 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           const previewId = 'preview_' + Date.now() + '_' + index;
           const objectUrl = URL.createObjectURL(file);
           
-          const previewDiv = h('div', {
-            className: 'border border-gray-200 rounded-lg p-4 relative',
-            'data-preview-id': previewId
-          }, [
-            h('div', { className: 'space-y-4' }, [
-              h('div', { className: 'aspect-w-16 aspect-h-9 w-full' }, [
-                h('img', {
-                  src: objectUrl,
-                  alt: 'Preview',
-                  className: 'w-full h-48 object-cover rounded-lg'
-                })
-              ]),
-              h('div', { className: 'space-y-3' }, [
-                h('div', { className: 'mb-2' }, [
-                  h('label', { className: 'block text-xs font-medium text-gray-700 mb-1' }, 'Alt Text'),
-                  h('input', {
-                    type: 'text',
-                    name: 'newImageAlt_' + index,
-                    placeholder: 'Describe the image',
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500'
-                  })
-                ]),
-                h('button', {
-                  type: 'button',
-                  className: 'text-red-600 text-xs hover:text-red-800',
-                  onclick: () => removeImagePreview(previewId, index)
-                }, 'Remove Image')
-              ])
-            ])
-          ]);
+          // Create elements using standard DOM methods for reliability
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'border border-gray-200 rounded-lg p-4 relative';
+          previewDiv.setAttribute('data-preview-id', previewId);
+          
+          const spacingDiv = document.createElement('div');
+          spacingDiv.className = 'space-y-4';
+          
+          // Image container
+          const imageContainer = document.createElement('div');
+          imageContainer.className = 'aspect-w-16 aspect-h-9 w-full';
+          
+          const img = document.createElement('img');
+          img.src = objectUrl;
+          img.alt = 'Preview';
+          img.className = 'w-full h-48 object-cover rounded-lg';
+          
+          imageContainer.appendChild(img);
+          
+          // Controls container
+          const controlsDiv = document.createElement('div');
+          controlsDiv.className = 'space-y-3';
+          
+          // Alt text section
+          const altTextDiv = document.createElement('div');
+          altTextDiv.className = 'mb-2';
+          
+          const label = document.createElement('label');
+          label.className = 'block text-xs font-medium text-gray-700 mb-1';
+          label.textContent = 'Alt Text';
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = 'newImageAlt_' + index;
+          input.placeholder = 'Describe the image';
+          input.className = 'w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500';
+          
+          altTextDiv.appendChild(label);
+          altTextDiv.appendChild(input);
+          
+          // Remove button
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'text-red-600 text-xs hover:text-red-800';
+          removeButton.textContent = 'Remove Image';
+          removeButton.onclick = () => removeImagePreview(previewId, index);
+          
+          controlsDiv.appendChild(altTextDiv);
+          controlsDiv.appendChild(removeButton);
+          
+          spacingDiv.appendChild(imageContainer);
+          spacingDiv.appendChild(controlsDiv);
+          
+          previewDiv.appendChild(spacingDiv);
           
           return previewDiv;
         }
@@ -814,20 +838,33 @@ export const ChurchForm: FC<ChurchFormProps> = ({
           const previewSection = document.getElementById('newImagePreviews');
           const previewContainer = document.getElementById('previewContainer');
           
-          if (!fileInput || !previewSection || !previewContainer) return;
+          console.log('updateImagePreviews called');
+          console.log('fileInput:', fileInput);
+          console.log('previewSection:', previewSection);
+          console.log('previewContainer:', previewContainer);
+          
+          if (!fileInput || !previewSection || !previewContainer) {
+            console.log('Missing required elements');
+            return;
+          }
           
           // Clear existing previews
           previewContainer.innerHTML = '';
           
+          console.log('Files count:', fileInput.files ? fileInput.files.length : 0);
+          
           if (fileInput.files && fileInput.files.length > 0) {
             previewSection.classList.remove('hidden');
+            console.log('Showing preview section');
             
             Array.from(fileInput.files).forEach((file, index) => {
+              console.log('Creating preview for file:', file.name, 'index:', index);
               const preview = createImagePreview(file, index);
               previewContainer.appendChild(preview);
             });
           } else {
             previewSection.classList.add('hidden');
+            console.log('Hiding preview section');
           }
         }
         
