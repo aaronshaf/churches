@@ -89,26 +89,14 @@ export function getImageUrl(
 ): string {
   if (!path) return '';
 
-  // Use environment-only R2 domain (no hardcoded fallbacks)
-  // This requires R2_IMAGE_DOMAIN to be set or r2_image_domain in settings table
-  const r2Domain = getR2DomainFromEnv();
-  if (!r2Domain) {
-    throw new Error(
-      'R2 image domain not configured. Set R2_IMAGE_DOMAIN environment variable or r2_image_domain in settings table.'
-    );
+  const baseUrl = `https://${domain}/cdn-cgi/image`;
+
+  if (!transformations || Object.keys(transformations).length === 0) {
+    return `${baseUrl}/format=auto/${path}`;
   }
 
-  return `https://${r2Domain}/${path}`;
-
-  // Original transformation code (commented out until configured):
-  // const baseUrl = `https://${domain}/cdn-cgi/image`;
-  //
-  // if (!transformations || Object.keys(transformations).length === 0) {
-  //   return `${baseUrl}/format=auto/${path}`;
-  // }
-  //
-  // const params = formatTransformations(transformations);
-  // return `${baseUrl}/${params}/${path}`;
+  const params = formatTransformations(transformations);
+  return `${baseUrl}/${params}/${path}`;
 }
 
 /**
