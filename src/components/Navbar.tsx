@@ -147,7 +147,10 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
                 />
               </svg>
             </button>
-            <BetterAuthUserMenu user={user} />
+            {/* Hide user menu on mobile - it will show in the dropdown instead */}
+            <div class="hidden">
+              <BetterAuthUserMenu user={user} />
+            </div>
             <button
               type="button"
               class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-200"
@@ -223,6 +226,57 @@ export const Navbar: FC<NavbarProps> = ({ user, currentPath = '/', logoUrl, page
               </a>
             ))}
         </div>
+
+        {/* User section for mobile */}
+        {user && (
+          <div class="pt-4 pb-3 border-t border-gray-200">
+            <div class="flex items-center px-4 mb-3">
+              <div class="flex-shrink-0">
+                {user.image ? (
+                  <img class="h-10 w-10 rounded-full" src={user.image} alt={user.name || 'User'} />
+                ) : (
+                  <div class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium">
+                    {(user.name || user.email || 'U').substring(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div class="ml-3">
+                <div class="text-base font-medium text-gray-800">{user.name || 'User'}</div>
+                <div class="text-sm font-medium text-gray-500">{user.email}</div>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <a
+                href="/admin"
+                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              >
+                Dashboard
+              </a>
+              {user.role === 'admin' && (
+                <>
+                  <a
+                    href="/admin/churches"
+                    class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  >
+                    Manage Churches
+                  </a>
+                  <a
+                    href="/admin/users"
+                    class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  >
+                    Manage Users
+                  </a>
+                </>
+              )}
+              <a
+                href="/auth/signout"
+                class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              >
+                Sign out
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
