@@ -654,7 +654,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                 <div class="mt-8">
                   <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
                     <div class="p-6 sm:p-8">
-                      <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-6">Photos</h3>
+                      <h3 class="sr-only">Photos</h3>
                       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {churchImagesList.map((image, index) => (
                           <div
