@@ -559,7 +559,7 @@ app.get('/', async (c) => {
                           </a>
                         </h3>
                         <p class="mt-1 text-sm text-gray-500">
-                          {county.churchCount} {county.churchCount === 1 ? 'church' : 'churches'}
+                          {county.churchCount} {county.churchCount === 1 ? t('church') : t('churches')}
                         </p>
                         {county.description && (
                           <p class="mt-2 text-sm text-gray-600 line-clamp-2">{county.description}</p>
@@ -1692,24 +1692,12 @@ app.get('/map', async (c) => {
   const unlistedChurches = churchesWithGatherings.filter((c) => c.status === 'Unlisted');
   const hereticalChurches = showHereticalOption ? churchesWithGatherings.filter((c) => c.status === 'Heretical') : [];
 
-  // Get favicon URL
-  const faviconUrl = await getFaviconUrl(c.env);
-
-  // Get logo URL
-  const logoUrl = await getLogoUrl(c.env);
-
-  // Get navbar pages
-  const navbarPages = await getNavbarPages(c.env);
+  // Get all layout props with i18n support
+  const layoutProps = await getCommonLayoutProps(c);
+  const { t } = layoutProps;
 
   const response = await c.html(
-    <Layout
-      title="Church Map"
-      currentPath="/map"
-      user={user}
-      faviconUrl={faviconUrl}
-      logoUrl={logoUrl}
-      pages={navbarPages}
-    >
+    <Layout title="Church Map" currentPath="/map" {...layoutProps}>
       <div>
         {/* Map Container */}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -1761,8 +1749,9 @@ app.get('/map', async (c) => {
                 </div>
                 <div class="ml-3">
                   <p class="text-sm text-blue-800">
-                    <span id="church-count">{listedChurches.length}</span> churches shown. Click markers for details.
-                    Blue marker = your location.
+                    <span id="church-count">{listedChurches.length}</span>{' '}
+                    {t('churches shown. Click markers for details.')}
+                    {t('Blue marker = your location.')}
                   </p>
                 </div>
               </div>

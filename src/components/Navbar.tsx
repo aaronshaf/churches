@@ -272,14 +272,14 @@ export const Navbar: FC<NavbarProps> = ({
                     class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                     data-testid="mobile-nav-manage-churches"
                   >
-                    Manage Churches
+                    {t('Manage Churches')}
                   </a>
                   <a
                     href="/admin/users"
                     class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                     data-testid="mobile-nav-manage-users"
                   >
-                    Manage Users
+                    {t('Manage Users')}
                   </a>
                 </>
               )}
