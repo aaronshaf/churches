@@ -864,6 +864,28 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
             )};
             
             let currentImageIndex = 0;
+            let preloadedImages = new Set();
+            
+            // Preload next image for smooth navigation
+            function preloadNextImage() {
+              if (imageGallery.length <= 1) return;
+              
+              const nextIndex = (currentImageIndex + 1) % imageGallery.length;
+              const nextImage = imageGallery[nextIndex];
+              
+              if (!preloadedImages.has(nextImage.highResSrc)) {
+                const img = new Image();
+                img.src = nextImage.highResSrc;
+                preloadedImages.add(nextImage.highResSrc);
+                
+                // Also preload thumbnail for instant display
+                if (!preloadedImages.has(nextImage.thumbnailSrc)) {
+                  const thumbImg = new Image();
+                  thumbImg.src = nextImage.thumbnailSrc;
+                  preloadedImages.add(nextImage.thumbnailSrc);
+                }
+              }
+            }
             
             // Image modal functionality
             function openImageModal(imageData) {
@@ -915,39 +937,54 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                     </button>
                   \` : ''}
                   
-                  <div class="relative max-w-[95vw] max-h-[95vh]">
-                    <img id="modal-thumbnail" src="\${currentImage.thumbnailSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg" />
-                    <img id="modal-high-res" src="\${currentImage.highResSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-full object-contain rounded-lg absolute inset-0 opacity-0 transition-opacity duration-300" onload="this.style.opacity='1'; document.getElementById('modal-thumbnail').style.opacity='0';" />
-                    
-                    <!-- Loading indicator -->
-                    <div id="modal-loading" class="absolute inset-0 flex items-center justify-center">
-                      <div class="bg-black bg-opacity-50 rounded-lg px-3 py-2">
-                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                  <div class="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center">
+                    <div class="relative">
+                      <img id="modal-thumbnail" src="\${currentImage.thumbnailSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
+                      <img id="modal-high-res" src="\${currentImage.highResSrc}" alt="\${currentImage.alt}" class="max-w-full max-h-[90vh] object-contain rounded-lg absolute inset-0 opacity-0 transition-opacity duration-300" onload="this.style.opacity='1'; document.getElementById('modal-thumbnail').style.opacity='0'; preloadNextImage();" />
+                      
+                      <!-- Loading indicator with delayed fade-in -->
+                      <div id="modal-loading" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300">
+                        <div class="bg-black bg-opacity-50 rounded-lg px-3 py-2">
+                          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  \${currentImage.caption ? \`<p class="text-white text-center mt-4 text-sm max-w-[95vw]">\${currentImage.caption}</p>\` : ''}
-                  
-                  \${showNavigation ? \`
-                    <div class="text-white text-center mt-2 text-xs opacity-75">
-                      \${currentImageIndex + 1} of \${imageGallery.length}
+                    
+                    <div class="mt-4 text-center">
+                      \${currentImage.caption ? \`<p class="text-white text-sm mb-2 max-w-[95vw]">\${currentImage.caption}</p>\` : ''}
+                      \${showNavigation ? \`
+                        <div class="text-white text-xs opacity-75">
+                          \${currentImageIndex + 1} of \${imageGallery.length}
+                        </div>
+                      \` : ''}
                     </div>
-                  \` : ''}
+                  </div>
                 </div>
               \`;
               
-              // Hide loading indicator once thumbnail loads
+              // Manage loading indicator with 1-second delay
               const thumbnail = modal.querySelector('#modal-thumbnail');
               const loading = modal.querySelector('#modal-loading');
               const highRes = modal.querySelector('#modal-high-res');
               
+              let loadingTimer = null;
+              let isLoaded = false;
+              
+              // Show spinner after 1 second if still loading
+              loadingTimer = setTimeout(() => {
+                if (!isLoaded && loading) {
+                  loading.style.opacity = '1';
+                }
+              }, 1000);
+              
               if (thumbnail) {
                 thumbnail.onload = function() {
-                  if (loading) loading.style.display = 'none';
+                  isLoaded = true;
+                  if (loadingTimer) clearTimeout(loadingTimer);
+                  if (loading) loading.style.opacity = '0';
                 };
               }
               
@@ -955,7 +992,9 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               if (highRes) {
                 highRes.onerror = function() {
                   console.warn('Failed to load high-resolution image, keeping thumbnail');
-                  if (loading) loading.style.display = 'none';
+                  isLoaded = true;
+                  if (loadingTimer) clearTimeout(loadingTimer);
+                  if (loading) loading.style.opacity = '0';
                 };
               }
             }
