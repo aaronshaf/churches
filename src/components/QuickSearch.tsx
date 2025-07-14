@@ -772,7 +772,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   typeLabel = 'County';
                   typeColor = 'bg-green-100 text-green-800';
                 } else if (result.type === 'affiliation') {
-                  href = \`/networks/\${result.id}\`;
+                  href = \`/networks/\${result.path || result.id}\`;
                   title = result.name;
                   subtitle = result.publicNotes || 'Church network';
                   typeLabel = 'Network';
@@ -818,7 +818,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 } else if (result.type === 'county') {
                   url = \`/counties/\${result.path}\`;
                 } else if (result.type === 'affiliation') {
-                  url = \`/networks/\${result.id}\`;
+                  url = \`/networks/\${result.path || result.id}\`;
                 }
                 if (url) {
                   // Check if already prefetched
@@ -873,7 +873,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               } else if (result.type === 'county') {
                 url = \`/counties/\${result.path}\`;
               } else if (result.type === 'affiliation') {
-                url = \`/networks/\${result.id}\`;
+                url = \`/networks/\${result.path || result.id}\`;
               }
               
               if (!url) return;
@@ -930,7 +930,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   } else if (result.type === 'county') {
                     url = \`/counties/\${result.path}\`;
                   } else if (result.type === 'affiliation') {
-                    url = \`/networks/\${result.id}\`;
+                    url = \`/networks/\${result.path || result.id}\`;
                   }
                   if (url) {
                     window.location.href = url;
