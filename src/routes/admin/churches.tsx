@@ -15,6 +15,7 @@ import {
   counties,
   settings,
 } from '../../db/schema';
+import type { D1SessionVariables } from '../../middleware/d1-session';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
@@ -32,7 +33,7 @@ import {
 } from '../../utils/validation';
 import { extractChurchDataFromWebsite } from '../../utils/website-extraction';
 
-type Variables = AuthenticatedVariables;
+type Variables = AuthenticatedVariables & D1SessionVariables;
 
 export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -732,7 +733,7 @@ adminChurchesRoutes.post('/', async (c) => {
 
               // If Drizzle fails, try raw SQL as a fallback
               console.log('Trying raw SQL fallback...');
-              const d1 = c.env.DB;
+              const d1 = c.get('dbSession') || c.env.DB;
               const fallbackResult = await d1
                 .prepare(
                   `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
@@ -1089,7 +1090,7 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
             // If Drizzle fails, try raw SQL as a fallback
             console.log('Trying raw SQL fallback...');
-            const d1 = c.env.DB;
+            const d1 = c.get('dbSession') || c.env.DB;
             const fallbackResult = await d1
               .prepare(
                 `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 

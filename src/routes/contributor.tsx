@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { Layout } from '../components/Layout';
+import { createDbWithContext } from '../db';
 import { churchSuggestions, comments } from '../db/schema';
 import { requireContributorBetter } from '../middleware/better-auth';
 import type { AuthenticatedVariables, Bindings } from '../types';
@@ -14,7 +14,7 @@ contributorApp.use('*', requireContributorBetter);
 // Dashboard for contributors
 contributorApp.get('/dashboard', async (c) => {
   const user = c.get('betterUser');
-  const db = drizzle(c.env.DB);
+  const db = createDbWithContext(c);
 
   // Get user's suggestions
   const userSuggestions = await db
@@ -233,7 +233,7 @@ contributorApp.post('/suggest', async (c) => {
   const user = c.get('betterUser');
   const formData = await c.req.formData();
 
-  const db = drizzle(c.env.DB);
+  const db = createDbWithContext(c);
 
   try {
     await db.insert(churchSuggestions).values({
@@ -272,7 +272,7 @@ contributorApp.post('/churches/:id/comment', async (c) => {
   const churchId = parseInt(c.req.param('id'));
   const formData = await c.req.formData();
 
-  const db = drizzle(c.env.DB);
+  const db = createDbWithContext(c);
 
   try {
     await db.insert(comments).values({

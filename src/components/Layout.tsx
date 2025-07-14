@@ -24,6 +24,7 @@ type LayoutProps = {
   hideFooter?: boolean;
   language?: SupportedLanguage;
   t?: (key: string, options?: object) => string;
+  sessionBookmark?: string;
 };
 
 export const Layout: FC<LayoutProps> = ({
@@ -45,6 +46,7 @@ export const Layout: FC<LayoutProps> = ({
   hideFooter = false,
   language = 'en',
   t,
+  sessionBookmark,
 }) => {
   const pageTitle = title ? `${title} - ${siteTitle}` : siteTitle;
   return (
@@ -194,6 +196,9 @@ export const Layout: FC<LayoutProps> = ({
             let preloadTimeout;
             let prefetchedUrls = new Set();
             
+            // Store the current D1 bookmark for sequential consistency
+            const currentBookmark = ${sessionBookmark ? `'${sessionBookmark}'` : 'null'};
+            
             function preloadAfterDelay(url, delay) {
               if (preloadTimeout) {
                 clearTimeout(preloadTimeout);
@@ -204,6 +209,13 @@ export const Layout: FC<LayoutProps> = ({
                   const link = document.createElement('link');
                   link.rel = 'prefetch';
                   link.href = url;
+                  
+                  // Add bookmark header if available
+                  if (currentBookmark) {
+                    // For prefetch links, we can't set headers directly
+                    // The bookmark will be passed via cookie instead
+                  }
+                  
                   document.head.appendChild(link);
                   prefetchedUrls.add(url);
                 }
@@ -214,6 +226,17 @@ export const Layout: FC<LayoutProps> = ({
               if (preloadTimeout) {
                 clearTimeout(preloadTimeout);
                 preloadTimeout = null;
+              }
+            }
+            
+            // Helper to add bookmark to navigation requests
+            function navigateWithBookmark(url) {
+              if (currentBookmark) {
+                // The bookmark is already set as a cookie by the server
+                // Just navigate normally
+                window.location.href = url;
+              } else {
+                window.location.href = url;
               }
             }
             

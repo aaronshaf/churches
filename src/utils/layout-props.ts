@@ -1,12 +1,15 @@
 import type { Context } from 'hono';
 import type { SupportedLanguage } from '../lib/i18n';
 import { getUser } from '../middleware/better-auth';
+import type { D1SessionVariables } from '../middleware/d1-session';
 import type { AuthVariables, BetterAuthUser } from '../types';
 import { hasGoogleMapsApiKey } from './env-validation';
 import { getNavbarPages } from './pages';
 import { getFaviconUrl, getLogoUrl, getSiteTitle } from './settings';
 
-export async function getCommonLayoutProps(c: Context<{ Bindings: any; Variables: AuthVariables }, any, any>): Promise<{
+export async function getCommonLayoutProps(
+  c: Context<{ Bindings: any; Variables: AuthVariables & D1SessionVariables }, any, any>
+): Promise<{
   faviconUrl: string | undefined;
   logoUrl: string | undefined;
   siteTitle: string;
@@ -15,6 +18,7 @@ export async function getCommonLayoutProps(c: Context<{ Bindings: any; Variables
   showMap: boolean;
   language: SupportedLanguage;
   t: (key: string, options?: object) => string;
+  sessionBookmark?: string;
 }> {
   const [faviconUrl, logoUrl, siteTitle, navbarPages, user] = await Promise.all([
     getFaviconUrl(c.env),
@@ -30,6 +34,9 @@ export async function getCommonLayoutProps(c: Context<{ Bindings: any; Variables
   const language = (c.get('language') as SupportedLanguage) || 'en';
   const t = c.get('t') || ((key: string) => key);
 
+  // Get session bookmark from context (set by d1-session middleware)
+  const sessionBookmark = c.get('sessionBookmark');
+
   return {
     faviconUrl,
     logoUrl,
@@ -39,5 +46,6 @@ export async function getCommonLayoutProps(c: Context<{ Bindings: any; Variables
     showMap,
     language,
     t,
+    sessionBookmark,
   };
 }

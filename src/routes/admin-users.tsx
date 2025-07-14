@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { UserRoleManager } from '../components/admin/UserRoleManager';
 import { Layout } from '../components/Layout';
+import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
 import { getUser, requireAdminBetter } from '../middleware/better-auth';
 import type { Bindings } from '../types';
@@ -15,7 +15,7 @@ adminUsersApp.use('*', requireAdminBetter);
 // Users management page
 adminUsersApp.get('/', async (c) => {
   const currentUser = await getUser(c);
-  const db = drizzle(c.env.DB, { schema: { users } });
+  const db = createDbWithContext(c);
 
   // Get all users
   const allUsers = await db.select().from(users).orderBy(users.createdAt);
@@ -37,7 +37,7 @@ adminUsersApp.post('/:userId/role', async (c) => {
     return c.json({ error: 'Invalid role' }, 400);
   }
 
-  const db = drizzle(c.env.DB, { schema: { users } });
+  const db = createDbWithContext(c);
 
   try {
     // Update user role
