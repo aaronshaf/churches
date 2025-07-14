@@ -31,7 +31,8 @@ export class CacheInvalidator {
   private async deleteFromCache(path: string): Promise<boolean> {
     try {
       const fullUrl = `${this.baseUrl}${path}`;
-      await deleteFromCache([fullUrl]);
+      const request = new Request(fullUrl);
+      await deleteFromCache([request.url]);
       console.log(`Cache invalidated for ${path}`);
       return true;
     } catch (error) {
@@ -135,8 +136,60 @@ export class CacheInvalidator {
    * Clear all cached content (nuclear option for settings updates)
    */
   private async clearAllCache(): Promise<void> {
-    const urlsToInvalidate = ['/', '/networks', '/map', '/data', '/churches.json', '/churches.yaml', '/churches.csv'];
+    console.log('Clearing all cache due to settings update...');
 
+    // For settings changes that affect all pages (like logo, favicon, site title),
+    // we need to clear ALL cached pages. Since we can't enumerate all possible URLs,
+    // we'll clear the most common ones and rely on the 7-day TTL for the rest.
+    const urlsToInvalidate = [
+      '/',
+      '/networks',
+      '/map',
+      '/data',
+      '/churches.json',
+      '/churches.yaml',
+      '/churches.csv',
+      '/churches.xlsx',
+    ];
+
+    // Also get some specific pages from the database to invalidate
+    const db = createDbWithContext(this.c);
+
+    try {
+      // Get all county paths
+      const countyPaths = await db.select({ path: counties.path }).from(counties).all();
+
+      countyPaths.forEach((county) => {
+        urlsToInvalidate.push(`/counties/${county.path}`);
+      });
+
+      // Get all network paths
+      const networkPaths = await db.select({ id: affiliations.id, path: affiliations.path }).from(affiliations).all();
+
+      networkPaths.forEach((network) => {
+        urlsToInvalidate.push(`/networks/${network.path || network.id}`);
+      });
+
+      // Get custom pages
+      const { pages } = await import('../db/schema');
+      const customPages = await db.select({ path: pages.path }).from(pages).all();
+
+      customPages.forEach((page) => {
+        urlsToInvalidate.push(`/${page.path}`);
+      });
+
+      // For individual church pages, we'll just clear a sample
+      // (too many to clear all, they'll expire via TTL)
+      const sampleChurches = await db.select({ path: churches.path }).from(churches).limit(20).all();
+
+      sampleChurches.forEach((church) => {
+        urlsToInvalidate.push(`/churches/${church.path}`);
+      });
+    } catch (error) {
+      console.error('Error fetching paths for cache invalidation:', error);
+    }
+
+    console.log(`Invalidating ${urlsToInvalidate.length} cached URLs...`);
     const promises = urlsToInvalidate.map((path) => this.deleteFromCache(path));
     await Promise.allSettled(promises);
   }
