@@ -1,8 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
-import { affiliations, churches, counties, pages, settings } from '../db/schema';
+import { affiliations, churches, counties, pages } from '../db/schema';
 import type { Bindings } from '../types';
+import { getSettingsWithCache, getSettingWithCache } from '../utils/settings-cache';
 
 export const seoRoutes = new Hono<{ Bindings: Bindings }>();
 
@@ -10,27 +11,26 @@ export const seoRoutes = new Hono<{ Bindings: Bindings }>();
 function formatLastmod(updatedAt: Date | number | null, createdAt: Date | number | null): string | null {
   const lastMod = updatedAt || createdAt;
   if (!lastMod) return null;
-  
+
   // Check if timestamp is already in milliseconds (very large number) or seconds
-  const timestamp = typeof lastMod === 'number' 
-    ? (lastMod > 10000000000 ? lastMod : lastMod * 1000)
-    : lastMod.getTime();
-  
+  const timestamp =
+    typeof lastMod === 'number' ? (lastMod > 10000000000 ? lastMod : lastMod * 1000) : lastMod.getTime();
+
   const date = new Date(timestamp);
-  
+
   // Only include lastmod if it's a valid date between 2020 and 2030
   if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
     return date.toISOString();
   }
-  
+
   return null;
 }
 
 // robots.txt
 seoRoutes.get('/robots.txt', async (c) => {
   const db = createDbWithContext(c);
-  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
-  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
+  const siteDomain =
+    (await getSettingWithCache(c.env.SETTINGS_CACHE, db, 'site_domain')) || c.req.header('host') || 'example.com';
 
   const robotsTxt = `User-agent: *
 Allow: /
@@ -63,10 +63,9 @@ Sitemap: https://${siteDomain}/sitemap.xml`;
 // llms.txt
 seoRoutes.get('/llms.txt', async (c) => {
   const db = createDbWithContext(c);
-  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
-  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
-  const regionSetting = await db.select().from(settings).where(eq(settings.key, 'site_region')).get();
-  const siteRegion = regionSetting?.value || 'UT';
+  const settings = await getSettingsWithCache(c.env.SETTINGS_CACHE, db);
+  const siteDomain = settings.site_domain || c.req.header('host') || 'example.com';
+  const siteRegion = settings.site_region || 'UT';
 
   const llmsTxt = `# Utah Churches Directory
 
@@ -128,9 +127,9 @@ For more information, visit https://${siteDomain}/`;
 seoRoutes.get('/sitemap.xml', async (c) => {
   const db = createDbWithContext(c);
 
-  // Get site domain from settings
-  const domainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).get();
-  const siteDomain = domainSetting?.value || c.req.header('host') || 'example.com';
+  // Get site domain from settings cache
+  const siteDomain =
+    (await getSettingWithCache(c.env.SETTINGS_CACHE, db, 'site_domain')) || c.req.header('host') || 'example.com';
 
   // Get all churches, counties, pages, and affiliations with their dates
   const [allChurches, allCounties, allPages, listedAffiliations] = await Promise.all([
@@ -197,8 +196,12 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       const lastmod = formatLastmod(county.updatedAt, county.createdAt);
       return `
   <url>
-    <loc>https://${siteDomain}/counties/${county.path}</loc>${lastmod ? `
-    <lastmod>${lastmod}</lastmod>` : ''}
+    <loc>https://${siteDomain}/counties/${county.path}</loc>${
+      lastmod
+        ? `
+    <lastmod>${lastmod}</lastmod>`
+        : ''
+    }
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
@@ -208,8 +211,12 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       const lastmod = formatLastmod(church.updatedAt, church.createdAt);
       return `
   <url>
-    <loc>https://${siteDomain}/churches/${church.path}</loc>${lastmod ? `
-    <lastmod>${lastmod}</lastmod>` : ''}
+    <loc>https://${siteDomain}/churches/${church.path}</loc>${
+      lastmod
+        ? `
+    <lastmod>${lastmod}</lastmod>`
+        : ''
+    }
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`;
@@ -219,8 +226,12 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       const lastmod = formatLastmod(affiliation.updatedAt, affiliation.createdAt);
       return `
   <url>
-    <loc>https://${siteDomain}/networks/${affiliation.path || affiliation.id}</loc>${lastmod ? `
-    <lastmod>${lastmod}</lastmod>` : ''}
+    <loc>https://${siteDomain}/networks/${affiliation.path || affiliation.id}</loc>${
+      lastmod
+        ? `
+    <lastmod>${lastmod}</lastmod>`
+        : ''
+    }
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`;
@@ -230,8 +241,12 @@ seoRoutes.get('/sitemap.xml', async (c) => {
       const lastmod = formatLastmod(page.updatedAt, page.createdAt);
       return `
   <url>
-    <loc>https://${siteDomain}/${page.path}</loc>${lastmod ? `
-    <lastmod>${lastmod}</lastmod>` : ''}
+    <loc>https://${siteDomain}/${page.path}</loc>${
+      lastmod
+        ? `
+    <lastmod>${lastmod}</lastmod>`
+        : ''
+    }
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>`;

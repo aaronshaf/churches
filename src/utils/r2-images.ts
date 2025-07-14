@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import { settings } from '../db/schema';
+import type { DbType } from '../db';
+import { createDb } from '../db';
 import type { Bindings } from '../types';
+import { getSettingWithCache } from './settings-cache';
 
 export interface ImageTransformations {
   width?: number;
@@ -22,8 +23,8 @@ export interface UploadResult {
 export async function uploadImage(
   file: File,
   folder: 'churches' | 'counties' | 'pages' | 'site',
-  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN'>,
-  db?: DrizzleD1Database<any>
+  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'DB'>,
+  db?: DbType
 ): Promise<UploadResult> {
   // Validate file type
   if (!file.type.startsWith('image/')) {
@@ -52,7 +53,7 @@ export async function uploadImage(
     },
   });
 
-  const domain = db ? await getDomain(db, env) : env.SITE_DOMAIN || 'localhost';
+  const domain = await getDomain(env, db);
 
   return {
     path,
@@ -63,12 +64,15 @@ export async function uploadImage(
 /**
  * Get domain from settings table or fallback to environment/default
  */
-export async function getDomain(db: DrizzleD1Database<any>, env: Pick<Bindings, 'SITE_DOMAIN'>): Promise<string> {
+export async function getDomain(
+  env: Pick<Bindings, 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'DB'>,
+  db?: DbType
+): Promise<string> {
   try {
-    const siteDomainSetting = await db.select().from(settings).where(eq(settings.key, 'site_domain')).limit(1);
-
-    if (siteDomainSetting.length > 0 && siteDomainSetting[0].value) {
-      return siteDomainSetting[0].value;
+    const dbInstance = db || createDb(env.DB);
+    const siteDomain = await getSettingWithCache(env.SETTINGS_CACHE, dbInstance, 'site_domain');
+    if (siteDomain) {
+      return siteDomain;
     }
   } catch (error) {
     console.error('Failed to fetch site_domain from settings:', error);
@@ -164,12 +168,13 @@ function getR2DomainFromEnv(): string | undefined {
  * Get R2 domain with database lookup
  * Hierarchy: Database settings → Environment variable → Error
  */
-export async function getR2DomainWithDb(db: DrizzleD1Database<any>): Promise<string> {
+export async function getR2DomainWithDb(env: Pick<Bindings, 'SETTINGS_CACHE' | 'DB'>, db?: DbType): Promise<string> {
   // 1. Try database settings first
   try {
-    const r2DomainSetting = await db.select().from(settings).where(eq(settings.key, 'r2_image_domain')).limit(1);
-    if (r2DomainSetting.length > 0 && r2DomainSetting[0].value) {
-      return r2DomainSetting[0].value;
+    const dbInstance = db || createDb(env.DB);
+    const r2Domain = await getSettingWithCache(env.SETTINGS_CACHE, dbInstance, 'r2_image_domain');
+    if (r2Domain) {
+      return r2Domain;
     }
   } catch (error) {
     console.error('Failed to fetch r2_image_domain from settings:', error);
@@ -193,12 +198,13 @@ export async function getR2DomainWithDb(db: DrizzleD1Database<any>): Promise<str
  */
 export async function getImageUrlWithDb(
   path: string | null | undefined,
-  db: DrizzleD1Database<any>,
+  env: Pick<Bindings, 'SETTINGS_CACHE' | 'DB'>,
+  db?: DbType,
   transformations?: ImageTransformations
 ): Promise<string> {
   if (!path) return '';
 
-  const r2Domain = await getR2DomainWithDb(db);
+  const r2Domain = await getR2DomainWithDb(env, db);
   return `https://${r2Domain}/${path}`;
 }
 

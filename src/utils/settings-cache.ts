@@ -11,6 +11,12 @@ export interface SettingsMap {
   site_domain?: string | null;
   site_region?: string | null;
   r2_image_domain?: string | null;
+  favicon_url?: string | null;
+  logo_url?: string | null;
+  site_title?: string | null;
+  tagline?: string | null;
+  front_page_title?: string | null;
+  image_prefix?: string | null;
   [key: string]: string | null | undefined;
 }
 
@@ -49,13 +55,13 @@ export async function getSettingsWithCache(kv: KVNamespace, db: DbType): Promise
  * Fetch settings directly from D1
  */
 async function fetchSettingsFromD1(db: DbType): Promise<SettingsMap> {
+  // Fetch all settings that are commonly used
   const siteSettings = await db
     .select({
       key: settings.key,
       value: settings.value,
     })
     .from(settings)
-    .where(sql`${settings.key} IN ('site_domain', 'site_region', 'r2_image_domain')`)
     .all();
 
   // Convert array to map

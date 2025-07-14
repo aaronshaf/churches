@@ -1,18 +1,12 @@
-import { eq } from 'drizzle-orm';
 import { createDb } from '../db';
-import { settings } from '../db/schema';
 import type { Bindings } from '../types';
+import { getSettingsWithCache, getSettingWithCache } from './settings-cache';
 
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   try {
     const db = createDb(env.DB);
-    const faviconUrlSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'favicon_url'))
-      .get();
-
-    return faviconUrlSetting?.value || undefined;
+    const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'favicon_url');
+    return value || undefined;
   } catch (error) {
     console.error('Error fetching favicon URL:', error);
     return undefined;
@@ -22,13 +16,8 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
 export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   try {
     const db = createDb(env.DB);
-    const logoUrlSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'logo_url'))
-      .get();
-
-    return logoUrlSetting?.value || undefined;
+    const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'logo_url');
+    return value || undefined;
   } catch (error) {
     console.error('Error fetching logo URL:', error);
     return undefined;
@@ -38,13 +27,8 @@ export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 export async function getSiteTitle(env: Bindings): Promise<string> {
   try {
     const db = createDb(env.DB);
-    const siteTitleSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'site_title'))
-      .get();
-
-    return siteTitleSetting?.value || 'Churches';
+    const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'site_title');
+    return value || 'Churches';
   } catch (error) {
     console.error('Error fetching site title:', error);
     return 'Churches';
@@ -60,18 +44,14 @@ export async function getSiteSettings(env: Bindings): Promise<{
   try {
     const db = createDb(env.DB);
 
-    const [siteTitle, tagline, frontPageTitle, faviconUrl] = await Promise.all([
-      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_title')).get(),
-      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'tagline')).get(),
-      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'front_page_title')).get(),
-      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'favicon_url')).get(),
-    ]);
+    // Get all settings at once from cache
+    const allSettings = await getSettingsWithCache(env.SETTINGS_CACHE, db);
 
     return {
-      siteTitle: siteTitle?.value || 'Churches',
-      tagline: tagline?.value || 'A directory of evangelical churches',
-      frontPageTitle: frontPageTitle?.value || 'Christian Churches',
-      faviconUrl: faviconUrl?.value || undefined,
+      siteTitle: allSettings.site_title || 'Churches',
+      tagline: allSettings.tagline || 'A directory of evangelical churches',
+      frontPageTitle: allSettings.front_page_title || 'Christian Churches',
+      faviconUrl: allSettings.favicon_url || undefined,
     };
   } catch (error) {
     console.error('Error fetching site settings:', error);
@@ -87,27 +67,16 @@ export async function getSiteSettings(env: Bindings): Promise<{
 export async function getImagePrefix(env: Bindings): Promise<string> {
   try {
     const db = createDb(env.DB);
-    const imagePrefixSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'image_prefix'))
-      .get();
+    const allSettings = await getSettingsWithCache(env.SETTINGS_CACHE, db);
 
     // If no setting exists, derive from site domain or use default
-    if (!imagePrefixSetting?.value) {
-      const domainSetting = await db
-        .select({ value: settings.value })
-        .from(settings)
-        .where(eq(settings.key, 'site_domain'))
-        .get();
-      if (domainSetting?.value) {
-        // Extract domain name without TLD (e.g., "example" from "example.com")
-        const domainParts = domainSetting.value.split('.');
-        return domainParts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      }
+    if (!allSettings.image_prefix && allSettings.site_domain) {
+      // Extract domain name without TLD (e.g., "example" from "example.com")
+      const domainParts = allSettings.site_domain.split('.');
+      return domainParts[0].toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
-    return imagePrefixSetting?.value || 'churches';
+    return allSettings.image_prefix || 'churches';
   } catch (error) {
     console.error('Error fetching image prefix:', error);
     return 'churches';

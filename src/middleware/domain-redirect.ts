@@ -1,8 +1,7 @@
-import { eq } from 'drizzle-orm';
 import type { Context, Next } from 'hono';
 import { createDbWithContext } from '../db';
-import { settings } from '../db/schema';
 import type { Bindings } from '../types';
+import { getSettingWithCache } from '../utils/settings-cache';
 
 export async function domainRedirectMiddleware(c: Context<{ Bindings: Bindings }>, next: Next) {
   const hostname = new URL(c.req.url).hostname;
@@ -28,15 +27,10 @@ export async function domainRedirectMiddleware(c: Context<{ Bindings: Bindings }
   }
 
   try {
-    // Get configured domain from settings
+    // Get configured domain from settings cache
     const db = createDbWithContext(c);
-    const siteDomainSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'site_domain'))
-      .get();
-
-    const configuredDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
+    const siteDomain = await getSettingWithCache(c.env.SETTINGS_CACHE, db, 'site_domain');
+    const configuredDomain = siteDomain || c.env.SITE_DOMAIN || 'localhost';
 
     // If we're on workers.dev domain or not on the configured domain, redirect
     if (
