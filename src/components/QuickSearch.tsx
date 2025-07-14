@@ -103,6 +103,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             let selectedIndex = -1;
             let dataLoaded = false;
             let searchDebounceTimer = null;
+            let pendingSearchQuery = null; // Store query typed while data is loading
             const userRole = '${userRole || ''}';
             const translations = {
               loading: ${JSON.stringify(t('search.loading'))},
@@ -152,10 +153,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 
                 dataLoaded = true;
                 
-                // Re-run search if user has already typed something
+                // Re-run search if user has already typed something or if there's a pending query
                 const input = document.getElementById('quick-search-input');
-                if (input && input.value.trim()) {
-                  performQuickSearch(input.value);
+                const queryToRun = pendingSearchQuery || (input && input.value.trim());
+                if (queryToRun) {
+                  pendingSearchQuery = null; // Clear pending query
+                  performQuickSearch(queryToRun);
                 }
               } catch (error) {
                 console.error('Failed to load data:', error);
@@ -224,6 +227,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = null;
               }
+              // Clear any pending search query
+              pendingSearchQuery = null;
             }
 
             function resetQuickSearch() {
@@ -254,8 +259,9 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 return;
               }
 
-              // If data isn't loaded yet, show loading state but don't return
+              // If data isn't loaded yet, store the query and show loading state
               if (!dataLoaded) {
+                pendingSearchQuery = query; // Store the query to run after data loads
                 const resultsContainer = document.getElementById('quick-search-results');
                 if (resultsContainer) {
                   resultsContainer.innerHTML = \`
@@ -267,6 +273,10 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                       </div>
                       <span class="text-sm">\${translations.loading}</span>
                     </div>\`;
+                }
+                // Start loading data if not already loading
+                if (!dataLoaded) {
+                  loadAllData();
                 }
                 return;
               }
