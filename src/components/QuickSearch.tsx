@@ -104,6 +104,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             let dataLoaded = false;
             let searchDebounceTimer = null;
             let pendingSearchQuery = null; // Store query typed while data is loading
+            let hoverTimeout = null; // Store hover timeout for prefetching
             const userRole = '${userRole || ''}';
             const translations = {
               loading: ${JSON.stringify(t('search.loading'))},
@@ -308,6 +309,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               }
               // Clear any pending search query
               pendingSearchQuery = null;
+              // Clear any pending hover timeout
+              if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+              }
             }
 
             function resetQuickSearch() {
@@ -688,6 +694,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                     class="quick-search-result group block transition-colors duration-150 ease-in-out border-b border-gray-100 last:border-0 \${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}"
                     style="padding: 12px 16px 12px \${isSelected ? '12px' : '16px'}; border-left: \${isSelected ? '4px solid #3b82f6' : 'none'};"
                     data-index="\${index}"
+                    onmouseenter="handleQuickSearchHover('\${href}')"
+                    onmouseleave="clearQuickSearchHover()"
                   >
                     <div class="flex items-center justify-between">
                       <div class="flex-1 min-w-0">
@@ -709,8 +717,58 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             function updateSelectedResult() {
               // Re-render results to update selection state
               displayQuickSearchResults();
+              
+              // Prefetch the currently selected result
+              if (selectedIndex >= 0 && quickSearchResults[selectedIndex]) {
+                const result = quickSearchResults[selectedIndex];
+                let url;
+                if (result.type === 'church') {
+                  url = \`/churches/\${result.path}\`;
+                } else if (result.type === 'county') {
+                  url = \`/counties/\${result.path}\`;
+                } else if (result.type === 'affiliation') {
+                  url = \`/networks/\${result.id}\`;
+                }
+                if (url) {
+                  prefetchUrl(url);
+                }
+              }
             }
 
+            // Hover-intent prefetching for search results
+            function handleQuickSearchHover(url) {
+              // Clear any existing timeout
+              if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+              }
+              
+              // Set up hover-intent delay (200ms like navbar)
+              hoverTimeout = setTimeout(() => {
+                prefetchUrl(url);
+              }, 200);
+            }
+
+            function clearQuickSearchHover() {
+              if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+              }
+            }
+
+            function prefetchUrl(url) {
+              if (!url) return;
+              
+              // Check if already prefetched
+              if (document.querySelector(\`link[href="\${url}"][rel="prefetch"]\`)) {
+                return;
+              }
+              
+              // Create prefetch link
+              const link = document.createElement('link');
+              link.rel = 'prefetch';
+              link.href = url;
+              document.head.appendChild(link);
+            }
 
             function prefetchResult(result) {
               if (!result) return;
