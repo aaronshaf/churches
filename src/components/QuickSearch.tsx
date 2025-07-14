@@ -730,7 +730,16 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   url = \`/networks/\${result.id}\`;
                 }
                 if (url) {
-                  prefetchUrl(url);
+                  // Check if already prefetched
+                  if (document.querySelector(\`link[href="\${url}"][rel="prefetch"]\`)) {
+                    return;
+                  }
+                  
+                  // Create prefetch link
+                  const link = document.createElement('link');
+                  link.rel = 'prefetch';
+                  link.href = url;
+                  document.head.appendChild(link);
                 }
               }
             }
@@ -744,7 +753,16 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               
               // Set up hover-intent delay (200ms like navbar)
               hoverTimeout = setTimeout(() => {
-                prefetchUrl(url);
+                // Check if already prefetched
+                if (document.querySelector(\`link[href="\${url}"][rel="prefetch"]\`)) {
+                  return;
+                }
+                
+                // Create prefetch link
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = url;
+                document.head.appendChild(link);
               }, 200);
             }
 
@@ -753,21 +771,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 clearTimeout(hoverTimeout);
                 hoverTimeout = null;
               }
-            }
-
-            function prefetchUrl(url) {
-              if (!url) return;
-              
-              // Check if already prefetched
-              if (document.querySelector(\`link[href="\${url}"][rel="prefetch"]\`)) {
-                return;
-              }
-              
-              // Create prefetch link
-              const link = document.createElement('link');
-              link.rel = 'prefetch';
-              link.href = url;
-              document.head.appendChild(link);
             }
 
             function prefetchResult(result) {
