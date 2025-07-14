@@ -75,7 +75,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 </div>
               </div>
               <div id="quick-search-results" class="max-h-96 overflow-y-auto" data-testid="quick-search-results">
-                <div class="px-4 py-8 text-center text-gray-500">
+                <div class="px-4 py-6 text-center text-gray-500">
                   <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -327,7 +327,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               const resultsContainer = document.getElementById('quick-search-results');
               if (resultsContainer) {
                 resultsContainer.innerHTML = \`
-                  <div class="px-4 py-8 text-center text-gray-500">
+                  <div class="px-4 py-6 text-center text-gray-500">
                     <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -732,7 +732,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
 
               if (quickSearchResults.length === 0) {
                 resultsContainer.innerHTML = \`
-                  <div class="px-4 py-8 text-center text-gray-500">
+                  <div class="px-4 py-6 text-center text-gray-500">
                     <p class="text-sm">\${translations.noResults}</p>
                   </div>
                 \`;
