@@ -424,11 +424,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
-                  // Extract domain from website URL
+                  // Extract website URL without protocol
                   const website = (church.website || '').toLowerCase();
-                  const domain = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];
+                  const websiteClean = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '');
                   
-                  return name.includes(searchQuery) || path.includes(searchQuery) || domain.includes(searchQuery);
+                  return name.includes(searchQuery) || path.includes(searchQuery) || websiteClean.includes(searchQuery);
                 })
                 .map(church => ({ ...church, type: 'church', exactMatch: true }))
                 .sort((a, b) => {
@@ -436,6 +436,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   const bName = b.name.toLowerCase();
                   const aPath = (a.path || '').toLowerCase();
                   const bPath = (b.path || '').toLowerCase();
+                  const aWebsite = (a.website || '').toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '');
+                  const bWebsite = (b.website || '').toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '');
                   
                   // First, prioritize listed churches over unlisted
                   const aIsListed = a.status === 'Listed';
@@ -454,6 +456,12 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   const bPathStartsWith = bPath.startsWith(searchQuery);
                   if (aPathStartsWith && !bPathStartsWith) return -1;
                   if (!aPathStartsWith && bPathStartsWith) return 1;
+                  
+                  // Then prioritize website matches
+                  const aWebsiteStartsWith = aWebsite.startsWith(searchQuery);
+                  const bWebsiteStartsWith = bWebsite.startsWith(searchQuery);
+                  if (aWebsiteStartsWith && !bWebsiteStartsWith) return -1;
+                  if (!aWebsiteStartsWith && bWebsiteStartsWith) return 1;
                   
                   return a.name.localeCompare(b.name);
                 });
@@ -553,14 +561,19 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
+                  // Extract website URL without protocol
+                  const website = (church.website || '').toLowerCase();
+                  const websiteClean = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '');
                   
                   // Calculate similarity scores
                   const nameSimilarity = calculateSimilarity(query, name);
                   const pathSimilarity = calculateSimilarity(query, path);
+                  const websiteSimilarity = calculateSimilarity(query, websiteClean);
                   
                   // Also check for substring matches in different word order
                   const queryWords = query.split(/\\s+/);
                   const nameWords = name.split(/\\s+/);
+                  const websiteWords = websiteClean.split(/[\\s\\.\\-\\_]+/); // Split on spaces, dots, dashes, underscores
                   let wordMatchScore = 0;
                   
                   queryWords.forEach(qWord => {
@@ -569,9 +582,14 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                         wordMatchScore += 0.5;
                       }
                     });
+                    websiteWords.forEach(wWord => {
+                      if (wWord.includes(qWord) || qWord.includes(wWord)) {
+                        wordMatchScore += 0.3; // Slightly lower weight for website matches
+                      }
+                    });
                   });
                   
-                  const maxScore = Math.max(nameSimilarity, pathSimilarity, wordMatchScore / queryWords.length);
+                  const maxScore = Math.max(nameSimilarity, pathSimilarity, websiteSimilarity, wordMatchScore / queryWords.length);
                   
                   if (maxScore >= threshold) {
                     return { ...church, type: 'church', score: maxScore, exactMatch: false };
