@@ -108,8 +108,15 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             const translations = {
               loading: ${JSON.stringify(t('search.loading'))},
               typeToSearch: ${JSON.stringify(t('search.typeToSearch'))},
-              noResults: ${JSON.stringify(t('search.noResults'))}
+              noResults: ${JSON.stringify(t('search.noResults'))},
+              fuzzyResults: ${JSON.stringify(t('search.fuzzyResults', { defaultValue: 'Similar results:' }))}
             };
+            
+            // Cache keys
+            const CACHE_KEY_CHURCHES = 'utahchurches_search_churches';
+            const CACHE_KEY_COUNTIES = 'utahchurches_search_counties';
+            const CACHE_KEY_AFFILIATIONS = 'utahchurches_search_affiliations';
+            const CACHE_EXPIRY = 3600000; // 1 hour in milliseconds
 
             // Initialize quick search
             document.addEventListener('DOMContentLoaded', function() {
@@ -126,9 +133,79 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               });
             });
 
+            // Helper function to get cached data
+            function getCachedData(key) {
+              try {
+                const cached = localStorage.getItem(key);
+                if (!cached) return null;
+                
+                const data = JSON.parse(cached);
+                const now = Date.now();
+                
+                // Check if cache is expired
+                if (data.expiry && now > data.expiry) {
+                  localStorage.removeItem(key);
+                  return null;
+                }
+                
+                return data.value;
+              } catch (error) {
+                console.error('Error reading from cache:', error);
+                return null;
+              }
+            }
+
+            // Helper function to set cached data
+            function setCachedData(key, value) {
+              try {
+                const data = {
+                  value: value,
+                  expiry: Date.now() + CACHE_EXPIRY
+                };
+                localStorage.setItem(key, JSON.stringify(data));
+              } catch (error) {
+                console.error('Error writing to cache:', error);
+                // If localStorage is full, clear old cache
+                if (error.name === 'QuotaExceededError') {
+                  localStorage.removeItem(CACHE_KEY_CHURCHES);
+                  localStorage.removeItem(CACHE_KEY_COUNTIES);
+                  localStorage.removeItem(CACHE_KEY_AFFILIATIONS);
+                }
+              }
+            }
+
             async function loadAllData() {
               if (dataLoaded) return;
               
+              // Try to load from localStorage first
+              const cachedChurches = getCachedData(CACHE_KEY_CHURCHES);
+              const cachedCounties = getCachedData(CACHE_KEY_COUNTIES);
+              const cachedAffiliations = getCachedData(CACHE_KEY_AFFILIATIONS);
+              
+              if (cachedChurches && cachedCounties && cachedAffiliations) {
+                allChurches = cachedChurches;
+                allCounties = cachedCounties;
+                allAffiliations = cachedAffiliations;
+                dataLoaded = true;
+                
+                // Re-run search if user has already typed something
+                const input = document.getElementById('quick-search-input');
+                const queryToRun = pendingSearchQuery || (input && input.value.trim());
+                if (queryToRun) {
+                  pendingSearchQuery = null;
+                  performQuickSearch(queryToRun);
+                }
+                
+                // Still fetch fresh data in background
+                fetchFreshData();
+                return;
+              }
+              
+              // If no cache, fetch from API
+              await fetchFreshData();
+            }
+            
+            async function fetchFreshData() {
               try {
                 const [churchesResponse, countiesResponse, affiliationsResponse] = await Promise.all([
                   fetch('/api/churches?limit=1000'),
@@ -139,16 +216,19 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 if (churchesResponse.ok) {
                   const data = await churchesResponse.json();
                   allChurches = data.churches || [];
+                  setCachedData(CACHE_KEY_CHURCHES, allChurches);
                 }
                 
                 if (countiesResponse.ok) {
                   const data = await countiesResponse.json();
                   allCounties = data || [];
+                  setCachedData(CACHE_KEY_COUNTIES, allCounties);
                 }
                 
                 if (affiliationsResponse.ok) {
                   const data = await affiliationsResponse.json();
                   allAffiliations = data || [];
+                  setCachedData(CACHE_KEY_AFFILIATIONS, allAffiliations);
                 }
                 
                 dataLoaded = true;
@@ -178,38 +258,38 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 // Load data only when search is opened
                 if (!dataLoaded) {
                   const resultsContainer = document.getElementById('quick-search-results');
-                  let spinnerTimeout = null;
                   
-                  // Show spinner only if loading takes more than 1 second
-                  if (resultsContainer) {
-                    spinnerTimeout = setTimeout(() => {
-                      resultsContainer.innerHTML = \`
-                        <div class="px-4 py-12 text-center">
-                          <div class="relative inline-flex">
-                            <div class="w-8 h-8 bg-blue-500 rounded-full opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
-                            <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-ping opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
-                            <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-pulse opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
-                          </div>
-                          <p class="mt-4 text-sm text-gray-600 opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">\${translations.loading}</p>
-                          <p class="mt-1 text-xs text-gray-400 opacity-0 transition-opacity duration-300" style="animation-delay: 200ms;">Searching churches, counties, and networks...</p>
-                        </div>\`;
-                      
-                      // Fade in the spinner elements
-                      setTimeout(() => {
-                        const elements = resultsContainer.querySelectorAll('[style*="animation-delay"]');
-                        elements.forEach(el => el.classList.remove('opacity-0'));
-                      }, 50);
-                    }, 1000);
-                  }
+                  // Check if we have cached data for instant loading
+                  const hasCachedData = getCachedData(CACHE_KEY_CHURCHES) && 
+                                       getCachedData(CACHE_KEY_COUNTIES) && 
+                                       getCachedData(CACHE_KEY_AFFILIATIONS);
                   
-                  await loadAllData();
-                  
-                  // Clear spinner timeout and reset to default state
-                  if (spinnerTimeout) {
+                  if (!hasCachedData) {
+                    // Show loading state only if no cached data
+                    let spinnerTimeout = setTimeout(() => {
+                      if (resultsContainer && !dataLoaded) {
+                        resultsContainer.innerHTML = \`
+                          <div class="px-4 py-12 text-center">
+                            <div class="relative inline-flex">
+                              <div class="w-8 h-8 bg-blue-500 rounded-full"></div>
+                              <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-ping"></div>
+                              <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-pulse"></div>
+                            </div>
+                            <p class="mt-4 text-sm text-gray-600">\${translations.loading}</p>
+                            <p class="mt-1 text-xs text-gray-400">Loading search data...</p>
+                          </div>\`;
+                      }
+                    }, 100);
+                    
+                    await loadAllData();
+                    
                     clearTimeout(spinnerTimeout);
-                  }
-                  if (resultsContainer) {
-                    resetQuickSearch();
+                    if (resultsContainer) {
+                      resetQuickSearch();
+                    }
+                  } else {
+                    // Load cached data instantly
+                    loadAllData();
                   }
                 }
               }
@@ -246,6 +326,47 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               }
             }
 
+            // Levenshtein distance for fuzzy matching
+            function levenshteinDistance(str1, str2) {
+              const matrix = [];
+              const len1 = str1.length;
+              const len2 = str2.length;
+
+              if (len1 === 0) return len2;
+              if (len2 === 0) return len1;
+
+              for (let i = 0; i <= len2; i++) {
+                matrix[i] = [i];
+              }
+
+              for (let j = 0; j <= len1; j++) {
+                matrix[0][j] = j;
+              }
+
+              for (let i = 1; i <= len2; i++) {
+                for (let j = 1; j <= len1; j++) {
+                  if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                  } else {
+                    matrix[i][j] = Math.min(
+                      matrix[i - 1][j - 1] + 1, // substitution
+                      matrix[i][j - 1] + 1,     // insertion
+                      matrix[i - 1][j] + 1      // deletion
+                    );
+                  }
+                }
+              }
+
+              return matrix[len2][len1];
+            }
+
+            // Calculate similarity score (0-1, where 1 is identical)
+            function calculateSimilarity(str1, str2) {
+              const distance = levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
+              const maxLength = Math.max(str1.length, str2.length);
+              return maxLength === 0 ? 1 : 1 - (distance / maxLength);
+            }
+
             function performQuickSearch(query) {
               // Clear any existing debounce timer
               if (searchDebounceTimer) {
@@ -271,7 +392,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                         <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
                       </div>
                       <p class="mt-4 text-sm text-gray-600">\${translations.loading}</p>
-                      <p class="mt-1 text-xs text-gray-400">Loading search data...</p>
                     </div>\`;
                 }
                 // Start loading data if not already loading
@@ -283,7 +403,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
 
               // Instant client-side filtering
               const searchQuery = query.toLowerCase();
-              const results = [];
+              let results = [];
+              let fuzzyResults = [];
               
               // Search churches
               const churchResults = allChurches
@@ -303,7 +424,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   
                   return name.includes(searchQuery) || path.includes(searchQuery) || domain.includes(searchQuery);
                 })
-                .map(church => ({ ...church, type: 'church' }))
+                .map(church => ({ ...church, type: 'church', exactMatch: true }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
@@ -339,7 +460,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   const path = (county.path || '').toLowerCase();
                   return name.includes(searchQuery) || path.includes(searchQuery);
                 })
-                .map(county => ({ ...county, type: 'county' }))
+                .map(county => ({ ...county, type: 'county', exactMatch: true }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
@@ -370,7 +491,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   const idString = (affiliation.id || '').toString();
                   return name.includes(searchQuery) || idString.includes(searchQuery);
                 })
-                .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
+                .map(affiliation => ({ ...affiliation, type: 'affiliation', exactMatch: true }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
@@ -383,21 +504,24 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   return a.name.localeCompare(b.name);
                 });
               
-              // Combine results - churches first, then counties, then affiliations
-              quickSearchResults = [
+              // Combine exact match results
+              results = [
                 ...churchResults.slice(0, 5),
                 ...countyResults.slice(0, 3),
                 ...affiliationResults.slice(0, 2)
               ].slice(0, 10);
               
-              // If no results found, try fuzzy search
-              if (quickSearchResults.length === 0) {
-                quickSearchResults = performFuzzySearch(searchQuery);
+              // If no exact matches, perform fuzzy search
+              if (results.length === 0 && searchQuery.length >= 3) {
+                fuzzyResults = performFuzzySearch(searchQuery);
+                results = fuzzyResults;
               }
+              
+              quickSearchResults = results;
               
               // Set first result as selected by default if there are results
               selectedIndex = quickSearchResults.length > 0 ? 0 : -1;
-              displayQuickSearchResults();
+              displayQuickSearchResults(fuzzyResults.length > 0);
               
               // Set up debounce timer to prefetch first result after 200ms
               if (quickSearchResults.length > 0) {
@@ -409,65 +533,103 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             
             function performFuzzySearch(query) {
               const results = [];
-              const searchWords = query.toLowerCase().split(/\s+/);
+              const threshold = 0.6; // Minimum similarity score
               
               // Fuzzy search churches
               const churchResults = allChurches
-                .filter(church => {
-                  if (!church.name) return false;
+                .map(church => {
+                  if (!church.name) return null;
                   
                   // Filter out heretical churches for non-admin/contributor users
                   if (userRole !== 'admin' && userRole !== 'contributor' && church.status === 'Heretical') {
-                    return false;
+                    return null;
                   }
                   
                   const name = church.name.toLowerCase();
                   const path = (church.path || '').toLowerCase();
-                  // Extract domain from website URL
-                  const website = (church.website || '').toLowerCase();
-                  const domain = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];
                   
-                  // Check if all search words appear anywhere in the name, path, or domain
-                  return searchWords.every(word => name.includes(word) || path.includes(word) || domain.includes(word));
+                  // Calculate similarity scores
+                  const nameSimilarity = calculateSimilarity(query, name);
+                  const pathSimilarity = calculateSimilarity(query, path);
+                  
+                  // Also check for substring matches in different word order
+                  const queryWords = query.split(/\\s+/);
+                  const nameWords = name.split(/\\s+/);
+                  let wordMatchScore = 0;
+                  
+                  queryWords.forEach(qWord => {
+                    nameWords.forEach(nWord => {
+                      if (nWord.includes(qWord) || qWord.includes(nWord)) {
+                        wordMatchScore += 0.5;
+                      }
+                    });
+                  });
+                  
+                  const maxScore = Math.max(nameSimilarity, pathSimilarity, wordMatchScore / queryWords.length);
+                  
+                  if (maxScore >= threshold) {
+                    return { ...church, type: 'church', score: maxScore, exactMatch: false };
+                  }
+                  
+                  return null;
                 })
-                .map(church => ({ ...church, type: 'church' }))
+                .filter(result => result !== null)
                 .sort((a, b) => {
-                  // First, prioritize listed churches over unlisted
+                  // First, prioritize listed churches
                   const aIsListed = a.status === 'Listed';
                   const bIsListed = b.status === 'Listed';
                   if (aIsListed && !bIsListed) return -1;
                   if (!aIsListed && bIsListed) return 1;
                   
-                  return a.name.localeCompare(b.name);
+                  // Then sort by similarity score
+                  return b.score - a.score;
                 })
                 .slice(0, 5);
               
               // Fuzzy search counties
               const countyResults = allCounties
-                .filter(county => {
-                  if (!county.name) return false;
+                .map(county => {
+                  if (!county.name) return null;
+                  
                   const name = county.name.toLowerCase();
                   const path = (county.path || '').toLowerCase();
-                  return searchWords.every(word => name.includes(word) || path.includes(word));
+                  
+                  const nameSimilarity = calculateSimilarity(query, name);
+                  const pathSimilarity = calculateSimilarity(query, path);
+                  const maxScore = Math.max(nameSimilarity, pathSimilarity);
+                  
+                  if (maxScore >= threshold) {
+                    return { ...county, type: 'county', score: maxScore, exactMatch: false };
+                  }
+                  
+                  return null;
                 })
-                .map(county => ({ ...county, type: 'county' }))
+                .filter(result => result !== null)
+                .sort((a, b) => b.score - a.score)
                 .slice(0, 3);
               
               // Fuzzy search affiliations
               const affiliationResults = allAffiliations
-                .filter(affiliation => {
-                  if (!affiliation.name) return false;
+                .map(affiliation => {
+                  if (!affiliation.name) return null;
+                  
                   const name = affiliation.name.toLowerCase();
-                  const idString = (affiliation.id || '').toString();
-                  return searchWords.every(word => name.includes(word) || idString.includes(word));
+                  const similarity = calculateSimilarity(query, name);
+                  
+                  if (similarity >= threshold) {
+                    return { ...affiliation, type: 'affiliation', score: similarity, exactMatch: false };
+                  }
+                  
+                  return null;
                 })
-                .map(affiliation => ({ ...affiliation, type: 'affiliation' }))
+                .filter(result => result !== null)
+                .sort((a, b) => b.score - a.score)
                 .slice(0, 2);
               
               return [...churchResults, ...countyResults, ...affiliationResults].slice(0, 10);
             }
 
-            function displayQuickSearchResults() {
+            function displayQuickSearchResults(isFuzzy = false) {
               const resultsContainer = document.getElementById('quick-search-results');
               if (!resultsContainer) return;
 
@@ -480,7 +642,13 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 return;
               }
 
-              resultsContainer.innerHTML = quickSearchResults.map((result, index) => {
+              let html = '';
+              
+              if (isFuzzy) {
+                html += \`<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">\${translations.fuzzyResults}</div>\`;
+              }
+
+              html += quickSearchResults.map((result, index) => {
                 const isSelected = index === selectedIndex;
                 let href, title, subtitle, typeLabel, typeColor;
                 
@@ -534,6 +702,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   </a>
                 \`;
               }).join('');
+
+              resultsContainer.innerHTML = html;
             }
 
             function updateSelectedResult() {
