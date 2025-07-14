@@ -556,14 +556,25 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 .filter(affiliation => {
                   if (!affiliation.name) return false;
                   const name = affiliation.name.toLowerCase();
+                  const path = (affiliation.path || '').toLowerCase();
                   // For affiliations, also search by ID since that's used in URLs
                   const idString = (affiliation.id || '').toString();
-                  return name.includes(searchQuery) || idString.includes(searchQuery);
+                  return name.includes(searchQuery) || path.includes(searchQuery) || idString.includes(searchQuery);
                 })
                 .map(affiliation => ({ ...affiliation, type: 'affiliation', exactMatch: true }))
                 .sort((a, b) => {
                   const aName = a.name.toLowerCase();
                   const bName = b.name.toLowerCase();
+                  const aPath = (a.path || '').toLowerCase();
+                  const bPath = (b.path || '').toLowerCase();
+                  
+                  // First prioritize exact path matches
+                  const aPathStartsWith = aPath.startsWith(searchQuery);
+                  const bPathStartsWith = bPath.startsWith(searchQuery);
+                  if (aPathStartsWith && !bPathStartsWith) return -1;
+                  if (!aPathStartsWith && bPathStartsWith) return 1;
+                  
+                  // Then prioritize name matches
                   const aStartsWith = aName.startsWith(searchQuery);
                   const bStartsWith = bName.startsWith(searchQuery);
                   
@@ -580,17 +591,23 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 ...affiliationResults.slice(0, 2)
               ].slice(0, 10);
               
-              // If no exact matches, perform fuzzy search
-              if (results.length === 0 && searchQuery.length >= 3) {
+              // If fewer than 10 exact matches, perform fuzzy search to fill out results
+              if (results.length < 10 && searchQuery.length >= 3) {
                 fuzzyResults = performFuzzySearch(searchQuery);
-                results = fuzzyResults;
+                // Filter out any fuzzy results that are already in exact results
+                const exactIds = new Set(results.map(r => r.id));
+                const uniqueFuzzyResults = fuzzyResults.filter(r => !exactIds.has(r.id));
+                // Combine exact and fuzzy results, keeping exact matches first
+                results = [...results, ...uniqueFuzzyResults].slice(0, 10);
               }
               
               quickSearchResults = results;
               
               // Set first result as selected by default if there are results
               selectedIndex = quickSearchResults.length > 0 ? 0 : -1;
-              displayQuickSearchResults(fuzzyResults.length > 0);
+              // Check if we have any fuzzy results in our final results
+              const hasFuzzyResults = quickSearchResults.some(r => !r.exactMatch);
+              displayQuickSearchResults(hasFuzzyResults);
               
               // Set up debounce timer to prefetch first result after 200ms
               if (quickSearchResults.length > 0) {
@@ -711,10 +728,14 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   if (!affiliation.name) return null;
                   
                   const name = affiliation.name.toLowerCase();
-                  const similarity = calculateSimilarity(query, name);
+                  const path = (affiliation.path || '').toLowerCase();
                   
-                  if (similarity >= threshold) {
-                    return { ...affiliation, type: 'affiliation', score: similarity, exactMatch: false };
+                  const nameSimilarity = calculateSimilarity(query, name);
+                  const pathSimilarity = calculateSimilarity(query, path);
+                  const maxScore = Math.max(nameSimilarity, pathSimilarity);
+                  
+                  if (maxScore >= threshold) {
+                    return { ...affiliation, type: 'affiliation', score: maxScore, exactMatch: false };
                   }
                   
                   return null;
@@ -726,7 +747,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               return [...churchResults, ...countyResults, ...affiliationResults].slice(0, 10);
             }
 
-            function displayQuickSearchResults(isFuzzy = false) {
+            function displayQuickSearchResults(hasFuzzyResults = false) {
               const resultsContainer = document.getElementById('quick-search-results');
               if (!resultsContainer) return;
 
@@ -740,12 +761,22 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               }
 
               let html = '';
+              let lastWasExact = true;
               
-              if (isFuzzy) {
-                html += \`<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">\${translations.fuzzyResults}</div>\`;
-              }
+              quickSearchResults.forEach((result, index) => {
+                // Add fuzzy results header when we transition from exact to fuzzy
+                if (lastWasExact && !result.exactMatch && hasFuzzyResults) {
+                  html += \`<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">\${translations.fuzzyResults}</div>\`;
+                  lastWasExact = false;
+                }
 
-              html += quickSearchResults.map((result, index) => {
+                html += renderSearchResult(result, index);
+              });
+
+              resultsContainer.innerHTML = html;
+            }
+
+            function renderSearchResult(result, index) {
                 const isSelected = index === selectedIndex;
                 let href, title, subtitle, typeLabel, typeColor;
                 
@@ -800,9 +831,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                     </div>
                   </a>
                 \`;
-              }).join('');
-
-              resultsContainer.innerHTML = html;
             }
 
             function updateSelectedResult() {
