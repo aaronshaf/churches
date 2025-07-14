@@ -17,13 +17,14 @@ import {
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
+import type { D1SessionVariables } from '../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
 import { getCommonLayoutProps } from '../utils/layout-props';
 import { getSettingsWithCache } from '../utils/settings-cache';
 
-type Variables = AuthVariables;
+type Variables = AuthVariables & D1SessionVariables;
 
 export const churchDetailRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -52,7 +53,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
   try {
     // Get church with county info first (we need the church ID for other queries)
-    const church = await db
+    const churchQuery = await db
       .select({
         id: churches.id,
         name: churches.name,
@@ -82,6 +83,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       .leftJoin(counties, eq(churches.countyId, counties.id))
       .where(eq(churches.path, churchPath))
       .get();
+
+    // Log read replica information for monitoring
+    // Note: D1Result meta information is not directly accessible through Drizzle
+    // This would need to be accessed through raw D1 queries if needed
+
+    const church = churchQuery;
 
     if (!church) {
       return c.html(

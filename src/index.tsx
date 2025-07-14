@@ -29,6 +29,8 @@ import {
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
+import type { D1SessionVariables } from './middleware/d1-session';
+import { d1SessionMiddleware } from './middleware/d1-session';
 import { domainRedirectMiddleware } from './middleware/domain-redirect';
 import { envCheckMiddleware } from './middleware/env-check';
 import { i18nMiddleware } from './middleware/i18n';
@@ -54,7 +56,7 @@ import { getCommonLayoutProps } from './utils/layout-props';
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
-type Variables = AuthVariables;
+type Variables = AuthVariables & D1SessionVariables;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -66,6 +68,9 @@ app.use('*', domainRedirectMiddleware);
 
 // Apply i18n middleware globally
 app.use('*', i18nMiddleware);
+
+// Apply D1 session middleware for read replication
+app.use('*', d1SessionMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
