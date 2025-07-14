@@ -377,7 +377,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
           {/* Church Content */}
           <div class="bg-gray-50">
-            <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8 py-6 sm:py-12">
+            <div class="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 py-6 md:py-8">
               <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg" data-testid="church-content-card">
                 <div class="p-6 sm:p-8" data-testid="church-content">
                   {/* Church Details Grid */}
