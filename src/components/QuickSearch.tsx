@@ -184,21 +184,20 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   if (resultsContainer) {
                     spinnerTimeout = setTimeout(() => {
                       resultsContainer.innerHTML = \`
-                        <div class="px-4 py-8 text-center text-gray-500">
-                          <div class="animate-spin h-8 w-8 mx-auto mb-2 opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">
-                            <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                            </svg>
+                        <div class="px-4 py-12 text-center">
+                          <div class="relative inline-flex">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
+                            <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-ping opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
+                            <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-pulse opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;"></div>
                           </div>
-                          <span class="text-sm opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">\${translations.loading}</span>
+                          <p class="mt-4 text-sm text-gray-600 opacity-0 transition-opacity duration-300" style="animation-delay: 100ms;">\${translations.loading}</p>
+                          <p class="mt-1 text-xs text-gray-400 opacity-0 transition-opacity duration-300" style="animation-delay: 200ms;">Searching churches, counties, and networks...</p>
                         </div>\`;
                       
-                      // Fade in the spinner
+                      // Fade in the spinner elements
                       setTimeout(() => {
-                        const spinner = resultsContainer.querySelector('.animate-spin');
-                        const text = resultsContainer.querySelector('.text-sm');
-                        if (spinner) spinner.classList.remove('opacity-0');
-                        if (text) text.classList.remove('opacity-0');
+                        const elements = resultsContainer.querySelectorAll('[style*="animation-delay"]');
+                        elements.forEach(el => el.classList.remove('opacity-0'));
                       }, 50);
                     }, 1000);
                   }
@@ -265,13 +264,14 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 const resultsContainer = document.getElementById('quick-search-results');
                 if (resultsContainer) {
                   resultsContainer.innerHTML = \`
-                    <div class="px-4 py-8 text-center text-gray-500">
-                      <div class="animate-spin h-6 w-6 mx-auto mb-2">
-                        <svg class="h-full w-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                        </svg>
+                    <div class="px-4 py-12 text-center">
+                      <div class="flex justify-center space-x-2">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
                       </div>
-                      <span class="text-sm">\${translations.loading}</span>
+                      <p class="mt-4 text-sm text-gray-600">\${translations.loading}</p>
+                      <p class="mt-1 text-xs text-gray-400">Loading search data...</p>
                     </div>\`;
                 }
                 // Start loading data if not already loading
