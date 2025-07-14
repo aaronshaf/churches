@@ -66,11 +66,16 @@ apiRoutes.get('/churches', async (c) => {
     .offset(offset)
     .all();
 
-  return c.json({
+  const response = c.json({
     churches: allChurches,
     limit,
     offset,
   });
+
+  // Add cache headers for API responses (3 days - church data changes more frequently)
+  response.headers.set('Cache-Control', 'public, max-age=259200, stale-while-revalidate=86400');
+
+  return response;
 });
 
 // Get single church
@@ -88,7 +93,12 @@ apiRoutes.get('/churches/:id', async (c) => {
     return c.json({ error: 'Church not found' }, 404);
   }
 
-  return c.json(church);
+  const response = c.json(church);
+
+  // Add cache headers for API responses (7 days - individual church data)
+  response.headers.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+
+  return response;
 });
 
 // Delete comment (admin only)
@@ -135,7 +145,12 @@ apiRoutes.get('/counties', async (c) => {
     .orderBy(counties.name)
     .all();
 
-  return c.json(allCounties);
+  const response = c.json(allCounties);
+
+  // Add cache headers for API responses (7 days - county data rarely changes)
+  response.headers.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+
+  return response;
 });
 
 // Get all networks/affiliations
@@ -156,7 +171,12 @@ apiRoutes.get('/networks', async (c) => {
     .orderBy(affiliations.name)
     .all();
 
-  return c.json(allNetworks);
+  const response = c.json(allNetworks);
+
+  // Add cache headers for API responses (7 days - network data rarely changes)
+  response.headers.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+
+  return response;
 });
 
 // Validate address and get coordinates (admin/contributor only)

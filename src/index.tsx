@@ -49,6 +49,7 @@ import { feedbackRoutes } from './routes/feedback';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
 import { cacheInvalidation } from './utils/cache-invalidation';
+import { getFromCache, putInCache } from './utils/cf-cache';
 import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
@@ -349,6 +350,18 @@ app.route('/feedback', feedbackRoutes);
 
 app.get('/', async (c) => {
   try {
+    // Check if user is authenticated (skip cache for auth users)
+    const hasSession = c.req.header('cookie')?.includes('session=');
+
+    // Try to serve from cache first (only for non-authenticated users)
+    if (!hasSession) {
+      const cachedResponse = await getFromCache(c.req.raw);
+      if (cachedResponse) {
+        console.log('Cache HIT for homepage');
+        return cachedResponse;
+      }
+    }
+
     const db = createDbWithContext(c);
 
     // Get all layout props with i18n support
@@ -627,6 +640,14 @@ app.get('/', async (c) => {
       </Layout>
     );
 
+    // Cache the response for non-authenticated users
+    if (!hasSession) {
+      // Cache for 3 days (homepage is more dynamic than church pages)
+      const ttl = 259200; // 3 days
+      c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+      console.log('Cached homepage');
+    }
+
     // Apply cache headers if not authenticated
     return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'homepage');
   } catch (error) {
@@ -642,8 +663,21 @@ app.get('/', async (c) => {
 });
 
 app.get('/counties/:path', async (c) => {
-  const db = createDbWithContext(c);
   const countyPath = c.req.param('path');
+
+  // Check if user is authenticated (skip cache for auth users)
+  const hasSession = c.req.header('cookie')?.includes('session=');
+
+  // Try to serve from cache first (only for non-authenticated users)
+  if (!hasSession) {
+    const cachedResponse = await getFromCache(c.req.raw);
+    if (cachedResponse) {
+      console.log(`Cache HIT for county: ${countyPath}`);
+      return cachedResponse;
+    }
+  }
+
+  const db = createDbWithContext(c);
 
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
@@ -826,11 +860,31 @@ app.get('/counties/:path', async (c) => {
     </Layout>
   );
 
+  // Cache the response for non-authenticated users
+  if (!hasSession) {
+    // Cache for 7 days (same as church detail pages)
+    const ttl = 604800;
+    c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+    console.log(`Cached county page: ${countyPath}`);
+  }
+
   // Apply cache headers if not authenticated
   return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'counties');
 });
 
 app.get('/networks', async (c) => {
+  // Check if user is authenticated (skip cache for auth users)
+  const hasSession = c.req.header('cookie')?.includes('session=');
+
+  // Try to serve from cache first (only for non-authenticated users)
+  if (!hasSession) {
+    const cachedResponse = await getFromCache(c.req.raw);
+    if (cachedResponse) {
+      console.log('Cache HIT for networks page');
+      return cachedResponse;
+    }
+  }
+
   const db = createDbWithContext(c);
 
   // Get common layout props (includes user, i18n, favicon, etc.)
@@ -915,6 +969,14 @@ app.get('/networks', async (c) => {
       </div>
     </Layout>
   );
+
+  // Cache the response for non-authenticated users
+  if (!hasSession) {
+    // Cache for 7 days (network data rarely changes)
+    const ttl = 604800; // 7 days
+    c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+    console.log('Cached networks page');
+  }
 
   // Apply cache headers if not authenticated
   return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'networks');
@@ -1311,8 +1373,21 @@ app.post('/suggest-church', async (c) => {
 });
 
 app.get('/networks/:id', async (c) => {
-  const db = createDbWithContext(c);
   const affiliationIdOrPath = c.req.param('id');
+
+  // Check if user is authenticated (skip cache for auth users)
+  const hasSession = c.req.header('cookie')?.includes('session=');
+
+  // Try to serve from cache first (only for non-authenticated users)
+  if (!hasSession) {
+    const cachedResponse = await getFromCache(c.req.raw);
+    if (cachedResponse) {
+      console.log(`Cache HIT for network: ${affiliationIdOrPath}`);
+      return cachedResponse;
+    }
+  }
+
+  const db = createDbWithContext(c);
 
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
@@ -1518,6 +1593,14 @@ app.get('/networks/:id', async (c) => {
     </Layout>
   );
 
+  // Cache the response for non-authenticated users
+  if (!hasSession) {
+    // Cache for 7 days (network data rarely changes)
+    const ttl = 604800; // 7 days
+    c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+    console.log(`Cached network detail page: ${affiliationIdOrPath}`);
+  }
+
   // Apply cache headers if not authenticated
   return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'networks');
 });
@@ -1592,10 +1675,20 @@ app.get('/map', async (c) => {
     );
   }
 
-  const db = createDbWithContext(c);
+  // Check if user is authenticated (skip cache for auth users)
+  const hasSession = c.req.header('cookie')?.includes('session=');
 
-  // Check for heretical query param
+  // Try to serve from cache first (only for non-authenticated users and without query params)
   const showHereticalOption = c.req.query('heretical') !== undefined;
+  if (!hasSession && !showHereticalOption) {
+    const cachedResponse = await getFromCache(c.req.raw);
+    if (cachedResponse) {
+      console.log('Cache HIT for map page');
+      return cachedResponse;
+    }
+  }
+
+  const db = createDbWithContext(c);
 
   // Check for user session
   const user = await getUser(c);
@@ -2102,6 +2195,14 @@ app.get('/map', async (c) => {
       ></script>
     </Layout>
   );
+
+  // Cache the response for non-authenticated users and without query params
+  if (!hasSession && !showHereticalOption) {
+    // Cache for 3 days (map data changes more frequently than church details)
+    const ttl = 259200; // 3 days
+    c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+    console.log('Cached map page');
+  }
 
   // Apply cache headers if not authenticated
   return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'map');
