@@ -4366,6 +4366,10 @@ app.post('/admin/settings', requireAdminBetter, async (c) => {
   // Invalidate all cache when settings change (affects all pages)
   await cacheInvalidation.settings(c);
 
+  // Also invalidate KV settings cache
+  const { invalidateSettingsCache } = await import('./utils/settings-cache');
+  await invalidateSettingsCache(c.env.SETTINGS_CACHE);
+
   return c.redirect('/admin/settings');
 });
 
