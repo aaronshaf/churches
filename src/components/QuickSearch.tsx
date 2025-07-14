@@ -605,9 +605,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               
               // Set first result as selected by default if there are results
               selectedIndex = quickSearchResults.length > 0 ? 0 : -1;
-              // Check if we have any fuzzy results in our final results
-              const hasFuzzyResults = quickSearchResults.some(r => !r.exactMatch);
-              displayQuickSearchResults(hasFuzzyResults);
+              displayQuickSearchResults();
               
               // Set up debounce timer to prefetch first result after 200ms
               if (quickSearchResults.length > 0) {
@@ -748,7 +746,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               return [...churchResults, ...countyResults, ...affiliationResults];
             }
 
-            function displayQuickSearchResults(hasFuzzyResults = false) {
+            function displayQuickSearchResults() {
               const resultsContainer = document.getElementById('quick-search-results');
               if (!resultsContainer) return;
 
@@ -762,15 +760,8 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               }
 
               let html = '';
-              let lastWasExact = true;
               
               quickSearchResults.forEach((result, index) => {
-                // Add fuzzy results header when we transition from exact to fuzzy
-                if (lastWasExact && !result.exactMatch && hasFuzzyResults) {
-                  html += \`<div class="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b">\${translations.fuzzyResults}</div>\`;
-                  lastWasExact = false;
-                }
-
                 html += renderSearchResult(result, index);
               });
 
