@@ -619,7 +619,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             
             function performFuzzySearch(query) {
               const results = [];
-              const threshold = 0.6; // Minimum similarity score
+              const threshold = 0.5; // Lowered threshold to get more fuzzy matches when needed
               
               // Fuzzy search churches
               const churchResults = allChurches
@@ -698,7 +698,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   // Then sort by similarity score
                   return b.score - a.score;
                 })
-                .slice(0, 5);
+                .slice(0, 15); // Get more results to ensure we can fill to 10 total
               
               // Fuzzy search counties
               const countyResults = allCounties
@@ -720,7 +720,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 })
                 .filter(result => result !== null)
                 .sort((a, b) => b.score - a.score)
-                .slice(0, 3);
+                .slice(0, 8); // Get more results to ensure we can fill to 10 total
               
               // Fuzzy search affiliations
               const affiliationResults = allAffiliations
@@ -742,9 +742,10 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 })
                 .filter(result => result !== null)
                 .sort((a, b) => b.score - a.score)
-                .slice(0, 2);
+                .slice(0, 5); // Get more results to ensure we can fill to 10 total
               
-              return [...churchResults, ...countyResults, ...affiliationResults].slice(0, 10);
+              // Return more than 10 so the main function can properly filter duplicates and slice to 10
+              return [...churchResults, ...countyResults, ...affiliationResults];
             }
 
             function displayQuickSearchResults(hasFuzzyResults = false) {
