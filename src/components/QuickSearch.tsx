@@ -270,14 +270,13 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                     let spinnerTimeout = setTimeout(() => {
                       if (resultsContainer && !dataLoaded) {
                         resultsContainer.innerHTML = \`
-                          <div class="px-4 py-12 text-center">
-                            <div class="relative inline-flex">
-                              <div class="w-8 h-8 bg-blue-500 rounded-full"></div>
-                              <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-ping"></div>
-                              <div class="w-8 h-8 bg-blue-500 rounded-full absolute top-0 left-0 animate-pulse"></div>
+                          <div class="px-4 py-6 text-center">
+                            <div class="flex justify-center space-x-1">
+                              <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
+                              <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 200ms;"></div>
+                              <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 400ms;"></div>
                             </div>
-                            <p class="mt-4 text-sm text-gray-600">\${translations.loading}</p>
-                            <p class="mt-1 text-xs text-gray-400">Loading search data...</p>
+                            <p class="mt-3 text-xs text-gray-500">Loading...</p>
                           </div>\`;
                       }
                     }, 100);
@@ -391,13 +390,13 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 const resultsContainer = document.getElementById('quick-search-results');
                 if (resultsContainer) {
                   resultsContainer.innerHTML = \`
-                    <div class="px-4 py-12 text-center">
-                      <div class="flex justify-center space-x-2">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
-                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
-                        <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                    <div class="px-4 py-6 text-center">
+                      <div class="flex justify-center space-x-1">
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
                       </div>
-                      <p class="mt-4 text-sm text-gray-600">\${translations.loading}</p>
+                      <p class="mt-2 text-xs text-gray-500">Searching...</p>
                     </div>\`;
                 }
                 // Start loading data if not already loading
