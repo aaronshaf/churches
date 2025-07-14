@@ -20,6 +20,7 @@ import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../types';
 import { compareChurchData, createAuditComment } from '../../utils/audit-trail';
 import { cacheInvalidation } from '../../utils/cache-invalidation';
+import { warmCache } from '../../utils/cf-cache';
 import { batchedInQuery, createInClause } from '../../utils/db-helpers';
 import { deleteImage, uploadImage } from '../../utils/r2-images';
 import { getLogoUrl } from '../../utils/settings';
@@ -772,8 +773,24 @@ adminChurchesRoutes.post('/', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
-    // Invalidate cache for new church
-    await cacheInvalidation.church(c, church.id.toString());
+    // Get county path for cache invalidation
+    const createdCounty = church.countyId
+      ? await db.select({ path: counties.path }).from(counties).where(eq(counties.id, church.countyId)).get()
+      : null;
+
+    // Invalidate cache for new church with full context
+    await cacheInvalidation.multiple(c, {
+      churchId: church.id.toString(),
+      churchPath: church.path || undefined,
+      countyPath: createdCounty?.path || undefined,
+      networkIds: validatedAffiliations?.map((id) => id.toString()) || [],
+    });
+
+    // Warm cache for the new church page
+    if (church.path) {
+      const baseUrl = new URL(c.req.url).origin;
+      c.executionCtx.waitUntil(warmCache([`/churches/${church.path}`], baseUrl, c.executionCtx));
+    }
 
     // Redirect to the church page
     if (church.path) {
@@ -1152,11 +1169,40 @@ adminChurchesRoutes.post('/:id', async (c) => {
       console.error('Failed to create audit trail:', error);
     }
 
-    // Get the church name for the success message
-    const updatedChurch = await db.select().from(churches).where(eq(churches.id, id)).get();
+    // Get the church name and details for the success message and cache invalidation
+    const updatedChurch = await db
+      .select({
+        id: churches.id,
+        name: churches.name,
+        path: churches.path,
+        countyId: churches.countyId,
+      })
+      .from(churches)
+      .where(eq(churches.id, id))
+      .get();
 
-    // Invalidate cache for updated church
-    await cacheInvalidation.church(c, id.toString());
+    // Get county path for cache invalidation
+    const county = updatedChurch?.countyId
+      ? await db.select({ path: counties.path }).from(counties).where(eq(counties.id, updatedChurch.countyId)).get()
+      : null;
+
+    // Invalidate cache for updated church with full context
+    await cacheInvalidation.multiple(c, {
+      churchId: id.toString(),
+      churchPath: updatedChurch?.path || undefined,
+      countyPath: county?.path || undefined,
+      networkIds: validatedAffiliations?.map((id) => id.toString()) || [],
+    });
+
+    // Warm cache for the updated church page
+    if (updatedChurch?.path) {
+      const baseUrl = new URL(c.req.url).origin;
+      const urlsToWarm = [`/churches/${updatedChurch.path}`];
+      if (county?.path) {
+        urlsToWarm.push(`/counties/${county.path}`);
+      }
+      c.executionCtx.waitUntil(warmCache(urlsToWarm, baseUrl, c.executionCtx));
+    }
 
     // Check if this was a "save and continue" action
     if (body.continue === 'true') {
@@ -1204,6 +1250,30 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
   const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
+  // Get church details before deletion for cache invalidation
+  const churchToDelete = await db
+    .select({
+      id: churches.id,
+      path: churches.path,
+      countyId: churches.countyId,
+    })
+    .from(churches)
+    .where(eq(churches.id, id))
+    .get();
+
+  // Get county path
+  const county = churchToDelete?.countyId
+    ? await db.select({ path: counties.path }).from(counties).where(eq(counties.id, churchToDelete.countyId)).get()
+    : null;
+
+  // Get church affiliations before deletion
+  const churchAffiliationsList = await db
+    .select({ affiliationId: churchAffiliations.affiliationId })
+    .from(churchAffiliations)
+    .where(eq(churchAffiliations.churchId, id))
+    .all();
+  const affiliationIds = churchAffiliationsList.map((ca) => ca.affiliationId.toString());
+
   // Get all church images before deleting (with error handling)
   let churchImagesList: Array<typeof churchImages.$inferSelect> = [];
   try {
@@ -1234,8 +1304,13 @@ adminChurchesRoutes.post('/:id/delete', async (c) => {
     await deleteImage(image.imagePath, c.env);
   }
 
-  // Invalidate cache for deleted church
-  await cacheInvalidation.church(c, id.toString());
+  // Invalidate cache for deleted church with full context
+  await cacheInvalidation.multiple(c, {
+    churchId: id.toString(),
+    churchPath: churchToDelete?.path || undefined,
+    countyPath: county?.path || undefined,
+    networkIds: affiliationIds,
+  });
 
   return c.redirect('/admin/churches');
 });

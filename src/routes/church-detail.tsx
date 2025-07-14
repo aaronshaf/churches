@@ -19,6 +19,7 @@ import { getUser } from '../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
 import type { D1SessionVariables } from '../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../types';
+import { getFromCache, putInCache } from '../utils/cf-cache';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
 import { getCommonLayoutProps } from '../utils/layout-props';
@@ -29,8 +30,21 @@ type Variables = AuthVariables & D1SessionVariables;
 export const churchDetailRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 churchDetailRoutes.get('/churches/:path', async (c) => {
-  const db = createDbWithContext(c);
   const churchPath = c.req.param('path');
+
+  // Check if user is authenticated (skip cache for auth users)
+  const hasSession = c.req.header('cookie')?.includes('session=');
+
+  // Try to serve from cache first (only for non-authenticated users)
+  if (!hasSession) {
+    const cachedResponse = await getFromCache(c.req.raw);
+    if (cachedResponse) {
+      console.log(`Cache HIT for church: ${churchPath}`);
+      return cachedResponse;
+    }
+  }
+
+  const db = createDbWithContext(c);
 
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
@@ -1057,6 +1071,14 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         />
       </Layout>
     );
+
+    // Cache the response for non-authenticated users
+    if (!hasSession) {
+      // Cache for 7 days
+      const ttl = 604800;
+      c.executionCtx.waitUntil(putInCache(c.req.raw, response.clone(), ttl));
+      console.log(`Cached church detail: ${churchPath}`);
+    }
 
     // Apply cache headers if not authenticated
     return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'churches');

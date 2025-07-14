@@ -1,10 +1,18 @@
+import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
+import { createDbWithContext } from '../db';
+import { affiliations, churches, counties } from '../db/schema';
+import { deleteFromCache, getCacheUrlsForChurch } from './cf-cache';
 
 export interface CacheInvalidationOptions {
   churchId?: string;
   countyId?: string;
   affiliationId?: string;
   clearAll?: boolean;
+  // Additional context for better invalidation
+  churchPath?: string;
+  countyPath?: string;
+  networkIds?: string[];
 }
 
 /**
@@ -22,10 +30,9 @@ export class CacheInvalidator {
 
   private async deleteFromCache(path: string): Promise<boolean> {
     try {
-      // Note: Cache invalidation disabled for now due to TypeScript issues
-      // The core caching functionality works via Cache-Control headers
-      // Cloudflare will automatically handle cache with proper headers
-      console.log(`Cache invalidation requested for ${path} (currently disabled)`);
+      const fullUrl = `${this.baseUrl}${path}`;
+      await deleteFromCache([fullUrl]);
+      console.log(`Cache invalidated for ${path}`);
       return true;
     } catch (error) {
       console.warn(`Failed to invalidate cache for ${path}:`, error);
@@ -46,7 +53,7 @@ export class CacheInvalidator {
     }
 
     if (options.churchId) {
-      promises.push(...this.getChurchInvalidationPromises(options.churchId));
+      promises.push(...(await this.getChurchInvalidationPromises(options.churchId, options)));
     }
 
     if (options.countyId) {
@@ -64,24 +71,27 @@ export class CacheInvalidator {
   /**
    * Get invalidation promises for church-related updates
    */
-  private getChurchInvalidationPromises(churchId: string): Promise<boolean>[] {
+  private async getChurchInvalidationPromises(
+    churchId: string,
+    options: CacheInvalidationOptions
+  ): Promise<Promise<boolean>[]> {
     const promises: Promise<boolean>[] = [];
 
-    // Invalidate homepage (church counts may change)
-    promises.push(this.deleteFromCache('/'));
+    // If we have the church path and context, use smart invalidation
+    if (options.churchPath) {
+      const urls = getCacheUrlsForChurch(churchId, options.churchPath, options.countyPath, options.networkIds || []);
 
-    // Invalidate data exports (church data changed)
-    promises.push(this.deleteFromCache('/churches.json'));
-    promises.push(this.deleteFromCache('/churches.yaml'));
-    promises.push(this.deleteFromCache('/churches.csv'));
-    promises.push(this.deleteFromCache('/data'));
-
-    // Invalidate map (church markers may change)
-    promises.push(this.deleteFromCache('/map'));
-
-    // Note: We can't easily invalidate specific church detail pages or county pages
-    // without knowing the church path or county ID. In a production system, you might
-    // want to maintain a mapping of church IDs to paths/counties for more targeted invalidation.
+      // Delete all related URLs
+      promises.push(...urls.map((url) => this.deleteFromCache(url)));
+    } else {
+      // Fallback to basic invalidation
+      promises.push(this.deleteFromCache('/'));
+      promises.push(this.deleteFromCache('/churches.json'));
+      promises.push(this.deleteFromCache('/churches.yaml'));
+      promises.push(this.deleteFromCache('/churches.csv'));
+      promises.push(this.deleteFromCache('/data'));
+      promises.push(this.deleteFromCache('/map'));
+    }
 
     return promises;
   }
