@@ -14,7 +14,6 @@ import {
   churchImages,
   comments,
   counties,
-  settings,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
@@ -22,6 +21,7 @@ import type { AuthVariables, Bindings } from '../types';
 import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
 import { getCommonLayoutProps } from '../utils/layout-props';
+import { getSettingsWithCache } from '../utils/settings-cache';
 
 type Variables = AuthVariables;
 
@@ -93,7 +93,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     }
 
     // Execute all dependent queries in parallel using Promise.all
-    const [churchGatheringsList, churchAffiliationsList, churchImagesResult, allComments, siteSettings] =
+    const [churchGatheringsList, churchAffiliationsList, churchImagesResult, allComments, settingsMap] =
       await Promise.all([
         // Get church gatherings (services)
         db
@@ -150,15 +150,8 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           .orderBy(comments.createdAt)
           .all(),
 
-        // Get all site settings in a single query using IN clause
-        db
-          .select({
-            key: settings.key,
-            value: settings.value,
-          })
-          .from(settings)
-          .where(sql`${settings.key} IN ('site_domain', 'site_region', 'r2_image_domain')`)
-          .all(),
+        // Get settings from KV cache (with D1 fallback)
+        getSettingsWithCache(c.env.SETTINGS_CACHE, db),
       ]);
 
     // Use the result from Promise.all
@@ -192,15 +185,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       };
     });
 
-    // Process settings from the combined query
-    const settingsMap = siteSettings.reduce(
-      (acc, setting) => {
-        acc[setting.key] = setting.value;
-        return acc;
-      },
-      {} as Record<string, string | null>
-    );
-
+    // Settings are already in map format from cache
     const siteDomain = settingsMap.site_domain || c.env.SITE_DOMAIN || 'localhost';
     const siteRegion = settingsMap.site_region || 'UT';
     const r2ImageDomain = settingsMap.r2_image_domain;

@@ -8,6 +8,8 @@ export function createDb(d1: D1Database) {
   return drizzle(d1, { schema });
 }
 
+export type DbType = ReturnType<typeof createDb>;
+
 /**
  * Convenience function for creating database from Hono context
  */

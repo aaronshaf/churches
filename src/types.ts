@@ -7,6 +7,7 @@ export interface Bindings {
   GOOGLE_CLIENT_SECRET: string;
   CLOUDFLARE_ACCOUNT_HASH: string;
   IMAGES_BUCKET: R2Bucket; // R2 bucket for image storage
+  SETTINGS_CACHE: KVNamespace; // KV namespace for caching settings
   // Optional environment variables
   GOOGLE_MAPS_API_KEY?: string;
   GOOGLE_SSR_KEY?: string;
