@@ -428,7 +428,42 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   const website = (church.website || '').toLowerCase();
                   const websiteClean = website.replace(/^https?:\\/\\//, '').replace(/^www\\./, '');
                   
-                  return name.includes(searchQuery) || path.includes(searchQuery) || websiteClean.includes(searchQuery);
+                  // Check for direct substring matches
+                  if (name.includes(searchQuery) || path.includes(searchQuery) || websiteClean.includes(searchQuery)) {
+                    return true;
+                  }
+                  
+                  // Check for acronym matches in multi-word searches
+                  const queryWords = searchQuery.split(/\\s+/);
+                  const nameWords = name.split(/\\s+/);
+                  
+                  // If query has multiple words, check if any word is an acronym match
+                  for (const qWord of queryWords) {
+                    if (qWord.length >= 2) {
+                      // Check if this query word matches first letters of consecutive name words
+                      for (let i = 0; i <= nameWords.length - qWord.length; i++) {
+                        let acronymMatch = true;
+                        for (let j = 0; j < qWord.length; j++) {
+                          if (!nameWords[i + j] || nameWords[i + j][0] !== qWord[j]) {
+                            acronymMatch = false;
+                            break;
+                          }
+                        }
+                        if (acronymMatch) {
+                          // Check if other query words also match somewhere in the name
+                          const otherWords = queryWords.filter(w => w !== qWord);
+                          const matchesOtherWords = otherWords.every(otherWord => 
+                            name.includes(otherWord) || websiteClean.includes(otherWord)
+                          );
+                          if (matchesOtherWords) {
+                            return true;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  
+                  return false;
                 })
                 .map(church => ({ ...church, type: 'church', exactMatch: true }))
                 .sort((a, b) => {
@@ -577,6 +612,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   let wordMatchScore = 0;
                   
                   queryWords.forEach(qWord => {
+                    // Direct substring matches
                     nameWords.forEach(nWord => {
                       if (nWord.includes(qWord) || qWord.includes(nWord)) {
                         wordMatchScore += 0.5;
@@ -587,6 +623,23 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                         wordMatchScore += 0.3; // Slightly lower weight for website matches
                       }
                     });
+                    
+                    // Acronym matching - check if query word matches first letters of consecutive name words
+                    if (qWord.length >= 2) {
+                      for (let i = 0; i <= nameWords.length - qWord.length; i++) {
+                        let acronymMatch = true;
+                        for (let j = 0; j < qWord.length; j++) {
+                          if (!nameWords[i + j] || nameWords[i + j][0] !== qWord[j]) {
+                            acronymMatch = false;
+                            break;
+                          }
+                        }
+                        if (acronymMatch) {
+                          wordMatchScore += 0.7; // Higher weight for acronym matches
+                          break;
+                        }
+                      }
+                    }
                   });
                   
                   const maxScore = Math.max(nameSimilarity, pathSimilarity, websiteSimilarity, wordMatchScore / queryWords.length);
