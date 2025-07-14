@@ -4,12 +4,12 @@ import type { Context } from 'hono';
  * Cache Configuration for Utah Churches Directory
  *
  * This site has very low update frequency (churches don't change often),
- * so we use aggressive 7-day caching to maximize performance and minimize costs.
+ * so we use aggressive 14-day caching to maximize performance and minimize costs.
  *
  * Cache Strategy:
- * - 3 days fresh: Content served directly from cache, no origin requests
- * - 4 days stale-while-revalidate: Content served from cache while background revalidation happens
- * - Total: 7 days of cached content
+ * - 1 hour fresh: Content served directly from cache, no origin requests
+ * - 14 days stale-while-revalidate: Content served from cache while background revalidation happens
+ * - Total: 14+ days of cached content
  *
  * Benefits:
  * - Reduced D1 database queries (lower costs)
@@ -25,16 +25,16 @@ export interface CacheConfig {
   skipAuth?: boolean; // Skip caching for authenticated users (default: true)
 }
 
-// 7-day cache strategy for low-update-frequency church directory site
-// Total effective cache: 7 days (3 days fresh + 4 days stale-while-revalidate)
+// 14-day cache strategy for low-update-frequency church directory site
+// Total effective cache: 14 days (1 hour fresh + 14 days stale-while-revalidate)
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
-  homepage: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  counties: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  churches: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  networks: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  dataExports: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  map: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
-  pages: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  homepage: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  counties: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  churches: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  networks: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  dataExports: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  map: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
+  pages: { ttl: 3600, swr: 1209600 }, // 1h fresh, 14d stale
 };
 
 export function shouldSkipCache(c: Context): boolean {
