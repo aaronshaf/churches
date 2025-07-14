@@ -51,7 +51,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
   };
 
   try {
-    // Get church with county info
+    // Get church with county info first (we need the church ID for other queries)
     const church = await db
       .select({
         id: churches.id,
@@ -92,62 +92,85 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       );
     }
 
-    // Get church gatherings (services)
-    const churchGatheringsList = await db
-      .select()
-      .from(churchGatherings)
-      .where(eq(churchGatherings.churchId, church.id))
-      .orderBy(churchGatherings.id)
-      .all();
+    // Execute all dependent queries in parallel using Promise.all
+    const [
+      churchGatheringsList,
+      churchAffiliationsList,
+      churchImagesResult,
+      allComments,
+      siteDomainSetting,
+      siteRegionSetting,
+      r2ImageDomainSetting,
+    ] = await Promise.all([
+      // Get church gatherings (services)
+      db
+        .select()
+        .from(churchGatherings)
+        .where(eq(churchGatherings.churchId, church.id))
+        .orderBy(churchGatherings.id)
+        .all(),
 
-    // Get church affiliations
-    const churchAffiliationsList = await db
-      .select({
-        affiliationId: churchAffiliations.affiliationId,
-        name: affiliations.name,
-        path: affiliations.path,
-        website: affiliations.website,
-        publicNotes: affiliations.publicNotes,
-      })
-      .from(churchAffiliations)
-      .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(eq(churchAffiliations.churchId, church.id))
-      .orderBy(affiliations.name)
-      .all();
+      // Get church affiliations
+      db
+        .select({
+          affiliationId: churchAffiliations.affiliationId,
+          name: affiliations.name,
+          path: affiliations.path,
+          website: affiliations.website,
+          publicNotes: affiliations.publicNotes,
+        })
+        .from(churchAffiliations)
+        .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+        .where(eq(churchAffiliations.churchId, church.id))
+        .orderBy(affiliations.name)
+        .all(),
 
-    // Get church images (with error handling for missing table)
-    let churchImagesList: Array<typeof churchImages.$inferSelect> = [];
-    try {
-      churchImagesList = await db
+      // Get church images (with error handling for missing table)
+      db
         .select()
         .from(churchImages)
         .where(eq(churchImages.churchId, church.id))
         .orderBy(churchImages.sortOrder, churchImages.createdAt)
-        .all();
-    } catch (error) {
-      console.error('Failed to fetch church images:', error);
-      // Continue without images if table doesn't exist
-    }
+        .all()
+        .catch((error) => {
+          console.error('Failed to fetch church images:', error);
+          return []; // Return empty array if table doesn't exist
+        }),
 
-    // Get comments for this church with user info
-    const allComments = await db
-      .select({
-        id: comments.id,
-        content: comments.content,
-        type: comments.type,
-        metadata: comments.metadata,
-        userId: comments.userId,
-        churchId: comments.churchId,
-        createdAt: comments.createdAt,
-        userName: users.name,
-        userEmail: users.email,
-        userImage: users.image,
-      })
-      .from(comments)
-      .leftJoin(users, eq(comments.userId, users.id))
-      .where(eq(comments.churchId, church.id))
-      .orderBy(comments.createdAt)
-      .all();
+      // Get comments for this church with user info
+      db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          type: comments.type,
+          metadata: comments.metadata,
+          userId: comments.userId,
+          churchId: comments.churchId,
+          createdAt: comments.createdAt,
+          userName: users.name,
+          userEmail: users.email,
+          userImage: users.image,
+        })
+        .from(comments)
+        .leftJoin(users, eq(comments.userId, users.id))
+        .where(eq(comments.churchId, church.id))
+        .orderBy(comments.createdAt)
+        .all(),
+
+      // Get site settings for JSON-LD
+      db
+        .select({ value: settings.value })
+        .from(settings)
+        .where(eq(settings.key, 'site_domain'))
+        .get(),
+
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_region')).get(),
+
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
+    ]);
+
+    // Use the result from Promise.all
+    const churchImagesList = churchImagesResult;
 
     // Process comments to add ownership info
     const processedComments = allComments.map((comment) => {
@@ -176,23 +199,6 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
         userImage: comment.userImage || null,
       };
     });
-
-    // Get site settings for JSON-LD
-    const siteDomainSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'site_domain'))
-      .get();
-    const siteRegionSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'site_region'))
-      .get();
-    const r2ImageDomainSetting = await db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, 'r2_image_domain'))
-      .get();
 
     const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
     const siteRegion = siteRegionSetting?.value || 'UT';
