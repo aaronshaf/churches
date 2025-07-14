@@ -1,19 +1,40 @@
 import type { Context } from 'hono';
 
+/**
+ * Cache Configuration for Utah Churches Directory
+ *
+ * This site has very low update frequency (churches don't change often),
+ * so we use aggressive 7-day caching to maximize performance and minimize costs.
+ *
+ * Cache Strategy:
+ * - 3 days fresh: Content served directly from cache, no origin requests
+ * - 4 days stale-while-revalidate: Content served from cache while background revalidation happens
+ * - Total: 7 days of cached content
+ *
+ * Benefits:
+ * - Reduced D1 database queries (lower costs)
+ * - Faster response times globally
+ * - Better user experience
+ * - Lower bandwidth usage
+ *
+ * Cache is automatically invalidated when admins make changes.
+ */
 export interface CacheConfig {
   ttl: number; // Fresh cache time in seconds
   swr: number; // Stale-while-revalidate time in seconds
   skipAuth?: boolean; // Skip caching for authenticated users (default: true)
 }
 
+// 7-day cache strategy for low-update-frequency church directory site
+// Total effective cache: 7 days (3 days fresh + 4 days stale-while-revalidate)
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
-  homepage: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
-  counties: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
-  churches: { ttl: 86400, swr: 172800 }, // 24h fresh, 48h stale
-  networks: { ttl: 172800, swr: 259200 }, // 48h fresh, 72h stale
-  dataExports: { ttl: 172800, swr: 259200 }, // 48h fresh, 72h stale
-  map: { ttl: 86400, swr: 86400 }, // 24h fresh, 24h stale
-  pages: { ttl: 86400, swr: 172800 }, // 24h fresh, 48h stale
+  homepage: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  counties: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  churches: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  networks: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  dataExports: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  map: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
+  pages: { ttl: 259200, swr: 345600 }, // 3d fresh, 4d stale = 7d total
 };
 
 export function shouldSkipCache(c: Context): boolean {

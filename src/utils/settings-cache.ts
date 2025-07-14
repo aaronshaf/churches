@@ -4,8 +4,8 @@ import { settings } from '../db/schema';
 
 // Cache key for all settings
 const SETTINGS_CACHE_KEY = 'settings:all';
-// Cache TTL: 24 hours
-const CACHE_TTL = 86400;
+// Cache TTL: 7 days (for low-update-frequency site)
+const CACHE_TTL = 604800; // 7 * 24 * 60 * 60
 
 export interface SettingsMap {
   site_domain?: string | null;

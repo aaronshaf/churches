@@ -56,7 +56,7 @@ Sitemap: https://${siteDomain}/sitemap.xml`;
 
   return c.text(robotsTxt, 200, {
     'Content-Type': 'text/plain',
-    'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+    'Cache-Control': 'public, max-age=259200, stale-while-revalidate=345600', // 3d fresh, 4d stale = 7d total
   });
 });
 
@@ -119,7 +119,7 @@ For more information, visit https://${siteDomain}/`;
 
   return c.text(llmsTxt, 200, {
     'Content-Type': 'text/plain',
-    'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+    'Cache-Control': 'public, max-age=259200, stale-while-revalidate=345600', // 3d fresh, 4d stale = 7d total
   });
 });
 
@@ -256,6 +256,6 @@ seoRoutes.get('/sitemap.xml', async (c) => {
 
   return c.text(sitemap, 200, {
     'Content-Type': 'application/xml',
-    'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+    'Cache-Control': 'public, max-age=259200, stale-while-revalidate=345600', // 3d fresh, 4d stale = 7d total
   });
 });
