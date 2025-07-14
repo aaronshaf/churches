@@ -105,6 +105,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
             let searchDebounceTimer = null;
             let pendingSearchQuery = null; // Store query typed while data is loading
             let hoverTimeout = null; // Store hover timeout for prefetching
+            let searchSpinnerTimeout = null; // Store search spinner timeout
             const userRole = '${userRole || ''}';
             const translations = {
               loading: ${JSON.stringify(t('search.loading'))},
@@ -279,7 +280,7 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                             <p class="mt-3 text-xs text-gray-500">Loading...</p>
                           </div>\`;
                       }
-                    }, 100);
+                    }, 1500);
                     
                     await loadAllData();
                     
@@ -312,6 +313,11 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
               if (hoverTimeout) {
                 clearTimeout(hoverTimeout);
                 hoverTimeout = null;
+              }
+              // Clear any pending search spinner timeout
+              if (searchSpinnerTimeout) {
+                clearTimeout(searchSpinnerTimeout);
+                searchSpinnerTimeout = null;
               }
             }
 
@@ -384,24 +390,39 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                 return;
               }
 
-              // If data isn't loaded yet, store the query and show loading state
+              // If data isn't loaded yet, store the query and show loading state after delay
               if (!dataLoaded) {
                 pendingSearchQuery = query; // Store the query to run after data loads
-                const resultsContainer = document.getElementById('quick-search-results');
-                if (resultsContainer) {
-                  resultsContainer.innerHTML = \`
-                    <div class="px-4 py-6 text-center">
-                      <div class="flex justify-center space-x-1">
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
-                      </div>
-                      <p class="mt-2 text-xs text-gray-500">Searching...</p>
-                    </div>\`;
+                
+                // Clear any existing search spinner timeout
+                if (searchSpinnerTimeout) {
+                  clearTimeout(searchSpinnerTimeout);
                 }
+                
+                // Show loading spinner only after 1.5 seconds
+                searchSpinnerTimeout = setTimeout(() => {
+                  if (!dataLoaded) {
+                    const resultsContainer = document.getElementById('quick-search-results');
+                    if (resultsContainer) {
+                      resultsContainer.innerHTML = \`
+                        <div class="px-4 py-6 text-center">
+                          <div class="flex justify-center space-x-1">
+                            <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0ms;"></div>
+                            <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 150ms;"></div>
+                            <div class="w-1 h-1 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 300ms;"></div>
+                          </div>
+                          <p class="mt-2 text-xs text-gray-500">Searching...</p>
+                        </div>\`;
+                    }
+                  }
+                }, 1500);
+                
                 // Start loading data if not already loading
                 if (!dataLoaded) {
-                  loadAllData();
+                  loadAllData().then(() => {
+                    // Clear the search spinner timeout when data loads
+                    clearTimeout(searchSpinnerTimeout);
+                  });
                 }
                 return;
               }
