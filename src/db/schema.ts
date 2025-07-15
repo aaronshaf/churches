@@ -186,3 +186,92 @@ export const comments = sqliteTable('comments', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+// Image metadata table
+export const images = sqliteTable('images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  filename: text('filename').notNull(),
+  originalFilename: text('original_filename'),
+  mimeType: text('mime_type').notNull(),
+  fileSize: integer('file_size').notNull(),
+  width: integer('width').notNull(),
+  height: integer('height').notNull(),
+  blurhash: text('blurhash').notNull(),
+  altText: text('alt_text'),
+  caption: text('caption'),
+  uploadedBy: text('uploaded_by'), // User ID from better-auth
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// New church images junction table (will replace existing churchImages)
+export const churchImagesNew = sqliteTable(
+  'church_images_new',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    churchId: integer('church_id')
+      .notNull()
+      .references(() => churches.id, { onDelete: 'cascade' }),
+    imageId: integer('image_id')
+      .notNull()
+      .references(() => images.id, { onDelete: 'cascade' }),
+    displayOrder: integer('display_order').notNull().default(0),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    uniqueChurchImage: primaryKey({ columns: [table.churchId, table.imageId] }),
+  })
+);
+
+// County images junction table
+export const countyImages = sqliteTable(
+  'county_images',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    countyId: integer('county_id')
+      .notNull()
+      .references(() => counties.id, { onDelete: 'cascade' }),
+    imageId: integer('image_id')
+      .notNull()
+      .references(() => images.id, { onDelete: 'cascade' }),
+    displayOrder: integer('display_order').notNull().default(0),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    uniqueCountyImage: primaryKey({ columns: [table.countyId, table.imageId] }),
+  })
+);
+
+// Affiliation images junction table
+export const affiliationImages = sqliteTable(
+  'affiliation_images',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    affiliationId: integer('affiliation_id')
+      .notNull()
+      .references(() => affiliations.id, { onDelete: 'cascade' }),
+    imageId: integer('image_id')
+      .notNull()
+      .references(() => images.id, { onDelete: 'cascade' }),
+    displayOrder: integer('display_order').notNull().default(0),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    uniqueAffiliationImage: primaryKey({ columns: [table.affiliationId, table.imageId] }),
+  })
+);
+
+// Site images table
+export const siteImages = sqliteTable('site_images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id')
+    .notNull()
+    .references(() => images.id, { onDelete: 'cascade' }),
+  location: text('location').notNull(), // 'homepage_hero', 'about_banner', etc.
+  displayOrder: integer('display_order').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
