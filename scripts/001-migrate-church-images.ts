@@ -12,14 +12,37 @@ import * as schema from '../src/db/schema';
 
 // Initialize the D1 database for local development
 async function initDb() {
-  // For local development, we use miniflare's D1 implementation
-  const { D1Database, D1DatabaseAPI } = await import('@miniflare/d1');
-  const { createSQLiteDB } = await import('@miniflare/shared');
+  // For local development, we use wrangler's D1 implementation
+  const { execSync } = await import('child_process');
 
-  const sqliteDb = await createSQLiteDB('.wrangler/state/v3/d1/utahchurches.sqlite');
-  const d1Db = new D1Database(new D1DatabaseAPI(sqliteDb));
+  // Create a simple wrapper that executes SQL via wrangler
+  const d1Db = {
+    prepare: (sql: string) => ({
+      all: async () => {
+        const result = execSync(
+          `bun run wrangler d1 execute DB --local --json --command="${sql.replace(/"/g, '\\"')}"`,
+          {
+            encoding: 'utf-8',
+          }
+        );
+        const parsed = JSON.parse(result);
+        return { results: parsed[0]?.results || [] };
+      },
+      run: async () => {
+        execSync(`bun run wrangler d1 execute DB --local --command="${sql.replace(/"/g, '\\"')}"`, {
+          encoding: 'utf-8',
+        });
+        return { success: true };
+      },
+    }),
+    batch: async (statements: any[]) => {
+      for (const stmt of statements) {
+        await stmt.run();
+      }
+    },
+  };
 
-  return drizzle(d1Db, { schema });
+  return drizzle(d1Db as any, { schema });
 }
 
 async function migrateChurchImages() {

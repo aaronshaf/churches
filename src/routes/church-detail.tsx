@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { BlurhashImage } from '../components/BlurhashImage';
 import { ChurchComments } from '../components/ChurchComments';
 import { ErrorPage } from '../components/ErrorPage';
 import { Layout } from '../components/Layout';
@@ -12,8 +13,10 @@ import {
   churches,
   churchGatherings,
   churchImages,
+  churchImagesNew,
   comments,
   counties,
+  images,
 } from '../db/schema';
 import { getUser } from '../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
@@ -139,16 +142,49 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
           .orderBy(affiliations.name)
           .all(),
 
-        // Get church images (with error handling for missing table)
+        // Get church images from new system
         db
-          .select()
-          .from(churchImages)
-          .where(eq(churchImages.churchId, church.id))
-          .orderBy(churchImages.sortOrder, churchImages.createdAt)
+          .select({
+            id: images.id,
+            imagePath: images.filename,
+            imageAlt: images.altText,
+            caption: images.caption,
+            width: images.width,
+            height: images.height,
+            blurhash: images.blurhash,
+            sortOrder: churchImagesNew.displayOrder,
+            isFeatured: churchImagesNew.isPrimary,
+          })
+          .from(churchImagesNew)
+          .innerJoin(images, eq(churchImagesNew.imageId, images.id))
+          .where(eq(churchImagesNew.churchId, church.id))
+          .orderBy(churchImagesNew.displayOrder, churchImagesNew.createdAt)
           .all()
-          .catch((error) => {
-            console.error('Failed to fetch church images:', error);
-            return []; // Return empty array if table doesn't exist
+          .catch(async (error) => {
+            console.error('Failed to fetch church images from new system:', error);
+            // Fall back to old system if new system fails
+            try {
+              const oldImages = await db
+                .select()
+                .from(churchImages)
+                .where(eq(churchImages.churchId, church.id))
+                .orderBy(churchImages.sortOrder, churchImages.createdAt)
+                .all();
+              // Map old format to new format
+              return oldImages.map((img) => ({
+                id: img.id,
+                imagePath: img.imagePath,
+                imageAlt: img.imageAlt,
+                caption: img.caption,
+                width: null as number | null,
+                height: null as number | null,
+                blurhash: null as string | null,
+                sortOrder: img.sortOrder,
+                isFeatured: img.isFeatured,
+              }));
+            } catch {
+              return []; // Return empty array if both fail
+            }
           }),
 
         // Get comments for this church with user info
@@ -690,15 +726,29 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
                               caption: '${(image.caption || '').replace(/'/g, "\\'")}'
                             })`}
                           >
-                            <OptimizedImage
-                              path={image.imagePath}
-                              alt={image.imageAlt || `${church.name} photo ${index + 1}`}
-                              width={300}
-                              height={200}
-                              className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
-                              domain={siteDomain}
-                              r2Domain={r2ImageDomain || undefined}
-                            />
+                            {image.blurhash ? (
+                              <BlurhashImage
+                                imageId={image.id}
+                                path={image.imagePath}
+                                alt={image.imageAlt || `${church.name} photo ${index + 1}`}
+                                width={image.width || 300}
+                                height={image.height || 200}
+                                blurhash={image.blurhash}
+                                className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+                                domain={siteDomain}
+                                r2Domain={r2ImageDomain || undefined}
+                              />
+                            ) : (
+                              <OptimizedImage
+                                path={image.imagePath}
+                                alt={image.imageAlt || `${church.name} photo ${index + 1}`}
+                                width={300}
+                                height={200}
+                                className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+                                domain={siteDomain}
+                                r2Domain={r2ImageDomain || undefined}
+                              />
+                            )}
                             <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
                               <svg
                                 class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"

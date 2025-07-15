@@ -5,11 +5,13 @@ import { affiliations, churches, comments, counties } from '../db/schema';
 import { requireAdminBetter } from '../middleware/better-auth';
 import type { AuthVariables, Bindings } from '../types';
 import uploadRoutes from './api/upload';
+import uploadV2Routes from './api/upload-v2';
 
 export const apiRoutes = new Hono<{ Bindings: Bindings; Variables: AuthVariables }>();
 
 // Mount upload routes
 apiRoutes.route('/upload', uploadRoutes);
+apiRoutes.route('/v2/upload', uploadV2Routes);
 
 // Search churches
 apiRoutes.get('/churches/search', async (c) => {

@@ -36,6 +36,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.4",
     "@cloudflare/workers-types": "^4.20250619.0",
+    "@miniflare/d1": "^2.14.4",
+    "@miniflare/shared": "^2.14.4",
     "@types/image-size": "^0.8.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.3",
@@ -47,6 +49,7 @@
     "husky": "^9.1.7",
     "image-size": "^2.0.2",
     "lint-staged": "^16.1.2",
+    "miniflare": "^4.20250709.0",
     "nanoid": "^5.1.5",
     "postcss": "^8.5.6",
     "tailwindcss": "3",
