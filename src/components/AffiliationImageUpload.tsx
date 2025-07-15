@@ -17,11 +17,11 @@ interface AffiliationImageUploadProps {
   affiliationId?: number;
 }
 
-export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({ 
-  affiliationImages = [], 
-  domain, 
+export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
+  affiliationImages = [],
+  domain,
   r2Domain,
-  affiliationId 
+  affiliationId,
 }) => {
   return (
     <div class="sm:col-span-6">
@@ -32,9 +32,7 @@ export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
         <div class="mb-6">
           <h4 class="text-sm font-medium text-gray-900 mb-3">
             Current Images
-            <span class="text-xs font-normal text-gray-500 ml-2">
-              (Drag to reorder)
-            </span>
+            <span class="text-xs font-normal text-gray-500 ml-2">(Drag to reorder)</span>
           </h4>
           <div id="sortable-images" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {affiliationImages.map((image, index) => (
@@ -125,7 +123,7 @@ export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
       {/* Upload New Images */}
       <div>
         <h4 class="text-sm font-medium text-gray-900 mb-3">Add New Images</h4>
-        
+
         {/* Drop Zone */}
         <div
           id="drop-zone"
@@ -133,21 +131,22 @@ export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
         >
           <div class="text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
             </svg>
             <p class="mt-2 text-sm text-gray-600">
-              <label for="affiliationImages" class="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500">
+              <label
+                for="affiliationImages"
+                class="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500"
+              >
                 <span>Upload images</span>
-                <input
-                  type="file"
-                  id="affiliationImages"
-                  name="newImages"
-                  accept="image/*"
-                  multiple
-                  class="sr-only"
-                />
+                <input type="file" id="affiliationImages" name="newImages" accept="image/*" multiple class="sr-only" />
               </label>
-              <span class="pl-1">or drag and drop</span>
+              <span class="pl-1">drag and drop, or paste from clipboard</span>
             </p>
             <p class="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP up to 10MB each</p>
           </div>
@@ -162,7 +161,7 @@ export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
 
       {/* Hidden input for affiliation ID if editing */}
       {affiliationId && <input type="hidden" name="affiliationId" value={affiliationId} />}
-      
+
       {/* Script for drag-and-drop and image processing */}
       <script
         dangerouslySetInnerHTML={{
@@ -253,6 +252,61 @@ export const AffiliationImageUpload: FC<AffiliationImageUploadProps> = ({
           // File input change
           fileInput.addEventListener('change', (e) => {
             handleFiles(e.target.files);
+          });
+          
+          // Paste handling
+          document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            
+            const imageFiles = [];
+            for (let i = 0; i < items.length; i++) {
+              const item = items[i];
+              if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                  // Create a new File with a better name
+                  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                  const extension = file.type.split('/')[1] || 'png';
+                  const newFile = new File([file], \`pasted-image-\${timestamp}.\${extension}\`, {
+                    type: file.type,
+                    lastModified: file.lastModified,
+                  });
+                  imageFiles.push(newFile);
+                }
+              }
+            }
+            
+            if (imageFiles.length > 0) {
+              e.preventDefault();
+              
+              // Add to existing files
+              const dt = new DataTransfer();
+              const existingFiles = fileInput.files || [];
+              
+              // Add existing files
+              for (let i = 0; i < existingFiles.length; i++) {
+                dt.items.add(existingFiles[i]);
+              }
+              
+              // Add pasted files
+              for (const file of imageFiles) {
+                dt.items.add(file);
+              }
+              
+              fileInput.files = dt.files;
+              handleFiles(dt.files);
+              
+              // Show feedback
+              const feedback = document.createElement('div');
+              feedback.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 z-50';
+              feedback.textContent = \`\${imageFiles.length} image(s) pasted successfully!\`;
+              document.body.appendChild(feedback);
+              
+              setTimeout(() => {
+                feedback.remove();
+              }, 3000);
+            }
           });
           
           // Drag and drop
