@@ -2,6 +2,7 @@ import type { FC } from 'hono/jsx';
 import type { Affiliation, Church, ChurchAffiliation, ChurchGathering, ChurchImage, County } from '../types';
 import { getImageUrl } from '../utils/r2-images';
 import { OptimizedImage } from './OptimizedImage';
+import { ChurchImageUpload } from './ChurchImageUpload';
 
 type ChurchFormProps = {
   action: string;
@@ -10,6 +11,17 @@ type ChurchFormProps = {
   affiliations?: Affiliation[];
   churchAffiliations?: ChurchAffiliation[];
   churchImages?: ChurchImage[];
+  imagesData?: Array<{
+    id: number;
+    imagePath: string;
+    imageAlt: string | null;
+    caption: string | null;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    sortOrder: number;
+    isFeatured: boolean;
+  }>;
   counties?: County[];
   error?: string;
   isNew?: boolean;
@@ -25,6 +37,7 @@ export const ChurchForm: FC<ChurchFormProps> = ({
   affiliations = [],
   churchAffiliations = [],
   churchImages = [],
+  imagesData = [],
   counties = [],
   error,
   isNew = false,
@@ -542,102 +555,22 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                 </div>
 
                 {/* Church Images */}
-                <div class="sm:col-span-6">
-                  <label class="block text-sm font-medium leading-6 text-gray-900 mb-4">Church Images</label>
-
-                  {/* Existing Images */}
-                  {churchImages.length > 0 && (
-                    <div class="mb-6">
-                      <h4 class="text-sm font-medium text-gray-900 mb-3">
-                        Current Images
-                        <span class="text-xs font-normal text-gray-500 ml-2">
-                          (Drag to reorder - first image is featured)
-                        </span>
-                      </h4>
-                      <div id="sortable-images" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {churchImages.map((image, index) => (
-                          <div
-                            key={image.id}
-                            class="border border-gray-200 rounded-lg p-4 cursor-move relative"
-                            draggable="true"
-                            data-image-id={image.id}
-                            data-sort-order={index}
-                          >
-                            {index === 0 && (
-                              <div class="absolute -top-2 -left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded z-10">
-                                Featured
-                              </div>
-                            )}
-                            <div class="space-y-4">
-                              <div class="aspect-w-16 aspect-h-9 w-full">
-                                <OptimizedImage
-                                  path={image.imagePath}
-                                  alt={image.imageAlt || `Church image ${index + 1}`}
-                                  width={400}
-                                  height={225}
-                                  className="w-full h-48 object-cover rounded-lg"
-                                  domain={domain}
-                                  r2Domain={r2Domain}
-                                />
-                              </div>
-                              <div class="space-y-3">
-                                <div class="mb-2">
-                                  <label class="block text-xs font-medium text-gray-700 mb-1">Alt Text</label>
-                                  <input
-                                    type="text"
-                                    name={`imageAlt_${image.id}`}
-                                    value={image.imageAlt || ''}
-                                    placeholder="Describe the image"
-                                    class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500"
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  onclick={`if(confirm('Remove this image?')) { document.getElementById('removeImage_${image.id}').value='true'; this.closest('.border').style.display='none'; }`}
-                                  class="text-red-600 text-xs hover:text-red-800"
-                                  data-testid={`btn-remove-image-${image.id}`}
-                                >
-                                  Remove Image
-                                </button>
-                                <input
-                                  type="hidden"
-                                  id={`removeImage_${image.id}`}
-                                  name={`removeImage_${image.id}`}
-                                  value="false"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Upload New Images */}
-                  <div>
-                    <h4 class="text-sm font-medium text-gray-900 mb-3">Add New Images</h4>
-                    <input
-                      type="file"
-                      id="newImages"
-                      name="newImages"
-                      accept="image/*"
-                      multiple
-                      class="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                    />
-                    <p class="mt-1 text-xs text-gray-500">
-                      Select multiple images or paste an image from clipboard. Supported formats: JPG, PNG, WebP. Max
-                      size: 10MB per image.
-                    </p>
-
-                    {/* Preview New Images */}
-                    <div id="newImagePreviews" class="mt-4 hidden">
-                      <h5 class="text-sm font-medium text-gray-900 mb-3">New Images to Upload</h5>
-                      <div id="previewContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Preview items will be inserted here by JavaScript */}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ChurchImageUpload 
+                  churchImages={imagesData.length > 0 ? imagesData : churchImages.map((img, index) => ({
+                    id: img.id,
+                    imagePath: img.imagePath,
+                    imageAlt: img.imageAlt,
+                    caption: img.caption || null,
+                    width: null,
+                    height: null,
+                    blurhash: null,
+                    sortOrder: img.sortOrder,
+                    isFeatured: img.isFeatured
+                  }))}
+                  domain={domain}
+                  r2Domain={r2Domain}
+                  churchId={church?.id}
+                />
               </div>
             </div>
           </div>

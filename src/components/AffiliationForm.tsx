@@ -1,14 +1,27 @@
 import type { FC } from 'hono/jsx';
 import type { Affiliation, Church } from '../types';
+import { AffiliationImageUpload } from './AffiliationImageUpload';
 
 type AffiliationFormProps = {
   action: string;
   affiliation?: Affiliation;
   affiliatedChurches?: Church[];
   allChurches?: Church[];
+  imagesData?: Array<{
+    id: number;
+    imagePath: string;
+    imageAlt: string | null;
+    caption: string | null;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    sortOrder: number;
+  }>;
   error?: string;
   isNew?: boolean;
   cancelUrl?: string;
+  r2Domain?: string;
+  domain?: string;
 };
 
 export const AffiliationForm: FC<AffiliationFormProps> = ({
@@ -16,8 +29,11 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
   affiliation,
   affiliatedChurches = [],
   allChurches = [],
+  imagesData = [],
   error,
   isNew = false,
+  r2Domain,
+  domain = 'localhost',
 }) => {
   const affiliatedChurchIds = affiliatedChurches.map((c) => c.id);
   return (
@@ -28,6 +44,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
         class="space-y-8 divide-y divide-gray-200"
         onsubmit="handleFormSubmit(event)"
         data-testid="affiliation-form"
+        enctype="multipart/form-data"
       >
         {error && (
           <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-affiliation-form">
@@ -188,6 +205,14 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
                 </div>
                 <p class="mt-2 text-sm text-gray-500">Internal notes for administrative purposes only.</p>
               </div>
+
+              {/* Affiliation Images */}
+              <AffiliationImageUpload 
+                affiliationImages={imagesData}
+                domain={domain}
+                r2Domain={r2Domain}
+                affiliationId={affiliation?.id}
+              />
             </div>
           </div>
 

@@ -11,6 +11,8 @@ import {
   churches,
   churchGatherings,
   churchImages,
+  churchImagesNew,
+  images,
   comments,
   counties,
   settings,
@@ -102,6 +104,56 @@ adminChurchesRoutes.get('/', async (c) => {
         .all()
   );
 
+  // Get image counts for churches - try new system first
+  let imageCounts: Record<number, number> = {};
+  try {
+    // Try new system
+    const newImageCounts = await batchedInQuery(
+      churchIds,
+      100,
+      async (batchIds) =>
+        db
+          .select({
+            churchId: churchImagesNew.churchId,
+            count: sql<number>`count(*)`,
+          })
+          .from(churchImagesNew)
+          .where(createInClause(churchImagesNew.churchId, batchIds))
+          .groupBy(churchImagesNew.churchId)
+          .all()
+    );
+    
+    imageCounts = newImageCounts.reduce((acc, { churchId, count }) => {
+      acc[churchId] = count;
+      return acc;
+    }, {} as Record<number, number>);
+  } catch (error) {
+    // Fall back to old system
+    try {
+      const oldImageCounts = await batchedInQuery(
+        churchIds,
+        100,
+        async (batchIds) =>
+          db
+            .select({
+              churchId: churchImages.churchId,
+              count: sql<number>`count(*)`,
+            })
+            .from(churchImages)
+            .where(createInClause(churchImages.churchId, batchIds))
+            .groupBy(churchImages.churchId)
+            .all()
+      );
+      
+      imageCounts = oldImageCounts.reduce((acc, { churchId, count }) => {
+        acc[churchId] = count;
+        return acc;
+      }, {} as Record<number, number>);
+    } catch (oldError) {
+      console.error('Failed to get image counts:', oldError);
+    }
+  }
+
   // Filter by affiliation if needed
   let filteredResults = results;
   if (affiliationId) {
@@ -126,6 +178,7 @@ adminChurchesRoutes.get('/', async (c) => {
     countyId: church.countyId,
     countyName: county?.name || '',
     address: church.gatheringAddress || '',
+    imageCount: imageCounts[church.id] || 0,
     // For affiliation filtering, we need the affiliation IDs
     affiliationIds: allChurchAffils.filter((ca) => ca.churchId === church.id).map((ca) => ca.affiliationId),
   }));
@@ -368,6 +421,9 @@ adminChurchesRoutes.get('/', async (c) => {
                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Address
                     </th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Images
+                    </th>
                     <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
                       <span class="sr-only">Edit</span>
                     </th>
@@ -383,6 +439,7 @@ adminChurchesRoutes.get('/', async (c) => {
                       data-church-status={church.status || ''}
                       data-church-county={county?.name || ''}
                       data-church-county-id={church.countyId || ''}
+                      data-church-image-count={imageCounts[church.id] || 0}
                     >
                       <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium sm:pl-0">
                         <a
@@ -417,6 +474,18 @@ adminChurchesRoutes.get('/', async (c) => {
                       </td>
                       <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{county?.name || '-'}</td>
                       <td class="px-3 py-4 text-sm text-gray-500">{church.gatheringAddress || '-'}</td>
+                      <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {imageCounts[church.id] ? (
+                          <span class="inline-flex items-center">
+                            <svg class="h-4 w-4 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="text-gray-900">{imageCounts[church.id]}</span>
+                          </span>
+                        ) : (
+                          <span class="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                         <a href={`/admin/churches/${church.id}/edit`} class="text-primary-600 hover:text-primary-900">
                           Edit<span class="sr-only">, {church.name}</span>
@@ -495,7 +564,7 @@ adminChurchesRoutes.get('/', async (c) => {
               if (!noResultsRow) {
                 noResultsRow = document.createElement('tr');
                 noResultsRow.className = 'no-results';
-                noResultsRow.innerHTML = '<td colspan="5" class="text-center py-12 text-sm text-gray-500">No churches found matching your criteria.</td>';
+                noResultsRow.innerHTML = '<td colspan="6" class="text-center py-12 text-sm text-gray-500">No churches found matching your criteria.</td>';
                 tableBody.appendChild(noResultsRow);
               }
               noResultsRow.style.display = '';
@@ -833,18 +902,66 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const churchName = c.req.query('churchName');
   const churchPath = c.req.query('churchPath');
 
-  // Query for church images with error handling
-  let images: Array<typeof churchImages.$inferSelect> = [];
+  // Query for church images from new system
+  let imagesData: Array<{
+    id: number;
+    imagePath: string;
+    imageAlt: string | null;
+    caption: string | null;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    sortOrder: number;
+    isFeatured: boolean;
+  }> = [];
+  
   try {
-    images = await db
-      .select()
-      .from(churchImages)
-      .where(eq(churchImages.churchId, id))
-      .orderBy(churchImages.sortOrder, churchImages.createdAt)
+    // Try new system first
+    const newImages = await db
+      .select({
+        id: images.id,
+        imagePath: images.filename,
+        imageAlt: images.altText,
+        caption: images.caption,
+        width: images.width,
+        height: images.height,
+        blurhash: images.blurhash,
+        sortOrder: churchImagesNew.displayOrder,
+        isFeatured: churchImagesNew.isPrimary,
+      })
+      .from(churchImagesNew)
+      .innerJoin(images, eq(churchImagesNew.imageId, images.id))
+      .where(eq(churchImagesNew.churchId, id))
+      .orderBy(churchImagesNew.displayOrder, churchImagesNew.createdAt)
       .all();
+    
+    imagesData = newImages;
   } catch (error) {
-    console.error('Failed to fetch church images:', error);
-    // Continue without images if table doesn't exist
+    console.error('Failed to fetch from new image system, trying old system:', error);
+    // Fall back to old system
+    try {
+      const oldImages = await db
+        .select()
+        .from(churchImages)
+        .where(eq(churchImages.churchId, id))
+        .orderBy(churchImages.sortOrder, churchImages.createdAt)
+        .all();
+      
+      // Map old format to new format
+      imagesData = oldImages.map(img => ({
+        id: img.id,
+        imagePath: img.imagePath,
+        imageAlt: img.imageAlt,
+        caption: img.caption,
+        width: null,
+        height: null,
+        blurhash: null,
+        sortOrder: img.sortOrder,
+        isFeatured: img.isFeatured,
+      }));
+    } catch {
+      // Continue without images if both systems fail
+    }
   }
 
   const [church, gatherings, churchAffils, allCounties, allAffiliations, r2ImageDomainSetting, siteDomainSetting] =
@@ -878,7 +995,8 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
           church={church}
           gatherings={gatherings}
           churchAffiliations={churchAffils}
-          churchImages={images}
+          churchImages={[]}
+          imagesData={imagesData}
           counties={allCounties}
           affiliations={allAffiliations}
           action={`/admin/churches/${id}`}
@@ -922,18 +1040,58 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
     const body = await c.req.parseBody({ all: true });
 
-    // Handle multiple image uploads
+    // Handle multiple image uploads with new system
     const newImages = body.newImages;
-    const uploadedImages: { path: string }[] = [];
+    const uploadedImages: { imageId: number; displayOrder: number }[] = [];
+
+    // First, handle the new image system
+    let useNewImageSystem = true;
+    try {
+      // Check if new tables exist by attempting a simple query
+      await db.select({ id: images.id }).from(images).limit(1).get();
+    } catch (error) {
+      console.log('New image system not available, falling back to old system');
+      useNewImageSystem = false;
+    }
 
     // Upload new images if any
-    if (newImages) {
+    if (newImages && useNewImageSystem) {
       const files = Array.isArray(newImages) ? newImages : [newImages];
+      
+      // Get current max display order for this church
+      const maxOrderResult = await db
+        .select({ maxOrder: sql`MAX(display_order)` })
+        .from(churchImagesNew)
+        .where(eq(churchImagesNew.churchId, id))
+        .get();
+      
+      let currentOrder = (maxOrderResult?.maxOrder as number) || -1;
+      
       for (const file of files) {
         if (file instanceof File && file.size > 0) {
           try {
+            // Upload to R2
             const result = await uploadImage(file, 'churches', c.env);
-            uploadedImages.push({ path: result.path });
+            
+            // Create image metadata record
+            const [imageRecord] = await db
+              .insert(images)
+              .values({
+                filename: result.path,
+                originalFilename: file.name,
+                mimeType: file.type,
+                fileSize: file.size,
+                width: 800, // Will be updated later by background job
+                height: 600, // Will be updated later by background job
+                blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4', // Placeholder
+                altText: null,
+                caption: null,
+                uploadedBy: user?.email || null,
+              })
+              .returning({ id: images.id });
+            
+            currentOrder++;
+            uploadedImages.push({ imageId: imageRecord.id, displayOrder: currentOrder });
           } catch (error) {
             console.error('Error uploading image:', error);
             // Continue with the update even if image upload fails
@@ -942,51 +1100,117 @@ adminChurchesRoutes.post('/:id', async (c) => {
       }
     }
 
-    // Handle existing image updates and removals (with error handling)
+    // Handle existing image updates and removals
     const imagesToRemove: string[] = [];
-    try {
-      const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
-      const imageUpdates: Array<{ id: number; imageAlt?: string; caption?: string }> = [];
-
-      for (const image of existingImages) {
-        // Check if image should be removed
-        const removeKey = `removeImage_${image.id}`;
-        if (body[removeKey] === 'true') {
-          imagesToRemove.push(image.imagePath);
-          await db.delete(churchImages).where(eq(churchImages.id, image.id));
-          continue;
-        }
-
-        // Update image metadata
-        const altKey = `imageAlt_${image.id}`;
-        const captionKey = `imageCaption_${image.id}`;
-        const sortOrderKey = `sortOrder_${image.id}`;
-
-        const updates: { imageAlt?: string | null; caption?: string | null; sortOrder?: number } = {};
-        if (typeof body[altKey] === 'string') {
-          updates.imageAlt = body[altKey] || null;
-        }
-        if (typeof body[captionKey] === 'string') {
-          updates.caption = body[captionKey] || null;
-        }
-        if (typeof body[sortOrderKey] === 'string') {
-          updates.sortOrder = parseInt(body[sortOrderKey] as string) || 0;
-        }
-
-        if (Object.keys(updates).length > 0) {
-          await db.update(churchImages).set(updates).where(eq(churchImages.id, image.id));
+    
+    if (useNewImageSystem) {
+      // Handle new image system updates
+      const removeImages = body.removeImages;
+      if (removeImages) {
+        const imageIdsToRemove = Array.isArray(removeImages) ? removeImages : [removeImages];
+        for (const imageId of imageIdsToRemove) {
+          if (imageId) {
+            try {
+              // Get image path before deletion
+              const imageToRemove = await db
+                .select({ filename: images.filename })
+                .from(images)
+                .where(eq(images.id, Number(imageId)))
+                .get();
+              
+              if (imageToRemove) {
+                imagesToRemove.push(imageToRemove.filename);
+                // Remove from junction table
+                await db.delete(churchImagesNew).where(eq(churchImagesNew.imageId, Number(imageId)));
+                // Remove from images table
+                await db.delete(images).where(eq(images.id, Number(imageId)));
+              }
+            } catch (error) {
+              console.error('Error removing image:', error);
+            }
+          }
         }
       }
-
-      // Note: Featured image is now determined by sortOrder (first image is featured)
-
-      // Remove deleted images from R2
-      for (const imagePath of imagesToRemove) {
-        await deleteImage(imagePath, c.env);
+      
+      // Update image metadata and sort orders
+      const imageIds = body.imageIds;
+      const imageAlts = body.imageAlts;
+      const imageCaptions = body.imageCaptions;
+      const imageSortOrders = body.imageSortOrders;
+      const imagePrimary = body.imagePrimary;
+      
+      if (imageIds) {
+        const ids = Array.isArray(imageIds) ? imageIds : [imageIds];
+        const alts = Array.isArray(imageAlts) ? imageAlts : [imageAlts];
+        const captions = Array.isArray(imageCaptions) ? imageCaptions : [imageCaptions];
+        const sortOrders = Array.isArray(imageSortOrders) ? imageSortOrders : [imageSortOrders];
+        
+        for (let i = 0; i < ids.length; i++) {
+          const imageId = Number(ids[i]);
+          if (!isNaN(imageId)) {
+            // Update image metadata
+            await db
+              .update(images)
+              .set({
+                altText: alts[i] && typeof alts[i] === 'string' ? alts[i] as string : null,
+                caption: captions[i] && typeof captions[i] === 'string' ? captions[i] as string : null,
+                updatedAt: new Date(),
+              })
+              .where(eq(images.id, imageId));
+            
+            // Update junction table
+            await db
+              .update(churchImagesNew)
+              .set({
+                displayOrder: Number(sortOrders[i]) || i,
+                isPrimary: imagePrimary === String(imageId),
+              })
+              .where(eq(churchImagesNew.imageId, imageId));
+          }
+        }
       }
-    } catch (error) {
-      console.error('Failed to update church images:', error);
-      // Continue without image updates if table doesn't exist
+    } else {
+      // Fall back to old system
+      try {
+        const existingImages = await db.select().from(churchImages).where(eq(churchImages.churchId, id)).all();
+        
+        for (const image of existingImages) {
+          // Check if image should be removed
+          const removeKey = `removeImage_${image.id}`;
+          if (body[removeKey] === 'true') {
+            imagesToRemove.push(image.imagePath);
+            await db.delete(churchImages).where(eq(churchImages.id, image.id));
+            continue;
+          }
+
+          // Update image metadata
+          const altKey = `imageAlt_${image.id}`;
+          const captionKey = `imageCaption_${image.id}`;
+          const sortOrderKey = `sortOrder_${image.id}`;
+
+          const updates: { imageAlt?: string | null; caption?: string | null; sortOrder?: number } = {};
+          if (typeof body[altKey] === 'string') {
+            updates.imageAlt = body[altKey] || null;
+          }
+          if (typeof body[captionKey] === 'string') {
+            updates.caption = body[captionKey] || null;
+          }
+          if (typeof body[sortOrderKey] === 'string') {
+            updates.sortOrder = parseInt(body[sortOrderKey] as string) || 0;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await db.update(churchImages).set(updates).where(eq(churchImages.id, image.id));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update church images:', error);
+      }
+    }
+    
+    // Remove deleted images from R2
+    for (const imagePath of imagesToRemove) {
+      await deleteImage(imagePath, c.env);
     }
 
     // Parse and validate form data
@@ -1058,71 +1282,81 @@ adminChurchesRoutes.post('/:id', async (c) => {
       await db.insert(churchAffiliations).values(affiliationsToInsert);
     }
 
-    // Insert new uploaded images (with error handling)
+    // Insert new uploaded images
     if (uploadedImages.length > 0) {
-      try {
-        // Get current max sort order
-        const existingImagesCount = await db
-          .select({ count: sql`count(*)` })
-          .from(churchImages)
-          .where(eq(churchImages.churchId, id))
-          .get();
-
-        const sortOrder = (existingImagesCount?.count as number) || 0;
-
-        const imagesToInsert = uploadedImages.map((img, index) => ({
-          churchId: id,
-          imagePath: img.path,
-          imageAlt: null,
-          caption: null,
-          isFeatured: false, // No longer using isFeatured - first image by sortOrder is featured
-          sortOrder: sortOrder + index,
-        }));
-
-        // Try using Drizzle with explicit values to work around the issue
-        for (const img of imagesToInsert) {
-          // Create insert data without id field
-          const insertData = {
-            churchId: img.churchId,
-            imagePath: img.imagePath,
-            imageAlt: img.imageAlt || null,
-            caption: img.caption || null,
-            isFeatured: false, // No longer using isFeatured
-            sortOrder: img.sortOrder,
-            // Let Drizzle handle timestamps with its defaults
-          };
-
-          console.log('Attempting to insert:', insertData);
-
-          try {
-            // Use Drizzle's insert which should handle the autoincrement id properly
-            const result = await db.insert(churchImages).values(insertData).returning();
-            console.log('Successfully inserted image:', result);
-          } catch (insertError) {
-            console.error('Insert error details:', {
-              error: insertError,
-              message: insertError instanceof Error ? insertError.message : 'Unknown error',
-              data: insertData,
-            });
-
-            // If Drizzle fails, try raw SQL as a fallback
-            console.log('Trying raw SQL fallback...');
-            const d1 = c.get('dbSession') || c.env.DB;
-            const fallbackResult = await d1
-              .prepare(
-                `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
-                 VALUES (?, ?, ?, ?, ?, ?)`
-              )
-              .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, 0, img.sortOrder)
-              .run();
-            console.log('Fallback result:', fallbackResult);
-          }
+      if (useNewImageSystem) {
+        // Insert into junction table for new system
+        for (const upload of uploadedImages) {
+          await db.insert(churchImagesNew).values({
+            churchId: id,
+            imageId: upload.imageId,
+            displayOrder: upload.displayOrder,
+            isPrimary: upload.displayOrder === 0,
+          });
         }
-      } catch (error) {
-        console.error('Failed to insert new church images:', error);
-        console.error('Upload attempt details:', { churchId: id, imageCount: uploadedImages.length });
-        // Re-throw to see the actual error
-        throw error;
+      } else if (!useNewImageSystem && newImages) {
+        // Fall back to old system if new system not available
+        try {
+          const files = Array.isArray(newImages) ? newImages : [newImages];
+          const oldUploadedImages: { path: string }[] = [];
+          
+          for (const file of files) {
+            if (file instanceof File && file.size > 0) {
+              try {
+                const result = await uploadImage(file, 'churches', c.env);
+                oldUploadedImages.push({ path: result.path });
+              } catch (error) {
+                console.error('Error uploading image:', error);
+              }
+            }
+          }
+          
+          // Get current max sort order
+          const existingImagesCount = await db
+            .select({ count: sql`count(*)` })
+            .from(churchImages)
+            .where(eq(churchImages.churchId, id))
+            .get();
+
+          const sortOrder = (existingImagesCount?.count as number) || 0;
+
+          const imagesToInsert = oldUploadedImages.map((img, index) => ({
+            churchId: id,
+            imagePath: img.path,
+            imageAlt: null,
+            caption: null,
+            isFeatured: false,
+            sortOrder: sortOrder + index,
+          }));
+
+          for (const img of imagesToInsert) {
+            const insertData = {
+              churchId: img.churchId,
+              imagePath: img.imagePath,
+              imageAlt: img.imageAlt || null,
+              caption: img.caption || null,
+              isFeatured: false,
+              sortOrder: img.sortOrder,
+            };
+
+            try {
+              await db.insert(churchImages).values(insertData).returning();
+            } catch (insertError) {
+              console.error('Insert error details:', insertError);
+              // Try raw SQL as fallback
+              const d1 = c.get('dbSession') || c.env.DB;
+              await d1
+                .prepare(
+                  `INSERT INTO church_images (church_id, image_path, image_alt, caption, is_featured, sort_order) 
+                   VALUES (?, ?, ?, ?, ?, ?)`
+                )
+                .bind(img.churchId, img.imagePath, img.imageAlt, img.caption, 0, img.sortOrder)
+                .run();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to insert images in old system:', error);
+        }
       }
     }
 

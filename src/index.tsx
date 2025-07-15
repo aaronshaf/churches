@@ -23,6 +23,8 @@ import {
   churchSuggestions,
   comments,
   counties,
+  countyImages,
+  images,
   pages,
   settings,
 } from './db/schema';
@@ -55,6 +57,7 @@ import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
 import { getCommonLayoutProps } from './utils/layout-props';
+import { deleteImage, uploadImage } from './utils/r2-images';
 import { getImagePrefix, getSiteTitle } from './utils/settings';
 import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
 
@@ -3909,10 +3912,60 @@ app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
     return c.redirect('/admin/counties');
   }
 
+  // Fetch county images from new system
+  let imagesData: Array<{
+    id: number;
+    imagePath: string;
+    imageAlt: string | null;
+    caption: string | null;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    sortOrder: number;
+  }> = [];
+  
+  try {
+    const countyImagesResult = await db
+      .select({
+        id: images.id,
+        imagePath: images.filename,
+        imageAlt: images.altText,
+        caption: images.caption,
+        width: images.width,
+        height: images.height,
+        blurhash: images.blurhash,
+        sortOrder: countyImages.displayOrder,
+      })
+      .from(countyImages)
+      .innerJoin(images, eq(countyImages.imageId, images.id))
+      .where(eq(countyImages.countyId, Number(id)))
+      .orderBy(countyImages.displayOrder)
+      .all();
+    
+    imagesData = countyImagesResult;
+  } catch (error) {
+    console.error('Failed to fetch county images:', error);
+  }
+
+  // Get R2 domain and site domain
+  const [r2ImageDomainSetting, siteDomainSetting] = await Promise.all([
+    db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'r2_image_domain')).get(),
+    db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'site_domain')).get(),
+  ]);
+
+  const r2ImageDomain = r2ImageDomainSetting?.value;
+  const siteDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
+
   return c.html(
     <Layout title="Edit County - Utah Churches" user={user} logoUrl={logoUrl}>
       <div style="max-width: 600px; margin: 0 auto;">
-        <CountyForm action={`/admin/counties/${id}`} county={county} />
+        <CountyForm 
+          action={`/admin/counties/${id}`} 
+          county={county}
+          imagesData={imagesData}
+          r2Domain={r2ImageDomain || undefined}
+          domain={siteDomain}
+        />
       </div>
     </Layout>
   );
@@ -3921,7 +3974,8 @@ app.get('/admin/counties/:id/edit', requireAdminBetter, async (c) => {
 app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
   const db = createDbWithContext(c);
   const id = c.req.param('id');
-  const body = await c.req.parseBody();
+  const user = c.get('betterUser');
+  const body = await c.req.parseBody({ all: true });
 
   const name = body.name as string;
   const path = body.path as string;
@@ -3937,6 +3991,123 @@ app.post('/admin/counties/:id', requireAdminBetter, async (c) => {
       population,
     })
     .where(eq(counties.id, Number(id)));
+
+  // Handle image uploads and updates
+  const newImages = body.newImages;
+  if (newImages) {
+    const files = Array.isArray(newImages) ? newImages : [newImages];
+    
+    // Get current max display order for this county
+    const maxOrderResult = await db
+      .select({ maxOrder: sql`MAX(display_order)` })
+      .from(countyImages)
+      .where(eq(countyImages.countyId, Number(id)))
+      .get();
+    
+    let currentOrder = (maxOrderResult?.maxOrder as number) || -1;
+    
+    for (const file of files) {
+      if (file instanceof File && file.size > 0) {
+        try {
+          // Upload to R2
+          const result = await uploadImage(file, 'counties', c.env);
+          
+          // Create image metadata record
+          const [imageRecord] = await db
+            .insert(images)
+            .values({
+              filename: result.path,
+              originalFilename: file.name,
+              mimeType: file.type,
+              fileSize: file.size,
+              width: 800, // Will be updated later by background job
+              height: 600, // Will be updated later by background job
+              blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4', // Placeholder
+              altText: null,
+              caption: null,
+              uploadedBy: user?.email || null,
+            })
+            .returning({ id: images.id });
+          
+          currentOrder++;
+          
+          // Insert into junction table
+          await db.insert(countyImages).values({
+            countyId: Number(id),
+            imageId: imageRecord.id,
+            displayOrder: currentOrder,
+          });
+        } catch (error) {
+          console.error('Error uploading county image:', error);
+        }
+      }
+    }
+  }
+
+  // Handle image removals
+  const removeImages = body.removeImages;
+  if (removeImages) {
+    const imageIdsToRemove = Array.isArray(removeImages) ? removeImages : [removeImages];
+    for (const imageId of imageIdsToRemove) {
+      if (imageId) {
+        try {
+          // Get image path before deletion
+          const imageToRemove = await db
+            .select({ filename: images.filename })
+            .from(images)
+            .where(eq(images.id, Number(imageId)))
+            .get();
+          
+          if (imageToRemove) {
+            // Remove from junction table
+            await db.delete(countyImages).where(eq(countyImages.imageId, Number(imageId)));
+            // Remove from images table
+            await db.delete(images).where(eq(images.id, Number(imageId)));
+            // Delete from R2
+            await deleteImage(imageToRemove.filename, c.env);
+          }
+        } catch (error) {
+          console.error('Error removing county image:', error);
+        }
+      }
+    }
+  }
+  
+  // Update image metadata and sort orders
+  const imageIds = body.imageIds;
+  const imageAlts = body.imageAlts;
+  const imageCaptions = body.imageCaptions;
+  const imageSortOrders = body.imageSortOrders;
+  
+  if (imageIds) {
+    const ids = Array.isArray(imageIds) ? imageIds : [imageIds];
+    const alts = Array.isArray(imageAlts) ? imageAlts : [imageAlts];
+    const captions = Array.isArray(imageCaptions) ? imageCaptions : [imageCaptions];
+    const sortOrders = Array.isArray(imageSortOrders) ? imageSortOrders : [imageSortOrders];
+    
+    for (let i = 0; i < ids.length; i++) {
+      const imageId = Number(ids[i]);
+      if (!isNaN(imageId)) {
+        // Update image metadata
+        await db
+          .update(images)
+          .set({
+            altText: alts[i] && typeof alts[i] === 'string' ? alts[i] as string : null,
+            caption: captions[i] && typeof captions[i] === 'string' ? captions[i] as string : null,
+            updatedAt: new Date(),
+          })
+          .where(eq(images.id, imageId));
+        
+        // Update junction table
+        await db
+          .update(countyImages)
+          .set({
+            displayOrder: Number(sortOrders[i]) || i,
+          })
+          .where(eq(countyImages.imageId, imageId));
+      }
+    }
+  }
 
   // Invalidate cache for county changes
   await cacheInvalidation.county(c, id);

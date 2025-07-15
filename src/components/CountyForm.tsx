@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx';
+import { CountyImageUpload } from './CountyImageUpload';
 
 interface County {
   id?: number;
@@ -11,11 +12,31 @@ interface County {
 type CountyFormProps = {
   action: string;
   county?: County;
+  imagesData?: Array<{
+    id: number;
+    imagePath: string;
+    imageAlt: string | null;
+    caption: string | null;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    sortOrder: number;
+  }>;
   error?: string;
   isNew?: boolean;
+  r2Domain?: string;
+  domain?: string;
 };
 
-export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew = false }) => {
+export const CountyForm: FC<CountyFormProps> = ({ 
+  action, 
+  county, 
+  imagesData = [], 
+  error, 
+  isNew = false,
+  r2Domain,
+  domain = 'localhost'
+}) => {
   return (
     <>
       <form
@@ -24,6 +45,7 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
         onsubmit="handleFormSubmit(event)"
         class="space-y-8 divide-y divide-gray-200"
         data-testid="county-form"
+        enctype="multipart/form-data"
       >
         {error && (
           <div class="rounded-md bg-red-50 p-4 mb-6" data-testid="error-county-form">
@@ -138,6 +160,14 @@ export const CountyForm: FC<CountyFormProps> = ({ action, county, error, isNew =
                 </div>
                 <p class="mt-2 text-sm text-gray-500">This description may be shown on the county page.</p>
               </div>
+
+              {/* County Images */}
+              <CountyImageUpload 
+                countyImages={imagesData}
+                domain={domain}
+                r2Domain={r2Domain}
+                countyId={county?.id}
+              />
             </div>
           </div>
         </div>
