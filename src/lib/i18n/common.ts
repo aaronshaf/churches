@@ -1,0 +1,52 @@
+export const commonTranslations = {
+  // Common
+  'common.loading': 'Loading...',
+  'common.error': 'Error',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.edit': 'Edit',
+  'common.delete': 'Delete',
+  'common.back': 'Back',
+  'common.next': 'Next',
+  'common.previous': 'Previous',
+  'common.remove': 'Remove',
+  'common.submit': 'Submit',
+  'common.submitting': 'Submitting...',
+  'common.created': 'Created',
+  'common.name': 'Name',
+
+  // Error Messages
+  'error.generic': 'An error occurred. Please try again.',
+  'error.notFound': 'The page you are looking for could not be found.',
+  'error.unauthorized': 'You are not authorized to access this page.',
+  'error.forbidden': 'You do not have permission to access this resource.',
+  'error.validation': 'Please check your input and try again.',
+  'error.network': 'Network error. Please check your connection.',
+  'error.serverError': 'Server error. Please try again later.',
+  'error.timeout': 'Request timeout. Please try again.',
+  'error.invalidData': 'Invalid data provided.',
+  'error.sessionExpired': 'Your session has expired. Please sign in again.',
+
+  // Validation
+  'validation.required': 'This field is required.',
+  'validation.email': 'Please enter a valid email address.',
+  'validation.phone': 'Please enter a valid phone number.',
+  'validation.url': 'Please enter a valid URL.',
+  'validation.minLength': 'Minimum length is {{min}} characters.',
+  'validation.maxLength': 'Maximum length is {{max}} characters.',
+  'validation.pattern': 'Please match the requested format.',
+  'validation.numeric': 'Please enter a valid number.',
+
+  // Toast Messages
+  'toast.success': 'Success!',
+  'toast.error': 'Error!',
+  'toast.warning': 'Warning!',
+  'toast.info': 'Info',
+  'toast.saved': 'Successfully saved!',
+  'toast.deleted': 'Successfully deleted!',
+  'toast.updated': 'Successfully updated!',
+  'toast.created': 'Successfully created!',
+  'toast.uploadSuccess': 'Upload successful!',
+  'toast.uploadError': 'Upload failed. Please try again.',
+  'toast.connectionError': 'Connection error. Please check your internet connection.',
+};

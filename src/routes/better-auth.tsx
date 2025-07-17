@@ -212,7 +212,7 @@ betterAuthApp.get('/callback/google', async (c) => {
       }),
     });
 
-    const tokens = await tokenResponse.json() as {
+    const tokens = (await tokenResponse.json()) as {
       access_token?: string;
       [key: string]: any;
     };
@@ -225,7 +225,7 @@ betterAuthApp.get('/callback/google', async (c) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
 
-    const googleUser = await userResponse.json() as {
+    const googleUser = (await userResponse.json()) as {
       email?: string;
       name?: string;
       picture?: string;

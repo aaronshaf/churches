@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+echo "${BLUE}${BOLD}🚀 Running pre-push checks...${RESET}"
+
+# Run full TypeScript type check
+echo "${BLUE}🔍 Running TypeScript type check...${RESET}"
+bunx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "${RED}❌ TypeScript type check failed${RESET}"
+  exit 1
+fi
+
+# Run full linting
+echo "${BLUE}🔍 Running linting...${RESET}"
+bun run lint
+if [ $? -ne 0 ]; then
+  echo "${RED}❌ Linting failed${RESET}"
+  exit 1
+fi
+
+# Check all file line counts
+echo "${BLUE}📏 Checking all file line counts...${RESET}"
+CI=true node scripts/check-line-count.js
+if [ $? -ne 0 ]; then
+  echo "${RED}❌ Line count check failed${RESET}"
+  exit 1
+fi
+
+# Run tests if they exist
+if [ -f "bun.lockb" ]; then
+  echo "${BLUE}🧪 Running tests...${RESET}"
+  bun test --bail
+  if [ $? -ne 0 ]; then
+    echo "${RED}❌ Tests failed${RESET}"
+    exit 1
+  fi
+fi
+
+echo "${GREEN}${BOLD}✅ All pre-push checks passed!${RESET}"

@@ -23,7 +23,8 @@ export class AppError extends Error {
 export const errors = {
   notFound: (resource: string = 'Resource'): AppError => new AppError(`${resource} not found`, 404, 'Not Found'),
 
-  unauthorized: (message: string = 'Authentication required'): AppError => new AppError(message, 401, 'Authentication Error'),
+  unauthorized: (message: string = 'Authentication required'): AppError =>
+    new AppError(message, 401, 'Authentication Error'),
 
   forbidden: (message: string = 'Access denied'): AppError => new AppError(message, 403, 'Permission Error'),
 

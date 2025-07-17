@@ -99,8 +99,6 @@ export function getEnvVarStatus(env: Bindings): {
   };
 }
 
-
-
 // Check if Google Maps API key is available
 export function hasGoogleMapsApiKey(env: Bindings): boolean {
   return !!env.GOOGLE_MAPS_API_KEY;
@@ -110,4 +108,3 @@ export function hasGoogleMapsApiKey(env: Bindings): boolean {
 export function hasOpenRouterApiKey(env: Bindings): boolean {
   return !!env.OPENROUTER_API_KEY;
 }
-

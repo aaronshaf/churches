@@ -3,33 +3,13 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { ChurchCard } from './components/ChurchCard';
-import { ChurchComments } from './components/ChurchComments';
-import { CountyForm } from './components/CountyForm';
 import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
-import { MonitoringDashboard } from './components/MonitoringDashboard';
 import { NotFound } from './components/NotFound';
-import { OptimizedImage } from './components/OptimizedImage';
-import { PageForm } from './components/PageForm';
-import { SettingsForm } from './components/SettingsForm';
 import { createDb, createDbWithContext } from './db';
-import { users } from './db/auth-schema';
-import {
-  affiliations,
-  churchAffiliations,
-  churches,
-  churchGatherings,
-  churchImages,
-  churchSuggestions,
-  comments,
-  counties,
-  countyImages,
-  images,
-  pages,
-  settings,
-} from './db/schema';
+import { churches, churchGatherings, counties, pages, settings } from './db/schema';
 import { createAuth } from './lib/auth';
-import { betterAuthMiddleware, getUser, requireAdminBetter } from './middleware/better-auth';
+import { betterAuthMiddleware, getUser } from './middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
 import type { D1SessionVariables } from './middleware/d1-session';
 import { d1SessionMiddleware } from './middleware/d1-session';
@@ -43,23 +23,23 @@ import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminDebugRoutes } from './routes/admin/debug';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
 import { adminNotificationsRoutes } from './routes/admin/notifications';
+import { adminCoreRoutes } from './routes/admin-core';
 import { adminUsersApp } from './routes/admin-users';
 import { apiRoutes } from './routes/api';
+import { assetsRoutes } from './routes/assets';
+import { authCoreRoutes } from './routes/auth-core';
 import { betterAuthApp } from './routes/better-auth';
 import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
+import { countiesRoutes } from './routes/public/counties';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
-import { cacheInvalidation } from './utils/cache-invalidation';
 import { getFromCache, putInCache } from './utils/cf-cache';
-import { getGravatarUrl } from './utils/crypto';
 import { EnvironmentError } from './utils/env-validation';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './utils/error-handling';
 import { getCommonLayoutProps } from './utils/layout-props';
-import { deleteImage, uploadImage } from './utils/r2-images';
-import { getImagePrefix, getSiteTitle } from './utils/settings';
-import { countySchema, pageSchema, parseFormBody, validateFormData } from './utils/validation';
+import { getSiteTitle } from './utils/settings';
 
 type Variables = AuthVariables & D1SessionVariables;
 
@@ -126,53 +106,6 @@ app.onError((err, c) => {
     </Layout>,
     statusCode
   );
-});
-
-// Test route to verify pattern matching
-app.get('/api/auth/test', async (c) => {
-  return c.json({ message: 'Test route works!' });
-});
-
-// Environment variables diagnostic route (only in development)
-app.get('/api/env-check', async (c) => {
-  // Only allow in development for security
-  // NODE_ENV is not available in Cloudflare Workers
-  // This endpoint should be protected by other means
-
-  const { getEnvVarStatus } = await import('./utils/env-validation');
-  const status = getEnvVarStatus(c.env);
-
-  return c.json({
-    status: status.allRequired ? 'OK' : 'ERROR',
-    missing: status.missing,
-    present: status.present.map((v) => v.replace(/_/g, '_')), // Just list the names
-    allRequired: status.allRequired,
-  });
-});
-
-// Debug route to see what better-auth provides
-app.get('/api/auth/debug', async (c) => {
-  try {
-    const auth = createAuth(c.env);
-    return c.json({
-      message: 'Better-auth debug',
-      config: {
-        baseURL: auth.options.baseURL,
-        socialProviders: Object.keys(auth.options.socialProviders || {}),
-      },
-    });
-  } catch (error) {
-    if (error instanceof EnvironmentError) {
-      return c.json(
-        {
-          error: 'Missing required environment variables',
-          missing: error.missingVars,
-        },
-        500
-      );
-    }
-    throw error;
-  }
 });
 
 // Mount better-auth API routes BEFORE middleware - try different pattern
@@ -304,27 +237,6 @@ app.onError((err, c) => {
   );
 });
 
-// .well-known/traffic-advice endpoint
-app.get('/.well-known/traffic-advice', async (c) => {
-  const db = createDbWithContext(c);
-
-  // Get configured domain from settings
-  const siteDomainSetting = await db
-    .select({ value: settings.value })
-    .from(settings)
-    .where(eq(settings.key, 'site_domain'))
-    .get();
-
-  const configuredDomain = siteDomainSetting?.value || c.env.SITE_DOMAIN || 'localhost';
-
-  return c.json([
-    {
-      user_agent: '*',
-      canonical_domain: configuredDomain,
-    },
-  ]);
-});
-
 // Mount better-auth routes
 app.route('/auth', betterAuthApp);
 
@@ -352,6 +264,18 @@ app.route('/admin/cache', adminCacheRoutes);
 app.route('/admin/debug', adminDebugRoutes);
 app.route('/api/admin/notifications', adminNotificationsRoutes);
 app.route('/feedback', feedbackRoutes);
+
+// Asset routes (images, static files)
+app.route('/', assetsRoutes);
+
+// Auth core routes (login, logout, callbacks)
+app.route('/', authCoreRoutes);
+
+// Public routes (counties, networks, map, etc.)
+app.route('/', countiesRoutes);
+
+// Admin core routes (dashboard, settings, etc.)
+app.route('/', adminCoreRoutes);
 
 app.get('/', async (c) => {
   try {
@@ -877,145 +801,6 @@ app.get('/counties/:path', async (c) => {
   return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'counties');
 });
 
-// Debug route
-app.get('/debug/login', async (c) => {
-  try {
-    const faviconUrl = await getFaviconUrl(c.env);
-    const logoUrl = await getLogoUrl(c.env);
-
-    return c.json({
-      authSystem: 'better-auth',
-      BETTER_AUTH_SECRET: c.env.BETTER_AUTH_SECRET ? 'Set' : 'Not set',
-      GOOGLE_CLIENT_ID: c.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set',
-      faviconUrl,
-      logoUrl,
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: errorMessage }, 500);
-  }
-});
-
-// Login routes
-app.get('/login', async (c) => {
-  // Redirect to better-auth signin page
-  const redirectUrl = c.req.query('redirect_url') || '/admin';
-  return c.redirect(`/auth/signin?redirect=${encodeURIComponent(redirectUrl)}`);
-});
-
-// Auth callback route - checks user role and redirects appropriately
-app.get('/auth/callback', async (c) => {
-  const user = await getUser(c);
-
-  if (!user) {
-    // Not authenticated, redirect to login
-    return c.redirect('/login');
-  }
-
-  // Check if user has admin role
-  if (user.role === 'admin') {
-    return c.redirect('/admin');
-  }
-
-  // Non-admin users go to home page
-  return c.redirect('/');
-});
-
-// POST /login route removed - better-auth handles authentication via OAuth
-
-app.get('/logout', async (c) => {
-  // Redirect to better-auth signout endpoint
-  return c.redirect('/auth/signout');
-});
-
-// Force refresh route - logs out and redirects to login
-app.get('/force-refresh', async (c) => {
-  return c.redirect('/logout');
-});
-
-// Create comment on church
-app.post('/churches/:path/comments', async (c) => {
-  const user = await getUser(c);
-
-  if (!user) {
-    return c.redirect('/auth/signin');
-  }
-
-  const db = createDbWithContext(c);
-  const path = c.req.param('path');
-
-  // Get church by path
-  const church = await db.select().from(churches).where(eq(churches.path, path)).get();
-
-  if (!church) {
-    return c.json({ error: 'Church not found' }, 404);
-  }
-
-  const body = await c.req.parseBody();
-  const content = String(body.content || '').trim();
-
-  if (!content) {
-    return c.redirect(`/churches/${path}?error=empty`);
-  }
-
-  // Create comment
-  await db.insert(comments).values({
-    userId: user.id,
-    churchId: church.id,
-    content,
-    isPublic: false, // Comments are private by default
-    status: 'approved', // Auto-approve comments
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
-  return c.redirect(`/churches/${path}#comments`);
-});
-
-// Delete comment (admin only)
-app.post('/churches/:path/comments/:commentId/delete', async (c) => {
-  const user = await getUser(c);
-
-  if (!user || user.role !== 'admin') {
-    return c.json({ error: 'Unauthorized' }, 403);
-  }
-
-  const db = createDbWithContext(c);
-  const path = c.req.param('path');
-  const commentId = parseInt(c.req.param('commentId'));
-
-  // Get church by path to verify it exists
-  const church = await db.select().from(churches).where(eq(churches.path, path)).get();
-
-  if (!church) {
-    return c.json({ error: 'Church not found' }, 404);
-  }
-
-  // Delete the comment
-  const result = await db.delete(comments).where(eq(comments.id, commentId)).returning();
-
-  if (result.length === 0) {
-    return c.json({ error: 'Comment not found' }, 404);
-  }
-
-  return c.redirect(`/churches/${path}#comments`);
-});
-
-// Delete church submission
-app.post('/admin/submissions/:id/delete', requireAdminBetter, async (c) => {
-  const db = createDbWithContext(c);
-  const suggestionId = parseInt(c.req.param('id'));
-
-  // Delete the submission
-  const result = await db.delete(churchSuggestions).where(eq(churchSuggestions.id, suggestionId)).returning();
-
-  if (result.length === 0) {
-    return c.json({ error: 'Submission not found' }, 404);
-  }
-
-  return c.redirect('/admin/submissions');
-});
-
 // 404 catch-all route
 app.get('*', async (c) => {
   const path = c.req.path;
@@ -1084,25 +869,6 @@ app.get('*', async (c) => {
     </Layout>,
     404
   );
-});
-
-// Chrome DevTools workspace support (development only)
-app.get('/.well-known/appspecific/com.chrome.devtools.json', (c) => {
-  // Only respond in development environment
-  const isDevelopment =
-    c.env.ENVIRONMENT !== 'production' &&
-    (c.req.header('host')?.includes('localhost') || c.req.header('host')?.includes('.workers.dev'));
-
-  if (!isDevelopment) {
-    return c.notFound();
-  }
-
-  return c.json({
-    workspace: {
-      root: process.cwd?.() || '/workspace/churches',
-      uuid: 'utah-churches-dev-workspace-2025',
-    },
-  });
 });
 
 // Custom 404 handler

@@ -207,7 +207,7 @@ export const AffiliationForm: FC<AffiliationFormProps> = ({
               </div>
 
               {/* Affiliation Images */}
-              <AffiliationImageUpload 
+              <AffiliationImageUpload
                 affiliationImages={imagesData}
                 domain={domain}
                 r2Domain={r2Domain}

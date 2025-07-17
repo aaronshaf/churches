@@ -166,7 +166,10 @@ export function validateForm(
 }
 
 // Display validation errors in the UI
-export function displayValidationErrors(errors: ValidationError[], containerSelector: string = '.validation-errors'): void {
+export function displayValidationErrors(
+  errors: ValidationError[],
+  containerSelector: string = '.validation-errors'
+): void {
   const container = document.querySelector(containerSelector) as HTMLElement;
   if (!container) return;
 
@@ -208,9 +211,9 @@ export function addRealTimeValidation(
   const field = document.querySelector(fieldSelector) as HTMLInputElement;
   if (!field) return;
 
-  const errorContainer = (errorSelector
-    ? document.querySelector(errorSelector)
-    : field.parentElement?.querySelector('.field-error')) as HTMLElement | null;
+  const errorContainer = (
+    errorSelector ? document.querySelector(errorSelector) : field.parentElement?.querySelector('.field-error')
+  ) as HTMLElement | null;
 
   const validateField = () => {
     const result = validator(field.value);

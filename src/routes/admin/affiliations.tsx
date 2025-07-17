@@ -4,7 +4,15 @@ import { AffiliationForm } from '../../components/AffiliationForm';
 import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
 import { createDbWithContext } from '../../db';
-import { affiliationImages, affiliations, churchAffiliations, churches, counties, images, settings } from '../../db/schema';
+import {
+  affiliationImages,
+  affiliations,
+  churchAffiliations,
+  churches,
+  counties,
+  images,
+  settings,
+} from '../../db/schema';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings } from '../../types';
 import { cacheInvalidation } from '../../utils/cache-invalidation';
@@ -282,7 +290,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     blurhash: string | null;
     sortOrder: number;
   }> = [];
-  
+
   try {
     const affiliationImagesResult = await db
       .select({
@@ -300,7 +308,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
       .where(eq(affiliationImages.affiliationId, id))
       .orderBy(affiliationImages.displayOrder)
       .all();
-    
+
     imagesData = affiliationImagesResult;
   } catch (error) {
     console.error('Failed to fetch affiliation images:', error);
@@ -354,28 +362,28 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
   try {
     // Use all: true to get multiple values for same-named fields (e.g., checkboxes)
     const body = await c.req.parseBody({ all: true });
-    
+
     // Handle image uploads before validation
     const newImages = body.newImages;
     if (newImages) {
       const { uploadImage } = await import('../../utils/r2-images');
       const files = Array.isArray(newImages) ? newImages : [newImages];
-      
+
       // Get current max display order for this affiliation
       const maxOrderResult = await db
         .select({ maxOrder: sql`MAX(display_order)` })
         .from(affiliationImages)
         .where(eq(affiliationImages.affiliationId, id))
         .get();
-      
+
       let currentOrder = (maxOrderResult?.maxOrder as number) || -1;
-      
+
       for (const file of files) {
         if (file instanceof File && file.size > 0) {
           try {
             // Upload to R2
             const result = await uploadImage(file, 'pages', c.env);
-            
+
             // Create image metadata record
             const [imageRecord] = await db
               .insert(images)
@@ -392,9 +400,9 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
                 uploadedBy: user?.email || null,
               })
               .returning({ id: images.id });
-            
+
             currentOrder++;
-            
+
             // Insert into junction table
             await db.insert(affiliationImages).values({
               affiliationId: id,
@@ -422,7 +430,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
               .from(images)
               .where(eq(images.id, Number(imageId)))
               .get();
-            
+
             if (imageToRemove) {
               // Remove from junction table
               await db.delete(affiliationImages).where(eq(affiliationImages.imageId, Number(imageId)));
@@ -437,19 +445,19 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         }
       }
     }
-    
+
     // Update image metadata and sort orders
     const imageIds = body.imageIds;
     const imageAlts = body.imageAlts;
     const imageCaptions = body.imageCaptions;
     const imageSortOrders = body.imageSortOrders;
-    
+
     if (imageIds) {
       const ids = Array.isArray(imageIds) ? imageIds : [imageIds];
       const alts = Array.isArray(imageAlts) ? imageAlts : [imageAlts];
       const captions = Array.isArray(imageCaptions) ? imageCaptions : [imageCaptions];
       const sortOrders = Array.isArray(imageSortOrders) ? imageSortOrders : [imageSortOrders];
-      
+
       for (let i = 0; i < ids.length; i++) {
         const imageId = Number(ids[i]);
         if (!isNaN(imageId)) {
@@ -457,12 +465,12 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
           await db
             .update(images)
             .set({
-              altText: alts[i] && typeof alts[i] === 'string' ? alts[i] as string : null,
-              caption: captions[i] && typeof captions[i] === 'string' ? captions[i] as string : null,
+              altText: alts[i] && typeof alts[i] === 'string' ? (alts[i] as string) : null,
+              caption: captions[i] && typeof captions[i] === 'string' ? (captions[i] as string) : null,
               updatedAt: new Date(),
             })
             .where(eq(images.id, imageId));
-          
+
           // Update junction table
           await db
             .update(affiliationImages)
@@ -473,7 +481,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         }
       }
     }
-    
+
     const parsedBody = parseFormBody(body);
     const validationResult = validateFormData(affiliationSchema, parsedBody);
 

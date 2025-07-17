@@ -28,14 +28,14 @@ type CountyFormProps = {
   domain?: string;
 };
 
-export const CountyForm: FC<CountyFormProps> = ({ 
-  action, 
-  county, 
-  imagesData = [], 
-  error, 
+export const CountyForm: FC<CountyFormProps> = ({
+  action,
+  county,
+  imagesData = [],
+  error,
   isNew = false,
   r2Domain,
-  domain = 'localhost'
+  domain = 'localhost',
 }) => {
   return (
     <>
@@ -162,12 +162,7 @@ export const CountyForm: FC<CountyFormProps> = ({
               </div>
 
               {/* County Images */}
-              <CountyImageUpload 
-                countyImages={imagesData}
-                domain={domain}
-                r2Domain={r2Domain}
-                countyId={county?.id}
-              />
+              <CountyImageUpload countyImages={imagesData} domain={domain} r2Domain={r2Domain} countyId={county?.id} />
             </div>
           </div>
         </div>
