@@ -177,7 +177,13 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
                 {/* Comments Section */}
                 <div class="mt-8 pt-8 border-t border-gray-200">
-                  <ChurchComments comments={processedComments} churchId={church.id} user={user} />
+                  <ChurchComments
+                    comments={processedComments}
+                    churchId={church.id}
+                    churchName={church.name}
+                    churchPath={church.path}
+                    user={user}
+                  />
                 </div>
               </div>
             </div>
@@ -188,13 +194,16 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     // Cache the response if user is not authenticated
     if (!hasSession && !shouldSkipCache(c)) {
-      // Clone the response before caching
-      const responseToCache = response.clone();
-      c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache));
+      // Wait for the response to resolve before caching
+      response.then((res) => {
+        const responseToCache = res.clone();
+        c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache));
+      });
     }
 
     // Apply cache headers if not authenticated
-    return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'church-detail');
+    const finalResponse = await response;
+    return shouldSkipCache(c) ? finalResponse : applyCacheHeaders(finalResponse, 'church-detail');
   } catch (error) {
     console.error('Error in church detail route:', error);
 

@@ -2,14 +2,15 @@ import type { FC } from 'hono/jsx';
 import { BlurhashImage } from '../BlurhashImage';
 import { OptimizedImage } from '../OptimizedImage';
 import { getImageUrl } from '../../utils/r2-images';
+import type { SettingsMap } from '../../utils/settings-cache';
 
 interface ChurchImagesSectionProps {
   churchImages: any[];
-  settingsMap: Map<string, string>;
+  settingsMap: SettingsMap;
 }
 
 export const ChurchImagesSection: FC<ChurchImagesSectionProps> = ({ churchImages, settingsMap }) => {
-  const r2Domain = settingsMap.get('r2_domain') || undefined;
+  const r2Domain = settingsMap.r2_image_domain || undefined;
 
   if (churchImages.length === 0) {
     return null;

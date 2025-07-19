@@ -153,8 +153,9 @@ export class ChurchDetailService {
       .select({
         id: affiliations.id,
         name: affiliations.name,
-        description: affiliations.description,
+        path: affiliations.path,
         website: affiliations.website,
+        publicNotes: affiliations.publicNotes,
         status: affiliations.status,
       })
       .from(churchAffiliations)
