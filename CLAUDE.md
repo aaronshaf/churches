@@ -321,6 +321,10 @@ wrangler secret put SITE_DOMAIN
   - All code quality checks must pass before committing or pushing
   - If a file exceeds size limits, it must be split into smaller modules
   - Fix all issues properly rather than bypassing checks
+- **CRITICAL**: NEVER disable or comment out pre-commit/pre-push hook checks
+  - TypeScript checking, linting, and formatting must always remain enabled
+  - If checks are failing, fix the underlying issues immediately
+  - Disabling checks creates technical debt and allows regressions
 
 ## Important Implementation Notes
 

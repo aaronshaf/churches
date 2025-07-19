@@ -1,13 +1,13 @@
 # Check line count limits
 node scripts/check-line-count.js
 
-# Run TypeScript type checking (temporarily disabled until schema is updated)
-# echo "🔍 Running TypeScript type check..."
-# bunx tsc --noEmit
-# if [ $? -ne 0 ]; then
-#   echo "❌ TypeScript type check failed"
-#   exit 1
-# fi
+# Run TypeScript type checking
+echo "🔍 Running TypeScript type check..."
+bun run typecheck || {
+  echo "⚠️  TypeScript errors detected - these need to be fixed"
+  # TODO: Re-enable exit 1 after fixing existing TypeScript errors
+  # exit 1
+}
 
 # Run Biome formatting (temporarily disabled full check until TypeScript errors are fixed)
 echo "🔍 Running Biome formatting..."

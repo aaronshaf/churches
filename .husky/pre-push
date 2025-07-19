@@ -10,13 +10,14 @@ RESET='\033[0m'
 
 echo "${BLUE}${BOLD}🚀 Running pre-push checks...${RESET}"
 
-# Run full TypeScript type check (temporarily disabled until schema is updated)
-# echo "${BLUE}🔍 Running TypeScript type check...${RESET}"
-# bunx tsc --noEmit
-# if [ $? -ne 0 ]; then
-#   echo "${RED}❌ TypeScript type check failed${RESET}"
-#   exit 1
-# fi
+# Run full TypeScript type check
+echo "${BLUE}🔍 Running TypeScript type check...${RESET}"
+bun run typecheck
+if [ $? -ne 0 ]; then
+  echo "${RED}❌ TypeScript type check failed${RESET}"
+  echo "${YELLOW}💡 Fix TypeScript errors before pushing${RESET}"
+  exit 1
+fi
 
 # Run full linting (temporarily disabled until TypeScript errors are fixed)
 # echo "${BLUE}🔍 Running linting...${RESET}"
