@@ -67,10 +67,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       location: {
         '@type': 'Place',
         name: church.name,
-        address: church.gatheringAddress ? {
-          '@type': 'PostalAddress',
-          streetAddress: church.gatheringAddress,
-        } : undefined,
+        address: church.gatheringAddress
+          ? {
+              '@type': 'PostalAddress',
+              streetAddress: church.gatheringAddress,
+            }
+          : undefined,
       },
       organizer: {
         '@type': 'Organization',
@@ -84,10 +86,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       '@type': 'Church',
       name: church.name,
       description: church.publicNotes || `${church.name} is a Christian church in ${county?.name || 'Utah'}.`,
-      address: church.gatheringAddress ? {
-        '@type': 'PostalAddress',
-        streetAddress: church.gatheringAddress,
-      } : undefined,
+      address: church.gatheringAddress
+        ? {
+            '@type': 'PostalAddress',
+            streetAddress: church.gatheringAddress,
+          }
+        : undefined,
       telephone: church.phone,
       email: church.email,
       url: church.website,
@@ -122,7 +126,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
       gravatarUrl: getGravatarUrl(comment.user?.email || ''),
     }));
 
-    const response = c.html(
+    const response = await c.html(
       <Layout title={church.name} {...layoutProps}>
         <script
           type="application/ld+json"
@@ -359,16 +363,12 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     // Cache the response if user is not authenticated
     if (!hasSession && !shouldSkipCache(c)) {
-      // Wait for the response to resolve before caching
-      response.then((res) => {
-        const responseToCache = res.clone();
-        c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache));
-      });
+      const responseToCache = response.clone();
+      c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache));
     }
 
     // Apply cache headers if not authenticated
-    const finalResponse = await response;
-    return shouldSkipCache(c) ? finalResponse : applyCacheHeaders(finalResponse, 'church-detail');
+    return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'church-detail');
   } catch (error) {
     console.error('Error in church detail route:', error);
 

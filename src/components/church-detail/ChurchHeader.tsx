@@ -25,9 +25,7 @@ export const ChurchHeader: FC<ChurchHeaderProps> = ({ church, county }) => {
                 <div class="mt-4">
                   <span
                     class={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${
-                      church.status === 'Heretical'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-primary-800 text-primary-100'
+                      church.status === 'Heretical' ? 'bg-red-100 text-red-800' : 'bg-primary-800 text-primary-100'
                     }`}
                     data-testid="church-status"
                   >

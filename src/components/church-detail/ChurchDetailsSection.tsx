@@ -81,10 +81,7 @@ export const ChurchDetailsSection: FC<ChurchDetailsSectionProps> = ({ church, af
       {church.phone && (
         <div data-testid="church-phone">
           <h3 class="text-base font-medium text-gray-500">{t('church.phone')}</h3>
-          <a
-            href={`tel:${church.phone}`}
-            class="mt-1 text-base text-primary-600 hover:text-primary-500"
-          >
+          <a href={`tel:${church.phone}`} class="mt-1 text-base text-primary-600 hover:text-primary-500">
             {church.phone}
           </a>
         </div>
@@ -93,15 +90,11 @@ export const ChurchDetailsSection: FC<ChurchDetailsSectionProps> = ({ church, af
       {church.email && (
         <div data-testid="church-email">
           <h3 class="text-base font-medium text-gray-500">{t('church.email')}</h3>
-          <a
-            href={`mailto:${church.email}`}
-            class="mt-1 text-base text-primary-600 hover:text-primary-500"
-          >
+          <a href={`mailto:${church.email}`} class="mt-1 text-base text-primary-600 hover:text-primary-500">
             {church.email}
           </a>
         </div>
       )}
-
     </div>
   );
 };

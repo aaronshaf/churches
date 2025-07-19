@@ -1,7 +1,6 @@
 import type { FC } from 'hono/jsx';
 import { BlurhashImage } from '../BlurhashImage';
 import { OptimizedImage } from '../OptimizedImage';
-import { getImageUrl } from '../../utils/r2-images';
 import type { SettingsMap } from '../../utils/settings-cache';
 
 interface ChurchImagesSectionProps {
@@ -18,10 +17,7 @@ export const ChurchImagesSection: FC<ChurchImagesSectionProps> = ({ churchImages
   }
 
   return (
-    <div
-      class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-      data-testid="church-gallery-grid"
-    >
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" data-testid="church-gallery-grid">
       {churchImages.map((image, index) => (
         <div
           key={image.id}
@@ -38,20 +34,25 @@ export const ChurchImagesSection: FC<ChurchImagesSectionProps> = ({ churchImages
         >
           {image.blurhash ? (
             <BlurhashImage
-              src={getImageUrl(image.imagePath, r2Domain)}
+              imageId={image.id}
+              path={image.imagePath}
               alt={image.imageAlt || `Church photo ${index + 1}`}
               width={image.width || 300}
               height={image.height || 200}
               blurhash={image.blurhash}
               className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+              domain={domain}
+              r2Domain={r2Domain}
             />
           ) : (
             <OptimizedImage
-              src={getImageUrl(image.imagePath, r2Domain)}
+              path={image.imagePath}
               alt={image.imageAlt || `Church photo ${index + 1}`}
               width={300}
               height={200}
               className="w-full h-32 md:h-40 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+              domain={domain}
+              r2Domain={r2Domain}
             />
           )}
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">

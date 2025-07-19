@@ -14,7 +14,7 @@ import {
   images,
 } from '../db/schema';
 import type { AuthVariables, Bindings } from '../types';
-import { getSettingsWithCache } from '../utils/settings-cache';
+import { getSettingsWithCache, type SettingsMap } from '../utils/settings-cache';
 import type { D1SessionVariables } from '../middleware/d1-session';
 
 type Variables = AuthVariables & D1SessionVariables;
@@ -26,7 +26,7 @@ export interface ChurchDetailData {
   affiliations: any[];
   churchImages: any[];
   comments: any[];
-  settingsMap: Map<string, string>;
+  settingsMap: SettingsMap;
 }
 
 export class ChurchDetailService {
@@ -97,13 +97,13 @@ export class ChurchDetailService {
       this.getChurchAffiliations(churchWithCounty.id),
       this.getChurchImages(churchWithCounty.id),
       this.getChurchComments(churchWithCounty.id),
-      getSettingsWithCache(this.c.env.SETTINGS_CACHE, this.c.env.DB),
+      getSettingsWithCache(this.c.env.SETTINGS_CACHE, this.db),
     ]);
 
     // Process comments to add ownership info
     const processedComments = commentsResult.map((comment) => {
       // For system comments without valid user data, try to extract from content
-      if (comment.userId === 0) {
+      if (comment.userId === null || comment.userId === '0') {
         const auditMatch = comment.content.match(/by (.+?)(?:$|\s)/);
         if (auditMatch) {
           const username = auditMatch[1];

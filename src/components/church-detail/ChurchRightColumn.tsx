@@ -125,10 +125,7 @@ export const ChurchRightColumn: FC<ChurchRightColumnProps> = ({ church, affiliat
           <div class="mt-1 space-y-1">
             {affiliations.map((affiliation) => (
               <div key={affiliation.affiliationId}>
-                <a
-                  href={`/networks/${affiliation.path}`}
-                  class="text-base text-primary-600 hover:text-primary-500"
-                >
+                <a href={`/networks/${affiliation.path}`} class="text-base text-primary-600 hover:text-primary-500">
                   {affiliation.name}
                 </a>
               </div>
