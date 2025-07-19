@@ -16,21 +16,25 @@ export const ChurchHeader: FC<ChurchHeaderProps> = ({ church, county }) => {
               <h1 class="text-4xl font-bold text-white md:text-5xl" data-testid="church-name">
                 {church.name}
               </h1>
-              {church.address && (
+              {church.gatheringAddress && (
                 <p class="mt-4 text-xl text-primary-100" data-testid="church-address">
-                  {church.address}, {church.city}, {church.state} {church.zip}
+                  {church.gatheringAddress}
                 </p>
               )}
-              <div class="mt-4">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-                  {t('church.status')}: {church.status}
-                </span>
-                {county && (
-                  <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white">
-                    {county.name}
+              {church.status && church.status !== 'Listed' && church.status !== 'Unlisted' && (
+                <div class="mt-4">
+                  <span
+                    class={`inline-flex items-center rounded-md px-3 py-1 text-sm font-medium ${
+                      church.status === 'Heretical'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-primary-800 text-primary-100'
+                    }`}
+                    data-testid="church-status"
+                  >
+                    {church.status}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
