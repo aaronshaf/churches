@@ -207,7 +207,6 @@ async function getLayoutProps(c: { env: Bindings } & Pick<Context, 'req'>): Prom
   };
 }
 
-
 // Mount better-auth routes
 app.route('/auth', betterAuthApp);
 

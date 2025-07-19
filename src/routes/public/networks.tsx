@@ -34,37 +34,62 @@ networksRoutes.get('/networks', async (c) => {
   const layoutProps = await getCommonLayoutProps(c);
   const { t } = layoutProps;
 
-  // Get all affiliations with church counts
+  // Get all affiliations with church counts - simplified query
   const affiliationsData = await db
     .select({
       id: affiliations.id,
       name: affiliations.name,
       website: affiliations.website,
       status: affiliations.status,
-      churchCount: sql<number>`(
-        SELECT COUNT(DISTINCT ca.church_id) 
-        FROM ${churchAffiliations} ca 
-        JOIN ${churches} c ON ca.church_id = c.id 
-        WHERE ca.affiliation_id = ${affiliations.id} 
-        AND c.status = 'Listed'
-      )`.as('church_count'),
-      unlistedCount: sql<number>`(
-        SELECT COUNT(DISTINCT ca.church_id) 
-        FROM ${churchAffiliations} ca 
-        JOIN ${churches} c ON ca.church_id = c.id 
-        WHERE ca.affiliation_id = ${affiliations.id} 
-        AND c.status = 'Unlisted'
-      )`.as('unlisted_count'),
     })
     .from(affiliations)
     .where(sql`${affiliations.status} != 'Heretical'`)
     .orderBy(affiliations.name)
     .all();
 
+  console.log('Total affiliations found:', affiliationsData.length);
+  console.log('First few affiliations:', affiliationsData.slice(0, 3));
+
+  // Get church counts separately for debugging
+  const churchCounts = await db
+    .select({
+      affiliationId: churchAffiliations.affiliationId,
+      status: churches.status,
+      count: sql<number>`COUNT(DISTINCT ${churchAffiliations.churchId})`.as('count'),
+    })
+    .from(churchAffiliations)
+    .innerJoin(churches, eq(churches.id, churchAffiliations.churchId))
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .groupBy(churchAffiliations.affiliationId, churches.status)
+    .all();
+
+  console.log('Church counts found:', churchCounts.length);
+  console.log('Sample church counts:', churchCounts.slice(0, 5));
+
+  // Build a map of church counts
+  const countsMap = new Map<number, { listed: number; unlisted: number }>();
+  for (const count of churchCounts) {
+    const current = countsMap.get(count.affiliationId) || { listed: 0, unlisted: 0 };
+    if (count.status === 'Listed') {
+      current.listed = count.count;
+    } else if (count.status === 'Unlisted') {
+      current.unlisted = count.count;
+    }
+    countsMap.set(count.affiliationId, current);
+  }
+
+  // Add counts to affiliations
+  const affiliationsWithCounts = affiliationsData.map((aff) => {
+    const counts = countsMap.get(aff.id) || { listed: 0, unlisted: 0 };
+    return {
+      ...aff,
+      churchCount: counts.listed,
+      unlistedCount: counts.unlisted,
+    };
+  });
+
   // Filter to only show affiliations that have at least one church
-  const activeAffiliations = affiliationsData.filter(
-    (aff) => (aff.churchCount as number) > 0 || (aff.unlistedCount as number) > 0
-  );
+  const activeAffiliations = affiliationsWithCounts.filter((aff) => aff.churchCount > 0 || aff.unlistedCount > 0);
 
   const response = await c.html(
     <Layout title="Church Networks" {...layoutProps}>
