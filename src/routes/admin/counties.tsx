@@ -5,11 +5,9 @@ import { Layout } from '../../components/Layout';
 import { Toast } from '../../components/Toast';
 import { createDbWithContext } from '../../db';
 import { churches, counties } from '../../db/schema';
-import { requireAuth } from '../../middleware/better-auth';
+import { requireAuthBetter } from '../../middleware/better-auth';
 import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
-import { trackActivity } from '../../utils/audit-trail';
-import { invalidateCacheForPaths } from '../../utils/cache-invalidation';
 import { getCommonLayoutProps } from '../../utils/layout-props';
 
 type Variables = AuthVariables & D1SessionVariables;
@@ -17,7 +15,7 @@ type Variables = AuthVariables & D1SessionVariables;
 export const adminCountiesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Apply auth middleware to all routes
-adminCountiesRoutes.use('*', requireAuth);
+adminCountiesRoutes.use('*', requireAuthBetter);
 
 // Counties list page
 adminCountiesRoutes.get('/admin/counties', async (c) => {
@@ -134,16 +132,7 @@ adminCountiesRoutes.post('/admin/counties/new', async (c) => {
       .returning()
       .get();
 
-    // Track activity
-    await trackActivity(c, {
-      action: 'create',
-      entityType: 'county',
-      entityId: result.id,
-      details: `Created county: ${result.name}`,
-    });
-
-    // Invalidate caches
-    await invalidateCacheForPaths(c, ['/']);
+    // TODO: Add activity tracking when audit trail is implemented
 
     return c.redirect('/admin/counties?success=created');
   } catch (error) {
@@ -237,16 +226,7 @@ adminCountiesRoutes.post('/admin/counties/:id/edit', async (c) => {
       .returning()
       .get();
 
-    // Track activity
-    await trackActivity(c, {
-      action: 'update',
-      entityType: 'county',
-      entityId: countyId,
-      details: `Updated county: ${result.name}`,
-    });
-
-    // Invalidate caches
-    await invalidateCacheForPaths(c, ['/', `/counties/${result.path}`]);
+    // TODO: Add activity tracking when audit trail is implemented
 
     return c.redirect(`/admin/counties/${countyId}/edit?success=updated`);
   } catch (error) {
@@ -283,16 +263,7 @@ adminCountiesRoutes.post('/admin/counties/:id/delete', async (c) => {
     // Delete the county
     await db.delete(counties).where(eq(counties.id, countyId));
 
-    // Track activity
-    await trackActivity(c, {
-      action: 'delete',
-      entityType: 'county',
-      entityId: countyId,
-      details: `Deleted county: ${county.name}`,
-    });
-
-    // Invalidate caches
-    await invalidateCacheForPaths(c, ['/', `/counties/${county.path}`]);
+    // TODO: Add activity tracking when audit trail is implemented
 
     return c.redirect('/admin/counties?success=deleted');
   } catch (error) {
