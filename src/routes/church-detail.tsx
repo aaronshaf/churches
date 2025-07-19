@@ -200,7 +200,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     const errorId = generateErrorId();
     const statusCode = getErrorStatusCode(error);
-    const message = sanitizeErrorMessage(error.message);
+    const { message, type, details } = sanitizeErrorMessage(error);
 
     const layoutProps = await getCommonLayoutProps(c).catch(() => ({
       faviconUrl: undefined,
@@ -211,7 +211,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     return c.html(
       <Layout title="Error" {...layoutProps}>
-        <ErrorPage error={message} errorType="server_error" statusCode={statusCode} errorId={errorId} />
+        <ErrorPage error={message} errorType={type} errorDetails={details} statusCode={statusCode} errorId={errorId} />
       </Layout>,
       statusCode
     );

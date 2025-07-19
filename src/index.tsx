@@ -34,6 +34,7 @@ import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { countiesRoutes } from './routes/public/counties';
+import { mapRoutes } from './routes/public/map';
 import { networksRoutes } from './routes/public/networks';
 import { seoRoutes } from './routes/seo';
 import type { AuthVariables, BetterAuthUser, Bindings } from './types';
@@ -206,38 +207,6 @@ async function getLayoutProps(c: { env: Bindings } & Pick<Context, 'req'>): Prom
   };
 }
 
-// Global error handler
-app.onError((err, c) => {
-  console.error('Unhandled error:', err);
-
-  // Check if it's a database connection error
-  const isDatabaseError =
-    err.message?.includes('Network connection lost') ||
-    err.message?.includes('Failed query') ||
-    err.message?.includes('D1_ERROR') ||
-    err.message?.includes('Database is not defined') ||
-    err.message?.includes('Cannot read properties of undefined') ||
-    ('cause' in err &&
-      err.cause &&
-      typeof err.cause === 'object' &&
-      'message' in err.cause &&
-      typeof err.cause.message === 'string' &&
-      (err.cause.message.includes('Network connection lost') ||
-        err.cause.message.includes('D1_ERROR') ||
-        err.cause.message.includes('Database is not defined')));
-
-  const rawStatus = 'status' in err && typeof err.status === 'number' ? err.status : 500;
-  const statusCode: 400 | 401 | 403 | 404 | 408 | 429 | 500 = [400, 401, 403, 404, 408, 429, 500].includes(rawStatus)
-    ? (rawStatus as 400 | 401 | 403 | 404 | 408 | 429 | 500)
-    : 500;
-
-  return c.html(
-    <Layout title="Error">
-      <ErrorPage error={isDatabaseError ? 'Database connection error' : err.message} statusCode={statusCode} />
-    </Layout>,
-    statusCode
-  );
-});
 
 // Mount better-auth routes
 app.route('/auth', betterAuthApp);
@@ -277,6 +246,7 @@ app.route('/', authCoreRoutes);
 // Public routes (counties, networks, map, etc.)
 app.route('/', countiesRoutes);
 app.route('/', networksRoutes);
+app.route('/', mapRoutes);
 
 // Admin core routes (dashboard, settings, etc.)
 app.route('/', adminCoreRoutes);
