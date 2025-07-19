@@ -3,6 +3,7 @@ import type { SupportedLanguage } from '../lib/i18n';
 import type { BetterAuthUser } from '../types';
 import { Footer } from './Footer';
 import { Navbar } from './Navbar';
+import { QuickEditShortcut } from './QuickEditShortcut';
 import { QuickSearch } from './QuickSearch';
 
 type LayoutProps = {
@@ -347,6 +348,7 @@ export const Layout: FC<LayoutProps> = ({
         )}
         {currentPath === '/admin/churches' && <script src="/js/church-filters.js"></script>}
         <QuickSearch userRole={user?.role} language={language} t={t} />
+        <QuickEditShortcut userRole={user?.role} />
       </body>
     </html>
   );

@@ -132,34 +132,6 @@ export const QuickSearch: FC<QuickSearchProps> = ({ userRole, language = 'en', t
                   e.preventDefault();
                   openQuickSearch();
                 }
-                
-                // Quick edit with 'E' key (only for contributors and admins)
-                if (e.key === 'E' && !isInputField && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && (userRole === 'admin' || userRole === 'contributor')) {
-                  const currentPath = window.location.pathname;
-                  
-                  // Check if we're on a church detail page
-                  const churchMatch = currentPath.match(/^\/churches\/(.+)$/);
-                  if (churchMatch) {
-                    // Find the church ID from the page
-                    const churchIdElement = document.querySelector('[data-church-id]');
-                    if (churchIdElement) {
-                      const churchId = churchIdElement.getAttribute('data-church-id');
-                      window.location.href = '/admin/churches/' + churchId + '/edit';
-                    }
-                    return;
-                  }
-                  
-                  // Check if we're on a county page
-                  const countyMatch = currentPath.match(/^\/counties\/(.+)$/);
-                  if (countyMatch) {
-                    // Find the county ID from the page
-                    const countyIdElement = document.querySelector('[data-county-id]');
-                    if (countyIdElement) {
-                      const countyId = countyIdElement.getAttribute('data-county-id');
-                      window.location.href = '/admin/counties/' + countyId + '/edit';
-                    }
-                  }
-                }
               });
             });
 
