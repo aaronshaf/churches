@@ -23,6 +23,8 @@ export const navigationTranslations = {
   'footer.github': 'GitHub',
   'footer.verse': 'And let us consider how we may spur one another on toward love and good deeds',
   'footer.reference': 'Hebrews 10:24',
+  'footer.feedback': 'Submit Feedback',
+  'footer.data': 'Data',
 
   // Navbar
   'navbar.mobileMenu': 'Mobile menu',
