@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
@@ -83,10 +83,12 @@ export class ChurchDetailService {
     // Restructure the data to match the expected format
     const churchWithCounty = {
       ...churchResult,
-      county: churchResult.countyName ? {
-        name: churchResult.countyName,
-        path: churchResult.countyPath,
-      } : null,
+      county: churchResult.countyName
+        ? {
+            name: churchResult.countyName,
+            path: churchResult.countyPath,
+          }
+        : null,
     };
 
     // Execute all dependent queries in parallel using Promise.all
@@ -135,26 +137,14 @@ export class ChurchDetailService {
     return await this.db
       .select({
         id: churchGatherings.id,
-        day: churchGatherings.day,
         time: churchGatherings.time,
-        type: churchGatherings.type,
         notes: churchGatherings.notes,
+        createdAt: churchGatherings.createdAt,
+        updatedAt: churchGatherings.updatedAt,
       })
       .from(churchGatherings)
       .where(eq(churchGatherings.churchId, churchId))
-      .orderBy(
-        sql`CASE 
-          WHEN ${churchGatherings.day} = 'Sunday' THEN 1
-          WHEN ${churchGatherings.day} = 'Monday' THEN 2
-          WHEN ${churchGatherings.day} = 'Tuesday' THEN 3
-          WHEN ${churchGatherings.day} = 'Wednesday' THEN 4
-          WHEN ${churchGatherings.day} = 'Thursday' THEN 5
-          WHEN ${churchGatherings.day} = 'Friday' THEN 6
-          WHEN ${churchGatherings.day} = 'Saturday' THEN 7
-          ELSE 8
-        END`,
-        churchGatherings.time
-      )
+      .orderBy(churchGatherings.time)
       .all();
   }
 
@@ -180,39 +170,42 @@ export class ChurchDetailService {
       const newImages = await this.db
         .select({
           id: churchImagesNew.id,
-          imagePath: churchImagesNew.imagePath,
-          imageAlt: churchImagesNew.imageAlt,
-          caption: churchImagesNew.caption,
-          width: churchImagesNew.width,
-          height: churchImagesNew.height,
-          blurhash: churchImagesNew.blurhash,
-          sortOrder: churchImagesNew.sortOrder,
-        })
-        .from(churchImagesNew)
-        .where(eq(churchImagesNew.churchId, churchId))
-        .orderBy(churchImagesNew.sortOrder)
-        .all();
-
-      if (newImages.length > 0) {
-        return newImages;
-      }
-
-      // Fall back to old system if new system fails
-      const oldImages = await this.db
-        .select({
-          id: churchImages.id,
-          imagePath: images.imagePath,
-          imageAlt: images.imageAlt,
+          imageId: churchImagesNew.imageId,
+          displayOrder: churchImagesNew.displayOrder,
+          isPrimary: churchImagesNew.isPrimary,
+          imagePath: images.filename,
+          imageAlt: images.altText,
           caption: images.caption,
           width: images.width,
           height: images.height,
           blurhash: images.blurhash,
-          sortOrder: sql`ROW_NUMBER() OVER (ORDER BY ${churchImages.id})`.mapWith(Number),
+        })
+        .from(churchImagesNew)
+        .innerJoin(images, eq(churchImagesNew.imageId, images.id))
+        .where(eq(churchImagesNew.churchId, churchId))
+        .orderBy(desc(churchImagesNew.isPrimary), churchImagesNew.displayOrder)
+        .all();
+
+      if (newImages.length > 0) {
+        return newImages.map((img, index) => ({
+          ...img,
+          sortOrder: index,
+        }));
+      }
+
+      // Fall back to old system if new system has no images
+      const oldImages = await this.db
+        .select({
+          id: churchImages.id,
+          imagePath: churchImages.imagePath,
+          imageAlt: churchImages.imageAlt,
+          caption: churchImages.caption,
+          isFeatured: churchImages.isFeatured,
+          sortOrder: churchImages.sortOrder,
         })
         .from(churchImages)
-        .leftJoin(images, eq(churchImages.imageId, images.id))
         .where(eq(churchImages.churchId, churchId))
-        .orderBy(churchImages.id)
+        .orderBy(desc(churchImages.isFeatured), churchImages.sortOrder)
         .all();
 
       return oldImages;
