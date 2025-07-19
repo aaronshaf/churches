@@ -56,7 +56,7 @@ networksRoutes.get('/networks', async (c) => {
 
   // Count churches per affiliation
   const affiliationCounts = new Map<number, { listed: number; unlisted: number }>();
-  
+
   for (const ca of churchAffiliationData) {
     const counts = affiliationCounts.get(ca.affiliationId) || { listed: 0, unlisted: 0 };
     if (ca.churchStatus === 'Listed') {
@@ -69,7 +69,7 @@ networksRoutes.get('/networks', async (c) => {
 
   // Filter affiliations that have at least one church
   const activeAffiliations = affiliationsData
-    .map(aff => {
+    .map((aff) => {
       const counts = affiliationCounts.get(aff.id) || { listed: 0, unlisted: 0 };
       return {
         ...aff,
@@ -77,80 +77,63 @@ networksRoutes.get('/networks', async (c) => {
         unlistedCount: counts.unlisted,
       };
     })
-    .filter(aff => aff.churchCount > 0 || aff.unlistedCount > 0);
+    .filter((aff) => aff.churchCount > 0 || aff.unlistedCount > 0);
 
   const response = await c.html(
-    <Layout title="Church Networks" {...layoutProps}>
-      <div>
-        {/* Header */}
-        <div class="bg-gradient-to-r from-primary-600 to-primary-700">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="py-12 md:py-16">
-              <h1 class="text-4xl font-bold text-white md:text-5xl">Church Networks</h1>
-              <p class="mt-4 text-xl text-primary-100">Denominations and church planting networks in Utah</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Networks List */}
+    <Layout title={t('networks.title')} currentPath="/networks" {...layoutProps}>
+      <div class="bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {activeAffiliations.length === 0 ? (
-            <div class="text-center py-12">
-              <p class="text-gray-500">No church networks found.</p>
-            </div>
-          ) : (
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {activeAffiliations.map((affiliation) => {
-                const totalChurches = (affiliation.churchCount as number) + (affiliation.unlistedCount as number);
-                const showUnlisted = affiliation.status === 'Unlisted' || (affiliation.churchCount as number) === 0;
+          {/* Header */}
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">{t('networks.title')}</h1>
+          </div>
 
-                return (
-                  <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
-                    <div class="px-4 py-5 sm:p-6">
-                      <h3 class="text-lg font-medium text-gray-900">
-                        {affiliation.website ? (
-                          <a
-                            href={affiliation.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-primary-600 hover:text-primary-700"
-                          >
-                            {affiliation.name}
-                            <svg
-                              class="inline-block w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </a>
-                        ) : (
-                          affiliation.name
-                        )}
-                      </h3>
-                      <p class="mt-2 text-sm text-gray-500">
-                        {totalChurches} {totalChurches === 1 ? 'church' : 'churches'}
-                        {showUnlisted && (affiliation.unlistedCount as number) > 0 && (
-                          <span class="text-gray-400"> (includes unlisted)</span>
-                        )}
-                      </p>
-                      {affiliation.status === 'Unlisted' && (
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-2">
-                          Unlisted Network
-                        </span>
-                      )}
+          {/* Affiliations Grid */}
+          <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
+            <ul class="divide-y divide-gray-200">
+              {activeAffiliations.map((affiliation) => (
+                <li>
+                  <a
+                    href={`/networks/${affiliation.path || affiliation.id}`}
+                    class="block px-6 py-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h3 class="text-lg font-medium text-gray-900">
+                          {affiliation.name}
+                          <span class="ml-2 text-gray-500">({affiliation.churchCount})</span>
+                        </h3>
+                        {affiliation.publicNotes && <p class="mt-1 text-sm text-gray-600">{affiliation.publicNotes}</p>}
+                      </div>
+                      <svg
+                        class="h-5 w-5 text-gray-400 flex-shrink-0 ml-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            {activeAffiliations.length === 0 && (
+              <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+                <h3 class="mt-2 text-sm font-semibold text-gray-900">No networks available</h3>
+                <p class="mt-1 text-sm text-gray-500">Check back later for church network information.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>

@@ -188,25 +188,31 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     // Cache the response if user is not authenticated
     if (!hasSession && !shouldSkipCache(c)) {
-      await putInCache(c.req.raw, response.clone());
+      // Clone the response before caching
+      const responseToCache = response.clone();
+      c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache));
     }
 
-    // Apply cache headers
-    applyCacheHeaders(c, 300); // 5 minutes
-
-    return response;
-  } catch (error: any) {
+    // Apply cache headers if not authenticated
+    return shouldSkipCache(c) ? response : applyCacheHeaders(response, 'church-detail');
+  } catch (error) {
     console.error('Error in church detail route:', error);
 
     const errorId = generateErrorId();
     const statusCode = getErrorStatusCode(error);
-    const { message, type, details } = sanitizeErrorMessage(error);
+    
+    // Ensure error is an Error object before calling sanitizeErrorMessage
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const { message, type, details } = sanitizeErrorMessage(errorObj);
 
     const layoutProps = await getCommonLayoutProps(c).catch(() => ({
       faviconUrl: undefined,
       logoUrl: undefined,
-      navbarPages: [],
+      pages: [],
+      siteTitle: 'Utah Churches',
+      user: null,
       currentPath: c.req.path,
+      t: (key: string) => key, // Fallback translation function
     }));
 
     return c.html(
