@@ -22,11 +22,11 @@ adminCountiesRoutes.use('*', requireAuth);
 // Counties list page
 adminCountiesRoutes.get('/admin/counties', async (c) => {
   const db = createDbWithContext(c);
-  
+
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
   const { t } = layoutProps;
-  
+
   // Get all counties with church counts
   const countiesData = await db
     .select({
@@ -34,7 +34,9 @@ adminCountiesRoutes.get('/admin/counties', async (c) => {
       name: counties.name,
       path: counties.path,
       population: counties.population,
-      churchCount: sql<number>`(SELECT COUNT(*) FROM ${churches} WHERE ${churches.countyId} = ${counties.id})`.as('church_count'),
+      churchCount: sql<number>`(SELECT COUNT(*) FROM ${churches} WHERE ${churches.countyId} = ${counties.id})`.as(
+        'church_count'
+      ),
     })
     .from(counties)
     .orderBy(counties.name)
@@ -154,7 +156,7 @@ adminCountiesRoutes.post('/admin/counties/new', async (c) => {
 adminCountiesRoutes.get('/admin/counties/:id/edit', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
-  
+
   const layoutProps = await getCommonLayoutProps(c);
   const { t } = layoutProps;
 
@@ -184,20 +186,20 @@ adminCountiesRoutes.get('/admin/counties/:id/edit', async (c) => {
       <div class="bg-white">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit {county.name}</h1>
-          
+
           {error && (
             <div class="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
               {error === 'missing_fields' && 'Please fill in all required fields.'}
               {error === 'update_failed' && 'Failed to update county. Please try again.'}
             </div>
           )}
-          
+
           {success && (
             <div class="mb-4 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
               County updated successfully!
             </div>
           )}
-          
+
           <CountyForm county={county} {...layoutProps} />
         </div>
       </div>
@@ -262,7 +264,7 @@ adminCountiesRoutes.post('/admin/counties/:id/delete', async (c) => {
   try {
     // Get county details before deletion
     const county = await db.select().from(counties).where(eq(counties.id, countyId)).get();
-    
+
     if (!county) {
       return c.redirect('/admin/counties?error=not_found');
     }

@@ -28,7 +28,7 @@ networksRoutes.get('/networks', async (c) => {
   }
 
   const db = createDbWithContext(c);
-  
+
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
   const { t } = layoutProps;
@@ -73,9 +73,7 @@ networksRoutes.get('/networks', async (c) => {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="py-12 md:py-16">
               <h1 class="text-4xl font-bold text-white md:text-5xl">Church Networks</h1>
-              <p class="mt-4 text-xl text-primary-100">
-                Denominations and church planting networks in Utah
-              </p>
+              <p class="mt-4 text-xl text-primary-100">Denominations and church planting networks in Utah</p>
             </div>
           </div>
         </div>
@@ -91,7 +89,7 @@ networksRoutes.get('/networks', async (c) => {
               {activeAffiliations.map((affiliation) => {
                 const totalChurches = (affiliation.churchCount as number) + (affiliation.unlistedCount as number);
                 const showUnlisted = affiliation.status === 'Unlisted' || (affiliation.churchCount as number) === 0;
-                
+
                 return (
                   <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
                     <div class="px-4 py-5 sm:p-6">
