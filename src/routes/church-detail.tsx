@@ -200,7 +200,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
 
     const errorId = generateErrorId();
     const statusCode = getErrorStatusCode(error);
-    
+
     // Ensure error is an Error object before calling sanitizeErrorMessage
     const errorObj = error instanceof Error ? error : new Error(String(error));
     const { message, type, details } = sanitizeErrorMessage(errorObj);

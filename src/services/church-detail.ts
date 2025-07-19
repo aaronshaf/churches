@@ -40,7 +40,7 @@ export class ChurchDetailService {
 
   async getChurchData(churchPath: string): Promise<ChurchDetailData | null> {
     // Get church with county info first (we need the church ID for other queries)
-    const churchWithCounty = await this.db
+    const churchResult = await this.db
       .select({
         id: churches.id,
         name: churches.name,
@@ -49,26 +49,26 @@ export class ChurchDetailService {
         website: churches.website,
         phone: churches.phone,
         email: churches.email,
-        address: churches.address,
-        city: churches.city,
-        state: churches.state,
-        zip: churches.zip,
+        gatheringAddress: churches.gatheringAddress,
+        mailingAddress: churches.mailingAddress,
         latitude: churches.latitude,
         longitude: churches.longitude,
         facebook: churches.facebook,
         instagram: churches.instagram,
-        twitter: churches.twitter,
         youtube: churches.youtube,
+        spotify: churches.spotify,
+        language: churches.language,
         statementOfFaith: churches.statementOfFaith,
         publicNotes: churches.publicNotes,
         privateNotes: churches.privateNotes,
         countyId: churches.countyId,
+        imagePath: churches.imagePath,
+        imageAlt: churches.imageAlt,
+        lastUpdated: churches.lastUpdated,
         createdAt: churches.createdAt,
         updatedAt: churches.updatedAt,
-        county: {
-          name: counties.name,
-          path: counties.path,
-        },
+        countyName: counties.name,
+        countyPath: counties.path,
       })
       .from(churches)
       .leftJoin(counties, eq(churches.countyId, counties.id))
@@ -76,9 +76,18 @@ export class ChurchDetailService {
       .limit(1)
       .get();
 
-    if (!churchWithCounty) {
+    if (!churchResult) {
       return null;
     }
+
+    // Restructure the data to match the expected format
+    const churchWithCounty = {
+      ...churchResult,
+      county: churchResult.countyName ? {
+        name: churchResult.countyName,
+        path: churchResult.countyPath,
+      } : null,
+    };
 
     // Execute all dependent queries in parallel using Promise.all
     const [gatherings, affiliationsResult, churchImagesResult, commentsResult, settingsMap] = await Promise.all([
