@@ -105,7 +105,7 @@ countiesRoutes.get('/counties/:path', async (c) => {
 
   const response = await c.html(
     <Layout title={`${county.name} Churches`} countyId={county.id.toString()} {...layoutProps}>
-      <div>
+      <div data-county-id={county.id}>
         {/* Header */}
         <div class="bg-gradient-to-r from-primary-600 to-primary-700">
           <div class="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8">

@@ -117,4 +117,12 @@ export function getLanguageFromHeader(acceptLanguage: string): SupportedLanguage
   return 'en';
 }
 
+// Alias for backward compatibility
+export const detectLanguageFromHeader = getLanguageFromHeader;
+
+// Initialize i18n with a specific language
+export async function initI18n(language: SupportedLanguage): Promise<void> {
+  await changeLanguage(language);
+}
+
 export default i18next;
