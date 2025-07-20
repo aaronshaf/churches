@@ -22,7 +22,7 @@ export const QuickEditShortcut: FC<QuickEditShortcutProps> = ({ userRole }) => {
               const isInputField = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || e.target.contentEditable === 'true';
               
               // Quick edit with 'E' key (only for contributors and admins)
-              if (e.key === 'E' && !isInputField && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+              if ((e.key === 'e' || e.key === 'E') && !isInputField && !e.metaKey && !e.ctrlKey && !e.altKey) {
                 const currentPath = window.location.pathname;
                 
                 // Check if we're on a church detail page
