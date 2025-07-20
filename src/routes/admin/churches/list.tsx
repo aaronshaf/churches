@@ -30,9 +30,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
   const whereConditions = [];
 
   if (search) {
-    whereConditions.push(
-      or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`))
-    );
+    whereConditions.push(or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`)));
   }
 
   if (statusFilter) {
@@ -108,11 +106,13 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
       const churchesWithAffiliation = await batchedInQuery(
         churchIds,
         100,
-        async (batchIds) => 
+        async (batchIds) =>
           await db
             .select()
             .from(churchAffiliations)
-            .where(and(inArray(churchAffiliations.churchId, batchIds), eq(churchAffiliations.affiliationId, affiliationId)))
+            .where(
+              and(inArray(churchAffiliations.churchId, batchIds), eq(churchAffiliations.affiliationId, affiliationId))
+            )
             .all()
       );
 
@@ -444,7 +444,6 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
           </div>
         </div>
       </div>
-
     </Layout>
   );
 }

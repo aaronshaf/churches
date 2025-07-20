@@ -10,6 +10,7 @@ export const pagesTranslations = {
   // Map
   'map.title': 'Church Map',
   'map.loading': 'Loading map...',
+  'map.showMoreChurches': 'Show {{count}} additional churches',
 
   // Networks
   'networks.title': 'Church Networks',

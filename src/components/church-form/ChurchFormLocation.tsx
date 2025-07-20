@@ -14,67 +14,35 @@ export const ChurchFormLocation: FC<ChurchFormLocationProps> = ({ church, counti
         <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Location Information</h3>
       </div>
 
-      <div class="sm:col-span-4">
-        <label for="address" class="block text-sm font-medium leading-6 text-gray-900">
-          Street Address
+      <div class="sm:col-span-6">
+        <label for="gatheringAddress" class="block text-sm font-medium leading-6 text-gray-900">
+          Gathering Address
         </label>
         <div class="mt-2">
           <input
             type="text"
-            name="address"
-            id="address"
-            value={church?.address || ''}
-            data-testid="input-address"
+            name="gatheringAddress"
+            id="gatheringAddress"
+            value={church?.gatheringAddress || ''}
+            placeholder="123 Main St, Salt Lake City, UT 84101"
+            data-testid="input-gathering-address"
             class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
           />
         </div>
       </div>
 
-      <div class="sm:col-span-2">
-        <label for="city" class="block text-sm font-medium leading-6 text-gray-900">
-          City
+      <div class="sm:col-span-6">
+        <label for="mailingAddress" class="block text-sm font-medium leading-6 text-gray-900">
+          Mailing Address (if different)
         </label>
         <div class="mt-2">
           <input
             type="text"
-            name="city"
-            id="city"
-            value={church?.city || ''}
-            data-testid="input-city"
-            class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-          />
-        </div>
-      </div>
-
-      <div class="sm:col-span-2">
-        <label for="state" class="block text-sm font-medium leading-6 text-gray-900">
-          State
-        </label>
-        <div class="mt-2">
-          <input
-            type="text"
-            name="state"
-            id="state"
-            value={church?.state || 'UT'}
-            maxlength={2}
-            data-testid="input-state"
-            class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-          />
-        </div>
-      </div>
-
-      <div class="sm:col-span-2">
-        <label for="zip" class="block text-sm font-medium leading-6 text-gray-900">
-          ZIP Code
-        </label>
-        <div class="mt-2">
-          <input
-            type="text"
-            name="zip"
-            id="zip"
-            value={church?.zip || ''}
-            pattern="[0-9]{5}(-[0-9]{4})?"
-            data-testid="input-zip"
+            name="mailingAddress"
+            id="mailingAddress"
+            value={church?.mailingAddress || ''}
+            placeholder="PO Box 123, Salt Lake City, UT 84101"
+            data-testid="input-mailing-address"
             class="block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
           />
         </div>
