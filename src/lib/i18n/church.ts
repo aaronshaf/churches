@@ -21,6 +21,7 @@ export const churchTranslations = {
   'church.location': 'Location',
   'church.contact': 'Contact',
   'church.socialMedia': 'Social Media',
+  'church.getDirections': 'Get Directions',
 
   // Church Status
   'church.status.listed': 'Listed',

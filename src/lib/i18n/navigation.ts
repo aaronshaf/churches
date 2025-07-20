@@ -25,6 +25,8 @@ export const navigationTranslations = {
   'footer.reference': 'Hebrews 10:24',
   'footer.feedback': 'Submit Feedback',
   'footer.data': 'Data',
+  'footer.edit': 'Edit',
+  'footer.admin': 'Admin',
 
   // Navbar
   'navbar.mobileMenu': 'Mobile menu',
