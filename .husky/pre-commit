@@ -4,9 +4,8 @@ node scripts/check-line-count.js
 # Run TypeScript type checking
 echo "🔍 Running TypeScript type check..."
 bun run typecheck || {
-  echo "⚠️  TypeScript errors detected - these need to be fixed"
-  # TODO: Re-enable exit 1 after fixing existing TypeScript errors
-  # exit 1
+  echo "❌ TypeScript errors detected - these need to be fixed"
+  exit 1
 }
 
 # Run Biome formatting (temporarily disabled full check until TypeScript errors are fixed)

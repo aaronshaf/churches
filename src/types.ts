@@ -14,6 +14,7 @@ export interface Bindings {
   OPENROUTER_API_KEY?: string;
   ENVIRONMENT?: string;
   SITE_DOMAIN?: string; // For image transformation URLs
+  R2_DOMAIN?: string;
 }
 
 // User role types (matches auth schema)
@@ -185,6 +186,9 @@ export interface ChurchImage {
   caption: string | null;
   isFeatured: boolean;
   sortOrder: number;
+  width?: number | null;
+  height?: number | null;
+  blurhash?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -30,7 +30,6 @@ export const ChurchFormAffiliations: FC<ChurchFormAffiliationsProps> = ({ affili
                 />
                 <label for={`affiliation-${affiliation.id}`} class="ml-3 text-sm leading-6 text-gray-900">
                   {affiliation.name}
-                  {affiliation.description && <span class="text-gray-500"> - {affiliation.description}</span>}
                 </label>
               </div>
             ))}

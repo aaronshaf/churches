@@ -126,9 +126,9 @@ export const ChurchForm: FC<ChurchFormProps> = ({
                             imagePath: img.imagePath,
                             imageAlt: img.imageAlt,
                             caption: img.caption,
-                            width: img.width,
-                            height: img.height,
-                            blurhash: img.blurhash,
+                            width: img.width || null,
+                            height: img.height || null,
+                            blurhash: img.blurhash || null,
                             sortOrder: img.sortOrder,
                             isFeatured: index === 0,
                           }))

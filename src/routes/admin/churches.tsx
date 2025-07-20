@@ -33,17 +33,16 @@ adminChurchesRoutes.get('/new', async (c) => {
   // Get all affiliations for checkboxes
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
 
-  const logoUrl = await getLogoUrl(c.env.DB);
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
     <Layout
       title="Create New Church"
       faviconUrl={undefined}
       logoUrl={logoUrl}
-      navbarPages={[]}
+      pages={[]}
       currentPath={c.req.path}
       user={user}
-      showInternalNavbar={true}
     >
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ChurchForm
@@ -56,7 +55,6 @@ adminChurchesRoutes.get('/new', async (c) => {
           domain={c.env.SITE_DOMAIN || 'localhost'}
         />
       </div>
-      <Toast />
     </Layout>
   );
 });
@@ -93,17 +91,16 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
     db.select().from(affiliations).orderBy(affiliations.name).all(),
   ]);
 
-  const logoUrl = await getLogoUrl(c.env.DB);
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
     <Layout
       title={`Edit ${church.name}`}
       faviconUrl={undefined}
       logoUrl={logoUrl}
-      navbarPages={[]}
+      pages={[]}
       currentPath={c.req.path}
       user={user}
-      showInternalNavbar={true}
     >
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ChurchForm
@@ -119,7 +116,6 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
           domain={c.env.SITE_DOMAIN || 'localhost'}
         />
       </div>
-      <Toast />
     </Layout>
   );
 });

@@ -28,25 +28,25 @@ export const ChurchFormGatherings: FC<ChurchFormGatheringsProps> = ({ church, ga
                     class="mt-1 block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   >
                     <option value="">Select Day</option>
-                    <option value="Sunday" selected={gathering.day === 'Sunday'}>
+                    <option value="Sunday">
                       Sunday
                     </option>
-                    <option value="Monday" selected={gathering.day === 'Monday'}>
+                    <option value="Monday">
                       Monday
                     </option>
-                    <option value="Tuesday" selected={gathering.day === 'Tuesday'}>
+                    <option value="Tuesday">
                       Tuesday
                     </option>
-                    <option value="Wednesday" selected={gathering.day === 'Wednesday'}>
+                    <option value="Wednesday">
                       Wednesday
                     </option>
-                    <option value="Thursday" selected={gathering.day === 'Thursday'}>
+                    <option value="Thursday">
                       Thursday
                     </option>
-                    <option value="Friday" selected={gathering.day === 'Friday'}>
+                    <option value="Friday">
                       Friday
                     </option>
-                    <option value="Saturday" selected={gathering.day === 'Saturday'}>
+                    <option value="Saturday">
                       Saturday
                     </option>
                   </select>
@@ -65,7 +65,7 @@ export const ChurchFormGatherings: FC<ChurchFormGatheringsProps> = ({ church, ga
                   <input
                     type="text"
                     name={`gathering_type_${index}`}
-                    value={gathering.type || ''}
+                    value=""
                     placeholder="e.g., Worship Service, Bible Study"
                     class="mt-1 block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   />

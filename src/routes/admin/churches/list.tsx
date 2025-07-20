@@ -1,4 +1,4 @@
-import { desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { Layout } from '../../../components/Layout';
 import { Toast } from '../../../components/Toast';
@@ -31,7 +31,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
 
   if (search) {
     whereConditions.push(
-      or(like(churches.name, `%${search}%`), like(churches.city, `%${search}%`), like(churches.address, `%${search}%`))
+      or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`))
     );
   }
 
@@ -49,8 +49,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
       id: churches.id,
       name: churches.name,
       status: churches.status,
-      city: churches.city,
-      state: churches.state,
+      gatheringAddress: churches.gatheringAddress,
       phone: churches.phone,
       email: churches.email,
       website: churches.website,
@@ -73,8 +72,8 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
       ? churches.name
       : sortBy === 'status'
         ? churches.status
-        : sortBy === 'city'
-          ? churches.city
+        : sortBy === 'address'
+          ? churches.gatheringAddress
           : sortBy === 'updatedAt'
             ? churches.updatedAt
             : churches.name;
@@ -107,14 +106,17 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
 
     if (churchIds.length > 0) {
       const churchesWithAffiliation = await batchedInQuery(
-        db,
-        churchAffiliations,
-        'churchId',
         churchIds,
-        eq(churchAffiliations.affiliationId, affiliationId)
+        100,
+        async (batchIds) => 
+          await db
+            .select()
+            .from(churchAffiliations)
+            .where(and(inArray(churchAffiliations.churchId, batchIds), eq(churchAffiliations.affiliationId, affiliationId)))
+            .all()
       );
 
-      const affiliatedChurchIds = new Set(churchesWithAffiliation.map((ca) => ca.churchId));
+      const affiliatedChurchIds = new Set(churchesWithAffiliation.map((ca: any) => ca.churchId));
       filteredChurches = churchesResult.filter((church) => affiliatedChurchIds.has(church.id));
     }
   }
@@ -126,17 +128,16 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
   const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
 
   // Get logo URL
-  const logoUrl = await getLogoUrl(c.env.DB);
+  const logoUrl = await getLogoUrl(c.env);
 
   return c.html(
     <Layout
       title="Church Management"
       faviconUrl={undefined}
       logoUrl={logoUrl}
-      navbarPages={[]}
+      pages={[]}
       currentPath={c.req.path}
       user={user}
-      showInternalNavbar={true}
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="sm:flex sm:items-center">
@@ -156,7 +157,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
 
         {/* Filters */}
         <div class="mt-6 bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-6">
-          <form method="GET" class="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <div>
               <label for="search" class="block text-sm font-medium text-gray-700">
                 Search
@@ -337,7 +338,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
                             </span>
                           </td>
                           <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {church.city}, {church.state}
+                            {church.gatheringAddress}
                             {church.countyName && <div class="text-xs text-gray-400">{church.countyName}</div>}
                           </td>
                           <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -348,7 +349,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
                             )}
                           </td>
                           <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {church.updatedAt ? new Date(church.updatedAt * 1000).toLocaleDateString() : 'N/A'}
+                            {church.updatedAt ? new Date(Number(church.updatedAt) * 1000).toLocaleDateString() : 'N/A'}
                           </td>
                           <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                             <a
@@ -357,7 +358,7 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
                             >
                               Edit
                             </a>
-                            <form method="POST" action={`/admin/churches/${church.id}/delete`} class="inline">
+                            <form method="post" action={`/admin/churches/${church.id}/delete`} class="inline">
                               <button
                                 type="submit"
                                 onclick="return confirm('Are you sure you want to delete this church?')"
@@ -444,7 +445,6 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
         </div>
       </div>
 
-      <Toast />
     </Layout>
   );
 }

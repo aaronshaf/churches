@@ -61,8 +61,7 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
     // Create events for JSON-LD
     const events = gatherings.map((gathering) => ({
       '@type': 'Event',
-      name: gathering.type || 'Church Service',
-      startDate: gathering.day,
+      name: 'Church Service',
       startTime: gathering.time,
       location: {
         '@type': 'Place',
@@ -103,11 +102,10 @@ churchDetailRoutes.get('/churches/:path', async (c) => {
               longitude: church.longitude,
             }
           : undefined,
-      sameAs: [church.facebook, church.instagram, church.twitter, church.youtube].filter(Boolean),
+      sameAs: [church.facebook, church.instagram, church.youtube].filter(Boolean),
       memberOf: affiliations.map((affiliation) => ({
         '@type': 'Organization',
         name: affiliation.name,
-        description: affiliation.description,
         url: affiliation.website,
       })),
       event: events,

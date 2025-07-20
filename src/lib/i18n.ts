@@ -67,7 +67,7 @@ i18next.init({
 
 // Helper function to get translation with fallback
 export function t(key: string, options?: any): string {
-  return i18next.t(key, options);
+  return String(i18next.t(key, options));
 }
 
 // Helper function to change language

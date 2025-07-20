@@ -5,7 +5,7 @@ import { Layout } from '../../components/Layout';
 import { Toast } from '../../components/Toast';
 import { createDbWithContext } from '../../db';
 import { churches, counties } from '../../db/schema';
-import { requireAuthBetter } from '../../middleware/better-auth';
+import { getUser, requireAuthBetter } from '../../middleware/better-auth';
 import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getCommonLayoutProps } from '../../utils/layout-props';
@@ -98,7 +98,7 @@ adminCountiesRoutes.get('/new', async (c) => {
       <div class="bg-white">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 class="text-2xl font-bold text-gray-900 mb-6">{t('admin.addCounty')}</h1>
-          <CountyForm county={null} {...layoutProps} />
+          <CountyForm action="/admin/counties/new" county={undefined} {...layoutProps} />
         </div>
       </div>
     </Layout>
@@ -108,7 +108,7 @@ adminCountiesRoutes.get('/new', async (c) => {
 // Create county
 adminCountiesRoutes.post('/new', async (c) => {
   const db = createDbWithContext(c);
-  const user = c.get('user');
+  const user = await getUser(c);
 
   try {
     const formData = await c.req.formData();
@@ -189,7 +189,7 @@ adminCountiesRoutes.get('/:id/edit', async (c) => {
             </div>
           )}
 
-          <CountyForm county={county} {...layoutProps} />
+          <CountyForm action={`/admin/counties/${countyId}/edit`} county={county} {...layoutProps} />
         </div>
       </div>
     </Layout>
@@ -200,7 +200,7 @@ adminCountiesRoutes.get('/:id/edit', async (c) => {
 adminCountiesRoutes.post('/:id/edit', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
-  const user = c.get('user');
+  const user = await getUser(c);
 
   try {
     const formData = await c.req.formData();
@@ -239,7 +239,7 @@ adminCountiesRoutes.post('/:id/edit', async (c) => {
 adminCountiesRoutes.post('/:id/delete', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
-  const user = c.get('user');
+  const user = await getUser(c);
 
   try {
     // Get county details before deletion
