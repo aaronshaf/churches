@@ -18,7 +18,7 @@ export const adminCountiesRoutes = new Hono<{ Bindings: Bindings; Variables: Var
 adminCountiesRoutes.use('*', requireAuthBetter);
 
 // Counties list page
-adminCountiesRoutes.get('/admin/counties', async (c) => {
+adminCountiesRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);
 
   // Get common layout props (includes user, i18n, favicon, etc.)
@@ -89,7 +89,7 @@ adminCountiesRoutes.get('/admin/counties', async (c) => {
 });
 
 // New county page
-adminCountiesRoutes.get('/admin/counties/new', async (c) => {
+adminCountiesRoutes.get('/new', async (c) => {
   const layoutProps = await getCommonLayoutProps(c);
   const { t } = layoutProps;
 
@@ -106,7 +106,7 @@ adminCountiesRoutes.get('/admin/counties/new', async (c) => {
 });
 
 // Create county
-adminCountiesRoutes.post('/admin/counties/new', async (c) => {
+adminCountiesRoutes.post('/new', async (c) => {
   const db = createDbWithContext(c);
   const user = c.get('user');
 
@@ -142,7 +142,7 @@ adminCountiesRoutes.post('/admin/counties/new', async (c) => {
 });
 
 // Edit county page
-adminCountiesRoutes.get('/admin/counties/:id/edit', async (c) => {
+adminCountiesRoutes.get('/:id/edit', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
 
@@ -197,7 +197,7 @@ adminCountiesRoutes.get('/admin/counties/:id/edit', async (c) => {
 });
 
 // Update county
-adminCountiesRoutes.post('/admin/counties/:id/edit', async (c) => {
+adminCountiesRoutes.post('/:id/edit', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
   const user = c.get('user');
@@ -236,7 +236,7 @@ adminCountiesRoutes.post('/admin/counties/:id/edit', async (c) => {
 });
 
 // Delete county
-adminCountiesRoutes.post('/admin/counties/:id/delete', async (c) => {
+adminCountiesRoutes.post('/:id/delete', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
   const user = c.get('user');
