@@ -36,7 +36,9 @@ jobs:
       - name: Check for merge conflicts
         run: |
           git fetch origin ${{ github.base_ref }}
-          if ! git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} > /dev/null 2>&1; then
+          MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
+          git merge-tree "$MERGE_BASE" HEAD origin/${{ github.base_ref }} > /tmp/merge-tree-output.txt
+          if grep -qE '^(<<<<<<<|=======|>>>>>>>)' /tmp/merge-tree-output.txt; then
             echo "❌ This PR has merge conflicts. Please resolve them."
             exit 1
           fi
