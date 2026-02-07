@@ -31,7 +31,7 @@ function getChangedFiles() {
   try {
     // Get staged files
     const staged = execSync('git diff --cached --name-only --diff-filter=ACM', { encoding: 'utf8' });
-    const stagedFiles = staged.trim().split('\n').filter(Boolean);
+    const stagedFiles = staged.trim().split('\n').filter(Boolean).sort();
 
     // Filter for TypeScript/TSX files in src/
     const tsFiles = stagedFiles.filter(
@@ -47,8 +47,8 @@ function getChangedFiles() {
 
 function checkAllFiles() {
   try {
-    // Check all TypeScript files in src/
-    const result = execSync('find src -name "*.ts" -o -name "*.tsx" | head -100', { encoding: 'utf8' });
+    // Check all TypeScript files in src/ in deterministic order.
+    const result = execSync('rg --files src -g "*.ts" -g "*.tsx" | sort', { encoding: 'utf8' });
     return result.trim().split('\n').filter(Boolean);
   } catch (error) {
     console.error('Error finding files:', error.message);

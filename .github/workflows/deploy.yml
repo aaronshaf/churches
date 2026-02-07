@@ -5,6 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Cloudflare Workers
@@ -19,13 +26,13 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: .bun-version
           
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'bun'
+          node-version: "20"
+          cache: bun
           
       - name: Install dependencies
         run: bun install --frozen-lockfile
