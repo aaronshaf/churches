@@ -45,7 +45,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch origin "${{ github.base_ref }}" --depth=1
-            CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT "origin/${{ github.base_ref }}...HEAD" | rg '^src/.*\.(ts|tsx|js|jsx|json|css)$' || true)
+            CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT "origin/${{ github.base_ref }}...HEAD" | grep -E '^src/.*\.(ts|tsx|js|jsx|json|css)$' || true)
             if [ -z "${CHANGED_FILES}" ]; then
               echo "No source files changed in PR; skipping Biome check."
               exit 0
@@ -99,12 +99,18 @@ jobs:
           EOF
 
       - name: Build application
-        run: bun run build
+        run: |
+          bun run build:css
+          bunx esbuild src/index.tsx --bundle --outfile=dist/worker.js
 
       - name: Check build output
         run: |
           if [ ! -f "public/css/styles.css" ]; then
             echo "CSS build failed - styles.css not found"
+            exit 1
+          fi
+          if [ ! -f "dist/worker.js" ]; then
+            echo "Application build failed - dist/worker.js not found"
             exit 1
           fi
           echo "Build completed successfully"
@@ -158,7 +164,7 @@ jobs:
             exit 1
           fi
 
-          SUMMARY_LINE=$(rg '^All files' coverage/coverage-summary.txt | tail -n 1 || true)
+          SUMMARY_LINE=$(grep 'All files' coverage/coverage-summary.txt | tail -n 1 || true)
           if [ -z "${SUMMARY_LINE}" ]; then
             echo "Could not find 'All files' coverage summary line."
             exit 1
@@ -224,8 +230,9 @@ jobs:
 
       - name: Check for hardcoded secrets
         run: |
-          MATCHES=$(rg -n -i --glob '*.{ts,tsx,js,jsx}' '(api[_-]?key|api[_-]?secret|access[_-]?token|auth[_-]?token|private[_-]?key)' src \
-            | rg -v '(process\.env|import\.meta\.env|c\.env|env\.|^\s*//|/\*|\* )' || true)
+          MATCHES=$(grep -R -n -E --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
+            '(api[_-]?[Kk]ey|api[_-]?[Ss]ecret|access[_-]?[Tt]oken|auth[_-]?[Tt]oken|private[_-]?[Kk]ey)' src \
+            | grep -v -E '(process\.env|import\.meta\.env|c\.env|env\.|^\s*//|/\*|\* )' || true)
           if [ -n "${MATCHES}" ]; then
             echo "Potential hardcoded secrets found:"
             echo "${MATCHES}"

@@ -48,7 +48,12 @@ function getChangedFiles() {
 function checkAllFiles() {
   try {
     // Check all TypeScript files in src/ in deterministic order.
-    const result = execSync('rg --files src -g "*.ts" -g "*.tsx" | sort', { encoding: 'utf8' });
+    // Prefer ripgrep for speed; fall back to find when rg is unavailable.
+    const hasRg = execSync('command -v rg >/dev/null 2>&1 && echo yes || echo no', { encoding: 'utf8' }).trim() === 'yes';
+    const command = hasRg
+      ? 'rg --files src -g "*.ts" -g "*.tsx" | sort'
+      : 'find src -type f \\( -name "*.ts" -o -name "*.tsx" \\) | sort';
+    const result = execSync(command, { encoding: 'utf8' });
     return result.trim().split('\n').filter(Boolean);
   } catch (error) {
     console.error('Error finding files:', error.message);
