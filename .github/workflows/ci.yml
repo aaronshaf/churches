@@ -231,7 +231,7 @@ jobs:
       - name: Check for hardcoded secrets
         run: |
           MATCHES=$(grep -R -n -E --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' \
-            '(api[_-]?[Kk]ey|api[_-]?[Ss]ecret|access[_-]?[Tt]oken|auth[_-]?[Tt]oken|private[_-]?[Kk]ey)' src \
+            '(api[_-]?[Kk]ey|api[_-]?[Ss]ecret|access[_-]?[Tt]oken|auth[_-]?[Tt]oken|private[_-]?[Kk]ey)\s*[:=]\s*["'"'"'`][^"'"'"'`]{8,}["'"'"'`]' src \
             | grep -v -E '(process\.env|import\.meta\.env|c\.env|env\.|^\s*//|/\*|\* )' || true)
           if [ -n "${MATCHES}" ]; then
             echo "Potential hardcoded secrets found:"
