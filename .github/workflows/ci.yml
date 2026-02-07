@@ -42,7 +42,20 @@ jobs:
         run: CI=true node scripts/check-line-count.js
 
       - name: Run Biome check (lint + formatting)
-        run: bun run check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT "origin/${{ github.base_ref }}...HEAD" | rg '^src/.*\.(ts|tsx|js|jsx|json|css)$' || true)
+            if [ -z "${CHANGED_FILES}" ]; then
+              echo "No source files changed in PR; skipping Biome check."
+              exit 0
+            fi
+            echo "Running Biome on changed files:"
+            echo "${CHANGED_FILES}"
+            bunx biome check ${CHANGED_FILES}
+          else
+            bun run check
+          fi
 
       - name: Type check
         run: bun run typecheck

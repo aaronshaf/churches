@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         
       - name: Check PR title
         run: |
@@ -37,7 +39,7 @@ jobs:
         run: |
           git fetch origin ${{ github.base_ref }}
           MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
-          git merge-tree "$MERGE_BASE" HEAD origin/${{ github.base_ref }} > /tmp/merge-tree-output.txt
+          git merge-tree "$MERGE_BASE" HEAD origin/${{ github.base_ref }} > /tmp/merge-tree-output.txt || true
           if grep -qE '^(<<<<<<<|=======|>>>>>>>)' /tmp/merge-tree-output.txt; then
             echo "❌ This PR has merge conflicts. Please resolve them."
             exit 1
