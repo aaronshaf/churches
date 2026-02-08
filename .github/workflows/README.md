@@ -6,12 +6,13 @@ This directory contains automated workflows for CI/CD and maintenance tasks.
 
 ### 1. CI (`ci.yml`)
 **Triggers:** On push to main, on pull requests
-**Purpose:** Ensures code quality and builds successfully
+**Purpose:** Deterministic required checks before merge
 
 **Jobs:**
-- **Lint & Type Check**: Runs Biome linting/formatting checks and TypeScript type checking
+- **Lint, Type, and Structure Checks**: Runs line-count enforcement, Biome lint/format checks, and TypeScript type checks
+- **Tests with Coverage Gates**: Requires tests to exist, runs test coverage, and enforces thresholds (lines 80%, branches 75%, functions 80%)
 - **Build**: Builds the application including CSS compilation and Wrangler dry-run
-- **Security Check**: Audits dependencies and scans for hardcoded secrets
+- **Security Check**: Fails on hardcoded secret patterns and high/critical dependency vulnerabilities
 
 ### 2. PR Check (`pr-check.yml`)
 **Triggers:** On pull request events
@@ -34,12 +35,10 @@ This directory contains automated workflows for CI/CD and maintenance tasks.
 
 ### 4. Dependency Check (`dependency-check.yml`)
 **Triggers:** Weekly (Mondays at 9 AM UTC), manual trigger
-**Purpose:** Monitors dependency updates and security
+**Purpose:** Monitors dependency update opportunities
 
 **Reports:**
-- Outdated production dependencies
-- Outdated development dependencies
-- Security audit results
+- Outdated dependencies
 - Wrangler version status
 
 ## Required Secrets
@@ -56,13 +55,15 @@ To use these workflows, configure the following secrets in your repository setti
 You can test the CI checks locally:
 
 ```bash
-# Run all CI checks
-pnpm run ci
+# Run local quick-check subset
+bun run ci
 
 # Individual checks
-pnpm run check      # Biome lint/format
-pnpm run typecheck  # TypeScript check
-pnpm run build      # Build test
+CI=true node scripts/check-line-count.js
+bun run check      # Biome lint/format
+bun run typecheck  # TypeScript check
+bun test --coverage --coverage-reporter=lcov --coverage-reporter=text
+bun run build      # Build test
 ```
 
 ## Workflow Status Badges
@@ -78,8 +79,8 @@ Add these to your README.md:
 
 ### Build Failures
 - Check that all environment variables are properly mocked in CI
-- Ensure pnpm-lock.yaml is up to date
-- Verify TypeScript errors with `pnpm run typecheck`
+- Ensure `bun.lock` is up to date
+- Verify TypeScript errors with `bun run typecheck`
 
 ### Deploy Failures
 - Verify CLOUDFLARE_API_TOKEN is set correctly
@@ -87,6 +88,6 @@ Add these to your README.md:
 - Ensure all required secrets are configured in Cloudflare
 
 ### Security Warnings
-- Review pnpm audit output
+- Review CI Trivy scan output for vulnerable dependencies
 - Update dependencies with security patches
 - Never commit secrets to the repository

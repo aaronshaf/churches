@@ -27,7 +27,7 @@
     "format": "biome format --write src/",
     "check": "biome check src/",
     "typecheck": "tsc --noEmit",
-    "ci": "bun run check && bun run typecheck",
+    "ci": "CI=true node scripts/check-line-count.js && bun run check && bun run typecheck",
     "prepare": "husky"
   },
   "keywords": [],
@@ -38,6 +38,7 @@
     "@cloudflare/workers-types": "^4.20250619.0",
     "@miniflare/d1": "^2.14.4",
     "@miniflare/shared": "^2.14.4",
+    "@types/bun": "^1.3.8",
     "@types/image-size": "^0.8.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.3",

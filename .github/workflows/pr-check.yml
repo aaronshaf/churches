@@ -4,6 +4,13 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   check-pr:
     name: Validate PR
@@ -12,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         
       - name: Check PR title
         run: |
@@ -29,7 +38,9 @@ jobs:
       - name: Check for merge conflicts
         run: |
           git fetch origin ${{ github.base_ref }}
-          if ! git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} > /dev/null 2>&1; then
+          MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})
+          git merge-tree "$MERGE_BASE" HEAD origin/${{ github.base_ref }} > /tmp/merge-tree-output.txt || true
+          if grep -qE '^(<<<<<<<|=======|>>>>>>>)' /tmp/merge-tree-output.txt; then
             echo "❌ This PR has merge conflicts. Please resolve them."
             exit 1
           fi

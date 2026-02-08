@@ -6,7 +6,7 @@
     "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "bun-types"],
     "strict": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
