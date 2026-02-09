@@ -1,4 +1,4 @@
-import { desc, eq, gt, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../../db';
 import { users } from '../../db/auth-schema';

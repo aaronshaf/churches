@@ -1,4 +1,3 @@
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type { DbType } from '../db';
 import { createDb } from '../db';
 import type { Bindings } from '../types';
@@ -200,7 +199,7 @@ export async function getImageUrlWithDb(
   path: string | null | undefined,
   env: Pick<Bindings, 'SETTINGS_CACHE' | 'DB'>,
   db?: DbType,
-  transformations?: ImageTransformations
+  _transformations?: ImageTransformations
 ): Promise<string> {
   if (!path) return '';
 

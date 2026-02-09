@@ -1,5 +1,4 @@
 import type { FC } from 'hono/jsx';
-import type { ChurchImage } from '../types';
 import { BlurhashImage } from './BlurhashImage';
 
 interface ChurchImageUploadProps {

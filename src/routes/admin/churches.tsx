@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { ChurchForm } from '../../components/ChurchForm';
 import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
-import { Toast } from '../../components/Toast';
 import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations, churches, churchGatherings, counties } from '../../db/schema';
 import type { D1SessionVariables } from '../../middleware/d1-session';
@@ -72,7 +71,7 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const user = c.get('betterUser');
   const churchId = parseInt(c.req.param('id'));
 
-  if (isNaN(churchId)) {
+  if (Number.isNaN(churchId)) {
     return c.html(<NotFound />, 404);
   }
 

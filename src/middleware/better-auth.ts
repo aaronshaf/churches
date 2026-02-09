@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { Context, MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { createAuth } from '../lib/auth';
 import type { BetterAuthUser, Bindings } from '../types';
 import { EnvironmentError } from '../utils/env-validation';
@@ -68,13 +68,7 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const { users, sessions } = await import('../db/auth-schema');
   const envValidation = await import('../utils/env-validation');
   const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
-
-  // Validate environment variables
-  try {
-    validateDb(c.env);
-  } catch (error) {
-    throw error;
-  }
+  validateDb(c.env);
 
   const db = drizzle(c.env.DB, { schema: { users, sessions } });
 
@@ -191,13 +185,7 @@ export const getUser = async (c: {
     const { users, sessions } = await import('../db/auth-schema');
     const envValidation = await import('../utils/env-validation');
     const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
-
-    // Validate environment variables
-    try {
-      validateDb(c.env);
-    } catch (error) {
-      throw error;
-    }
+    validateDb(c.env);
 
     const db = drizzle(c.env.DB, { schema: { users, sessions } });
 

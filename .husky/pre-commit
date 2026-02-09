@@ -1,6 +1,13 @@
 # Check line count limits
 node scripts/check-line-count.js
 
+# Run Biome on staged files (CI parity, fast)
+echo "🔍 Running Biome check (staged files)..."
+bun run check:staged || {
+  echo "❌ Biome check failed"
+  exit 1
+}
+
 # Run TypeScript type checking
 echo "🔍 Running TypeScript type check..."
 bun run typecheck || {
@@ -8,9 +15,5 @@ bun run typecheck || {
   exit 1
 }
 
-# Run Biome formatting (temporarily disabled full check until TypeScript errors are fixed)
-echo "🔍 Running Biome formatting..."
-bun run format || {
-  echo "❌ Biome formatting failed"
-  exit 1
-}
+# Keep formatting as an explicit developer action (`bun run format`) to avoid
+# surprising pre-commit rewrites.

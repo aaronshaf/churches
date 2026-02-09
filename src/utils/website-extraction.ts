@@ -1,6 +1,5 @@
 import { convert } from 'html-to-text';
 import OpenAI from 'openai';
-import type { ZodObject } from 'zod';
 import { z } from 'zod';
 
 const EXTRACTION_PROMPT = `From this church website text, extract the following information and return it in a SIMPLE TEXT FORMAT (not JSON):

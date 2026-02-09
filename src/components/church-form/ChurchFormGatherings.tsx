@@ -6,7 +6,7 @@ interface ChurchFormGatheringsProps {
   gatherings: ChurchGathering[];
 }
 
-export const ChurchFormGatherings: FC<ChurchFormGatheringsProps> = ({ church, gatherings }) => {
+export const ChurchFormGatherings: FC<ChurchFormGatheringsProps> = ({ church: _church, gatherings }) => {
   return (
     <>
       {/* Service Information */}
@@ -19,7 +19,7 @@ export const ChurchFormGatherings: FC<ChurchFormGatheringsProps> = ({ church, ga
         <h3 class="text-lg font-medium leading-6 text-gray-900 mt-4 mb-4">Gatherings</h3>
         <div id="gatherings-container" class="space-y-4">
           {gatherings.map((gathering, index) => (
-            <div key={index} class="border border-gray-200 rounded-lg p-4 gathering-item">
+            <div key={gathering.id} class="border border-gray-200 rounded-lg p-4 gathering-item">
               <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <label class="block text-sm font-medium text-gray-700">Day</label>

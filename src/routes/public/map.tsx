@@ -2,14 +2,14 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
-import { churchGatherings, churches, counties } from '../../db/schema';
+import { churches, churchGatherings, counties } from '../../db/schema';
+import { getUser } from '../../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../../middleware/cache';
 import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getFromCache, putInCache } from '../../utils/cf-cache';
 import { hasGoogleMapsApiKey } from '../../utils/env-validation';
 import { getCommonLayoutProps } from '../../utils/layout-props';
-import { getUser } from '../../middleware/better-auth';
 
 type Variables = AuthVariables & D1SessionVariables;
 
@@ -90,7 +90,7 @@ mapRoutes.get('/map', async (c) => {
   const db = createDbWithContext(c);
 
   // Check for user session
-  const user = await getUser(c);
+  const _user = await getUser(c);
 
   // Get all churches with coordinates (excluding heretical unless param is present)
   const allChurchesWithCoords = await db

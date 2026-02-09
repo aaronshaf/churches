@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
-import { getUser, requireAdminBetter } from '../../middleware/better-auth';
+import { requireAdminBetter } from '../../middleware/better-auth';
 import type { AuthVariables, Bindings } from '../../types';
 import { cacheInvalidation } from '../../utils/cache-invalidation';
 import { getCommonLayoutProps } from '../../utils/layout-props';

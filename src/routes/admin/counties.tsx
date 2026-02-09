@@ -2,7 +2,6 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { CountyForm } from '../../components/CountyForm';
 import { Layout } from '../../components/Layout';
-import { Toast } from '../../components/Toast';
 import { createDbWithContext } from '../../db';
 import { churches, counties } from '../../db/schema';
 import { getUser, requireAuthBetter } from '../../middleware/better-auth';
@@ -108,7 +107,7 @@ adminCountiesRoutes.get('/new', async (c) => {
 // Create county
 adminCountiesRoutes.post('/new', async (c) => {
   const db = createDbWithContext(c);
-  const user = await getUser(c);
+  const _user = await getUser(c);
 
   try {
     const formData = await c.req.formData();
@@ -122,7 +121,7 @@ adminCountiesRoutes.post('/new', async (c) => {
     }
 
     // Create the county
-    const result = await db
+    const _result = await db
       .insert(counties)
       .values({
         name: name.trim(),
@@ -200,7 +199,7 @@ adminCountiesRoutes.get('/:id/edit', async (c) => {
 adminCountiesRoutes.post('/:id/edit', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
-  const user = await getUser(c);
+  const _user = await getUser(c);
 
   try {
     const formData = await c.req.formData();
@@ -214,7 +213,7 @@ adminCountiesRoutes.post('/:id/edit', async (c) => {
     }
 
     // Update the county
-    const result = await db
+    const _result = await db
       .update(counties)
       .set({
         name: name.trim(),
@@ -239,7 +238,7 @@ adminCountiesRoutes.post('/:id/edit', async (c) => {
 adminCountiesRoutes.post('/:id/delete', async (c) => {
   const countyId = parseInt(c.req.param('id'), 10);
   const db = createDbWithContext(c);
-  const user = await getUser(c);
+  const _user = await getUser(c);
 
   try {
     // Get county details before deletion

@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
@@ -13,9 +13,9 @@ import {
   counties,
   images,
 } from '../db/schema';
+import type { D1SessionVariables } from '../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../types';
 import { getSettingsWithCache, type SettingsMap } from '../utils/settings-cache';
-import type { D1SessionVariables } from '../middleware/d1-session';
 
 type Variables = AuthVariables & D1SessionVariables;
 
@@ -245,6 +245,6 @@ export class ChurchDetailService {
     // Remove trailing slash
     displayUrl = displayUrl.replace(/\/$/, '');
     // Truncate if too long
-    return displayUrl.length > 50 ? displayUrl.substring(0, 47) + '...' : displayUrl;
+    return displayUrl.length > 50 ? `${displayUrl.substring(0, 47)}...` : displayUrl;
   }
 }

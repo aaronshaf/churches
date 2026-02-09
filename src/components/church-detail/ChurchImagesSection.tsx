@@ -1,7 +1,7 @@
 import type { FC } from 'hono/jsx';
+import type { SettingsMap } from '../../utils/settings-cache';
 import { BlurhashImage } from '../BlurhashImage';
 import { OptimizedImage } from '../OptimizedImage';
-import type { SettingsMap } from '../../utils/settings-cache';
 
 interface ChurchImagesSectionProps {
   churchImages: any[];

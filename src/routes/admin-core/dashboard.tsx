@@ -2,8 +2,8 @@ import { desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
-import { churches, comments, counties, affiliations, pages, churchSuggestions } from '../../db/schema';
 import { users } from '../../db/auth-schema';
+import { affiliations, churches, churchSuggestions, comments, counties, pages } from '../../db/schema';
 import { requireAdminBetter } from '../../middleware/better-auth';
 import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
@@ -14,7 +14,7 @@ type Variables = AuthVariables & D1SessionVariables;
 export const dashboardRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 dashboardRoutes.get('/admin', requireAdminBetter, async (c) => {
-  const user = c.get('betterUser');
+  const _user = c.get('betterUser');
   const db = createDbWithContext(c);
   const layoutProps = await getCommonLayoutProps(c);
 

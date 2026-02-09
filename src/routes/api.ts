@@ -1,4 +1,4 @@
-import { eq, like, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
 import { affiliations, churches, comments, counties } from '../db/schema';
@@ -33,11 +33,11 @@ apiRoutes.get('/churches/search', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE`)
+    .where(sql`${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE`)
     .orderBy(
       sql`CASE 
-        WHEN ${churches.name} LIKE ${query + '%'} COLLATE NOCASE THEN 1 
-        WHEN ${churches.name} LIKE ${'%' + query + '%'} COLLATE NOCASE THEN 2 
+        WHEN ${churches.name} LIKE ${`${query}%`} COLLATE NOCASE THEN 1 
+        WHEN ${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE THEN 2 
         ELSE 3 
       END`,
       churches.name
@@ -268,7 +268,7 @@ apiRoutes.post('/geocode', requireAdminBetter, async (c) => {
         }
         // Continue with geocoding using original address
       }
-    } catch (error) {
+    } catch (_error) {
       validationError = 'Address Validation API unavailable';
       // Continue with geocoding using original address
     }

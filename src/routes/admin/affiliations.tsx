@@ -460,7 +460,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
 
       for (let i = 0; i < ids.length; i++) {
         const imageId = Number(ids[i]);
-        if (!isNaN(imageId)) {
+        if (!Number.isNaN(imageId)) {
           // Update image metadata
           await db
             .update(images)
@@ -592,7 +592,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
     if (churchesToAdd.length > 0) {
       // Get max order for new entries
 
-      const newAffiliations = churchesToAdd.map((churchId, index) => ({
+      const newAffiliations = churchesToAdd.map((churchId, _index) => ({
         churchId,
         affiliationId: id,
         createdAt: new Date(),

@@ -54,7 +54,7 @@ i18next.init({
 
   // Return details for missing keys in development
   saveMissing: false,
-  missingKeyHandler: (lng, ns, key, fallbackValue) => {
+  missingKeyHandler: (_lng, _ns, key, _fallbackValue) => {
     if (process.env.NODE_ENV === 'development') {
       console.warn(`Missing translation: ${key}`);
     }
@@ -102,7 +102,7 @@ export function getLanguageFromHeader(acceptLanguage: string): SupportedLanguage
       const quality = qualityStr ? parseFloat(qualityStr) : 1.0;
       return {
         code: code.toLowerCase().split('-')[0], // Get primary language code
-        quality: isNaN(quality) ? 1.0 : quality,
+        quality: Number.isNaN(quality) ? 1.0 : quality,
       };
     })
     .sort((a, b) => b.quality - a.quality);

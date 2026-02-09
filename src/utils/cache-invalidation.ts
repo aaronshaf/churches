@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createDbWithContext } from '../db';
 import { affiliations, churches, counties } from '../db/schema';
@@ -100,7 +99,7 @@ export class CacheInvalidator {
   /**
    * Get invalidation promises for county-related updates
    */
-  private getCountyInvalidationPromises(countyId: string): Promise<boolean>[] {
+  private getCountyInvalidationPromises(_countyId: string): Promise<boolean>[] {
     const promises: Promise<boolean>[] = [];
 
     // Invalidate homepage (county info may change)
@@ -115,7 +114,7 @@ export class CacheInvalidator {
   /**
    * Get invalidation promises for affiliation-related updates
    */
-  private getAffiliationInvalidationPromises(affiliationId: string): Promise<boolean>[] {
+  private getAffiliationInvalidationPromises(_affiliationId: string): Promise<boolean>[] {
     const promises: Promise<boolean>[] = [];
 
     // Invalidate networks pages

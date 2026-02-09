@@ -1,5 +1,4 @@
 import type { FC } from 'hono/jsx';
-import { t } from '../../lib/i18n';
 
 interface ChurchHeaderProps {
   church: any;
