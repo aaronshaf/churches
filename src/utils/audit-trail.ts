@@ -76,7 +76,7 @@ export function formatChangesAsYaml(changes: ChangeRecord[]): string {
 /**
  * Create an audit comment content
  */
-export function createAuditComment(userName: string, action: string, changes: ChangeRecord[]): string {
+export function createAuditComment(_userName: string, action: string, changes: ChangeRecord[]): string {
   const yamlChanges = formatChangesAsYaml(changes);
 
   // For creation, just show the action

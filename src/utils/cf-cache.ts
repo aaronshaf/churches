@@ -125,7 +125,7 @@ export const CacheTags = {
  * URL patterns for cache invalidation
  */
 export function getCacheUrlsForChurch(
-  churchId: string,
+  _churchId: string,
   churchPath: string,
   countyPath?: string,
   networkIds: string[] = []
@@ -173,7 +173,7 @@ export function withCache(ttl: number = 259200) {
     await next();
 
     // Cache successful responses in background
-    if (c.res && c.res.ok) {
+    if (c.res?.ok) {
       const responseToCache = c.res.clone();
       c.executionCtx.waitUntil(putInCache(c.req.raw, responseToCache, ttl));
     }

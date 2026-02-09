@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --minify",
+    "build:worker": "bunx esbuild src/index.tsx --bundle --format=esm --platform=browser --main-fields=module,main --target=es2022 --outfile=dist/worker.js",
+    "build:ci": "bun run build:css && bun run build:worker",
     "watch:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --watch",
     "dev": "concurrently \"bun run watch:css\" \"wrangler dev\"",
     "build": "bun run build:css && wrangler deploy --dry-run",
@@ -26,8 +28,12 @@
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
     "check": "biome check src/",
+    "check:staged": "sh scripts/biome-check-staged.sh",
+    "check:changed": "sh scripts/biome-check-changed.sh",
     "typecheck": "tsc --noEmit",
     "ci": "CI=true node scripts/check-line-count.js && bun run check && bun run typecheck",
+    "ci:pr": "CI=true node scripts/check-line-count.js && bun run check:changed && bun run typecheck && bun test --bail && bun run build:ci",
+    "ci:full": "CI=true node scripts/check-line-count.js && bun run check && bun run typecheck && bun test --bail && bun run build:ci",
     "prepare": "husky"
   },
   "keywords": [],
@@ -80,5 +86,5 @@
       "biome check --write"
     ]
   },
-  "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b"
+  "packageManager": "bun@1.2.17"
 }

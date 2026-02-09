@@ -9,7 +9,7 @@ interface ChurchDetailsSectionProps {
 }
 
 export const ChurchDetailsSection: FC<ChurchDetailsSectionProps> = ({ church, affiliations, gatherings }) => {
-  const formatUrlForDisplay = ChurchDetailService.formatUrlForDisplay;
+  const _formatUrlForDisplay = ChurchDetailService.formatUrlForDisplay;
 
   return (
     <div class="space-y-4" data-testid="church-details">

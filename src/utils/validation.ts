@@ -1,4 +1,4 @@
-import type { ZodEffects, ZodObject, ZodType } from 'zod';
+import type { ZodType } from 'zod';
 import { z } from 'zod';
 import type { ChurchStatus } from '../types';
 
@@ -46,12 +46,12 @@ export const churchSchema = z
     latitude: z.preprocess((val) => {
       if (val === undefined || val === '' || val === null) return null;
       const num = Number(val);
-      return isNaN(num) ? null : num;
+      return Number.isNaN(num) ? null : num;
     }, z.number().min(-90).max(90, 'Invalid latitude').nullable().optional()),
     longitude: z.preprocess((val) => {
       if (val === undefined || val === '' || val === null) return null;
       const num = Number(val);
-      return isNaN(num) ? null : num;
+      return Number.isNaN(num) ? null : num;
     }, z.number().min(-180).max(180, 'Invalid longitude').nullable().optional()),
     countyId: z.coerce.number().positive('Invalid county').optional().nullable(),
     serviceTimes: z.string().max(500, 'Service times too long').optional(),

@@ -10,38 +10,10 @@ RESET='\033[0m'
 
 echo "${BLUE}${BOLD}🚀 Running pre-push checks...${RESET}"
 
-# Run full TypeScript type check
-echo "${BLUE}🔍 Running TypeScript type check...${RESET}"
-bun run typecheck || {
-  echo "${YELLOW}⚠️  TypeScript errors detected - these need to be fixed${RESET}"
-  # TODO: Re-enable exit 1 after fixing existing TypeScript errors from file splitting
-  # exit 1
-}
-
-# Run full linting (temporarily disabled until TypeScript errors are fixed)
-# echo "${BLUE}🔍 Running linting...${RESET}"
-# bun run lint
-# if [ $? -ne 0 ]; then
-#   echo "${RED}❌ Linting failed${RESET}"
-#   exit 1
-# fi
-
-# Check all file line counts
-echo "${BLUE}📏 Checking all file line counts...${RESET}"
-CI=true node scripts/check-line-count.js
-if [ $? -ne 0 ]; then
-  echo "${RED}❌ Line count check failed${RESET}"
+echo "${BLUE}🔁 Running CI parity suite (PR)...${RESET}"
+bun run ci:pr || {
+  echo "${RED}❌ CI parity checks failed${RESET}"
   exit 1
-fi
-
-# Run tests if they exist
-if [ -f "bun.lockb" ]; then
-  echo "${BLUE}🧪 Running tests...${RESET}"
-  bun test --bail
-  if [ $? -ne 0 ]; then
-    echo "${RED}❌ Tests failed${RESET}"
-    exit 1
-  fi
-fi
+}
 
 echo "${GREEN}${BOLD}✅ All pre-push checks passed!${RESET}"

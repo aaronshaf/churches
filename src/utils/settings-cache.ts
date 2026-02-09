@@ -1,4 +1,3 @@
-import { eq, sql } from 'drizzle-orm';
 import type { DbType } from '../db';
 import { settings } from '../db/schema';
 

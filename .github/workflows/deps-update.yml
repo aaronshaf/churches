@@ -1,0 +1,60 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Weekly on Mondays at 9:15 AM UTC
+    - cron: "15 9 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: deps-update
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bun-update:
+    name: Update bun.lock
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Update dependencies (within semver ranges)
+        run: bun update
+
+      - name: Validate
+        run: |
+          bun run typecheck
+          bun test --bail
+          bun run build:ci
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6
+        with:
+          commit-message: "chore: update dependencies"
+          title: "chore: update dependencies"
+          body: |
+            Automated dependency update via Bun.
+
+            - Updates `bun.lock` (and `package.json` only if ranges changed)
+            - Runs typecheck, tests, and CI build
+          branch: "bot/deps-update"
+          delete-branch: true
+

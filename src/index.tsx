@@ -2,12 +2,11 @@ import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { ChurchCard } from './components/ChurchCard';
 import { ErrorPage } from './components/ErrorPage';
 import { Layout } from './components/Layout';
 import { NotFound } from './components/NotFound';
 import { createDb, createDbWithContext } from './db';
-import { churches, churchGatherings, counties, pages, settings } from './db/schema';
+import { churches, counties, pages, settings } from './db/schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser } from './middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
@@ -185,7 +184,7 @@ async function getNavbarPages(
 }
 
 // Helper function to gather all common Layout props
-async function getLayoutProps(c: { env: Bindings } & Pick<Context, 'req'>): Promise<{
+async function _getLayoutProps(c: { env: Bindings } & Pick<Context, 'req'>): Promise<{
   user: BetterAuthUser | null;
   faviconUrl?: string;
   logoUrl?: string;

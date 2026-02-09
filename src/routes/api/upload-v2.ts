@@ -162,7 +162,7 @@ uploadV2.delete('/image/:imageId', async (c) => {
     }
 
     const imageId = parseInt(c.req.param('imageId'));
-    if (isNaN(imageId)) {
+    if (Number.isNaN(imageId)) {
       return c.json({ error: 'Invalid image ID' }, 400);
     }
 
@@ -204,7 +204,7 @@ uploadV2.patch('/image/:imageId/order', async (c) => {
       displayOrder: number;
     }>();
 
-    if (isNaN(imageId) || !entityType || typeof displayOrder !== 'number') {
+    if (Number.isNaN(imageId) || !entityType || typeof displayOrder !== 'number') {
       return c.json({ error: 'Invalid parameters' }, 400);
     }
 
