@@ -108,7 +108,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     // Redirect to Better Auth Google OAuth with our callback
     const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
     const callbackUrl = encodeURIComponent(`${baseUrl}/oauth/callback`);
-    const googleAuthUrl = `${baseUrl}/auth/signin/google?callbackURL=${callbackUrl}&state=${oauthState}`;
+    const googleAuthUrl = `${baseUrl}/api/auth/signin/google?callbackURL=${callbackUrl}&state=${oauthState}`;
 
     return c.redirect(googleAuthUrl);
   }
