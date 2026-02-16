@@ -35,6 +35,7 @@ import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { mcpRoutes } from './routes/mcp';
 import { mcpAdminRoutes } from './routes/mcp-admin';
+import { oauthRoutes } from './routes/oauth';
 import { countiesRoutes } from './routes/public/counties';
 import { mapRoutes } from './routes/public/map';
 import { networksRoutes } from './routes/public/networks';
@@ -229,6 +230,9 @@ app.route('/admin/mcp-tokens', adminMcpTokensRoutes);
 
 // Mount API routes
 app.route('/api', apiRoutes);
+
+// Mount OAuth routes (for MCP authentication)
+app.route('/', oauthRoutes);
 
 // Mount MCP routes
 // IMPORTANT: Register /mcp/admin BEFORE /mcp to avoid route shadowing

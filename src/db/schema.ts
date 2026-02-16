@@ -335,3 +335,63 @@ export const mcpWriteAudit = sqliteTable(
     mcpWriteAuditCreatedAtIdx: index('idx_mcp_write_audit_created_at').on(table.createdAt),
   })
 );
+
+// OAuth 2.1 tables for MCP authentication
+export const oauthClients = sqliteTable('oauth_clients', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  clientId: text('client_id').notNull().unique(),
+  clientSecret: text('client_secret'), // Null for public clients (PKCE)
+  clientName: text('client_name').notNull(),
+  redirectUris: text('redirect_uris').notNull(), // JSON array of allowed redirect URIs
+  scope: text('scope').notNull().default('mcp:admin'),
+  grantTypes: text('grant_types').notNull().default('authorization_code'), // JSON array
+  responseTypes: text('response_types').notNull().default('code'), // JSON array
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const oauthAuthorizationCodes = sqliteTable(
+  'oauth_authorization_codes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    code: text('code').notNull().unique(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClients.clientId),
+    userId: text('user_id').notNull(), // Better Auth user ID
+    redirectUri: text('redirect_uri').notNull(),
+    scope: text('scope').notNull(),
+    codeChallenge: text('code_challenge').notNull(), // PKCE code challenge
+    codeChallengeMethod: text('code_challenge_method').notNull().default('S256'), // S256 or plain
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    usedAt: integer('used_at', { mode: 'timestamp' }), // Prevents code reuse
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    oauthAuthCodesClientIdIdx: index('idx_oauth_auth_codes_client_id').on(table.clientId),
+    oauthAuthCodesUserIdIdx: index('idx_oauth_auth_codes_user_id').on(table.userId),
+    oauthAuthCodesExpiresAtIdx: index('idx_oauth_auth_codes_expires_at').on(table.expiresAt),
+  })
+);
+
+export const oauthAccessTokens = sqliteTable(
+  'oauth_access_tokens',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    accessToken: text('access_token').notNull().unique(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClients.clientId),
+    userId: text('user_id').notNull(), // Better Auth user ID
+    scope: text('scope').notNull(),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    revokedAt: integer('revoked_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => ({
+    oauthAccessTokensClientIdIdx: index('idx_oauth_access_tokens_client_id').on(table.clientId),
+    oauthAccessTokensUserIdIdx: index('idx_oauth_access_tokens_user_id').on(table.userId),
+    oauthAccessTokensExpiresAtIdx: index('idx_oauth_access_tokens_expires_at').on(table.expiresAt),
+    oauthAccessTokensRevokedAtIdx: index('idx_oauth_access_tokens_revoked_at').on(table.revokedAt),
+  })
+);

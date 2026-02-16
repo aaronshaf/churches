@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
-import { resolveMcpSessionAuth } from '../middleware/mcp-session-auth';
+import { resolveMcpUnifiedAuth } from '../middleware/mcp-unified-auth';
 import {
   getChurchMcp,
   getCountyMcp,
@@ -689,7 +689,7 @@ async function handleRequest(
 
 // GET endpoint - returns metadata about the MCP admin endpoint
 mcpAdminRoutes.get('*', async (c) => {
-  const authResolution = await resolveMcpSessionAuth(c, { required: false });
+  const authResolution = await resolveMcpUnifiedAuth(c, { required: false });
 
   if (authResolution.response) {
     return authResolution.response;
@@ -698,7 +698,7 @@ mcpAdminRoutes.get('*', async (c) => {
   return c.json({
     endpoint: '/mcp/admin',
     transport: 'streamable-http',
-    authentication: 'session-based',
+    authentication: 'oauth-2.1-or-session',
     authenticated: Boolean(authResolution.identity),
     role: authResolution.identity?.role || null,
   });
@@ -725,8 +725,8 @@ mcpAdminRoutes.post('*', async (c) => {
   const isDiscovery =
     isJsonRpcRequest(firstRequest) && discoveryMethods.includes(firstRequest.method);
 
-  // Get session (but don't require it for discovery methods)
-  const authResolution = await resolveMcpSessionAuth(c, { required: false });
+  // Get auth (OAuth or session, but don't require it for discovery methods)
+  const authResolution = await resolveMcpUnifiedAuth(c, { required: false });
 
   const auth = authResolution.identity;
 
