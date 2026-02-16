@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
 import { resolveMcpUnifiedAuth } from '../middleware/mcp-unified-auth';
+import { cacheInvalidation } from '../utils/cache-invalidation';
 import {
   getChurchMcp,
   getCountyMcp,
@@ -13,19 +14,23 @@ import {
   McpNotFoundError,
 } from '../services/mcp-read-service';
 import {
+  addChurchAffiliationMcp,
   createChurchMcp,
   createCountyMcp,
   createNetworkMcp,
   deleteChurchMcp,
   deleteCountyMcp,
   deleteNetworkMcp,
+  listChurchAffiliationsMcp,
   McpConflictError,
   McpValidationError,
   McpWriteForbiddenError,
   McpWriteNotFoundError,
+  removeChurchAffiliationMcp,
   restoreChurchMcp,
   restoreCountyMcp,
   restoreNetworkMcp,
+  setChurchAffiliationsMcp,
   updateChurchMcp,
   updateCountyMcp,
   updateNetworkMcp,
@@ -205,6 +210,63 @@ const writeTools: McpToolDefinition[] = [
     name: 'networks_restore',
     description: 'Restore one soft-deleted network record (admin-only write tool).',
     inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'churches_affiliations_list',
+    description: 'List all affiliations for a church by id or path.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        church_id: { type: 'number' },
+        church_path: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'churches_affiliations_set',
+    description: 'Atomic replace of all affiliations for a church (authenticated write tool).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        church_id: { type: 'number' },
+        church_path: { type: 'string' },
+        affiliation_ids: { type: 'array', items: { type: 'number' } },
+        updated_at: {},
+      },
+      required: ['affiliation_ids', 'updated_at'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'churches_affiliations_add',
+    description: 'Add single affiliation to a church (authenticated write tool, idempotent).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        church_id: { type: 'number' },
+        church_path: { type: 'string' },
+        affiliation_id: { type: 'number' },
+        updated_at: {},
+      },
+      required: ['affiliation_id', 'updated_at'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'churches_affiliations_remove',
+    description: 'Remove single affiliation from a church (authenticated write tool, idempotent).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        church_id: { type: 'number' },
+        church_path: { type: 'string' },
+        affiliation_id: { type: 'number' },
+        updated_at: {},
+      },
+      required: ['affiliation_id', 'updated_at'],
+      additionalProperties: false,
+    },
   },
 ];
 
@@ -499,6 +561,61 @@ async function handleToolsCall(c: McpContext, auth: McpAuthIdentity | null, para
         return asToolResult({ error: 'Authentication required for write operations' }, true);
       }
       const result = await restoreNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'churches_affiliations_list': {
+      if (id === undefined && !path) {
+        throw new Error('churches_affiliations_list requires church_id or church_path');
+      }
+      const result = await listChurchAffiliationsMcp(db, auth, { id, path });
+      return asToolResult(result);
+    }
+    case 'churches_affiliations_set': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
+      if (id === undefined && !path) {
+        throw new Error('churches_affiliations_set requires church_id or church_path');
+      }
+      const affiliationIds = args.affiliation_ids;
+      const result = await setChurchAffiliationsMcp(db, auth, { id, path }, expectedUpdatedAt, affiliationIds);
+      // Invalidate caches for church and affected affiliations
+      await cacheInvalidation.church(c, result.churchId.toString());
+      for (const affId of [...result.added, ...result.removed]) {
+        await cacheInvalidation.affiliation(c, affId.toString());
+      }
+      return asToolResult(result);
+    }
+    case 'churches_affiliations_add': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
+      if (id === undefined && !path) {
+        throw new Error('churches_affiliations_add requires church_id or church_path');
+      }
+      const affiliationId = args.affiliation_id;
+      const result = await addChurchAffiliationMcp(db, auth, { id, path }, expectedUpdatedAt, affiliationId);
+      // Invalidate caches
+      await cacheInvalidation.church(c, result.churchId.toString());
+      if (result.wasAdded) {
+        await cacheInvalidation.affiliation(c, result.affiliationId.toString());
+      }
+      return asToolResult(result);
+    }
+    case 'churches_affiliations_remove': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
+      if (id === undefined && !path) {
+        throw new Error('churches_affiliations_remove requires church_id or church_path');
+      }
+      const affiliationId = args.affiliation_id;
+      const result = await removeChurchAffiliationMcp(db, auth, { id, path }, expectedUpdatedAt, affiliationId);
+      // Invalidate caches
+      await cacheInvalidation.church(c, result.churchId.toString());
+      if (result.wasRemoved) {
+        await cacheInvalidation.affiliation(c, result.affiliationId.toString());
+      }
       return asToolResult(result);
     }
   }

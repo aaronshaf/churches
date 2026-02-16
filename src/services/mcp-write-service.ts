@@ -1,6 +1,6 @@
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import type { DbType } from '../db';
-import { affiliations, churches, counties, mcpWriteAudit } from '../db/schema';
+import { affiliations, churches, churchAffiliations, counties, mcpWriteAudit } from '../db/schema';
 import type { McpAuthIdentity } from '../types';
 import { compareObjects } from '../utils/audit-trail';
 
@@ -107,7 +107,7 @@ async function insertWriteAudit(
   db: DbType,
   auth: McpAuthIdentity,
   action: string,
-  entity: 'churches' | 'counties' | 'networks',
+  entity: 'churches' | 'counties' | 'networks' | 'church_affiliations',
   recordId: number,
   before: Record<string, unknown> | null,
   after: Record<string, unknown> | null
@@ -515,4 +515,157 @@ export async function restoreNetworkMcp(
     restored as Record<string, unknown>
   );
   return restored;
+}
+
+export async function listChurchAffiliationsMcp(db: DbType, _auth: McpAuthIdentity | null, identifier: EntityIdentifier) {
+  const church = await getChurchForWrite(db, identifier, false);
+
+  const result = await db
+    .select({
+      id: affiliations.id,
+      name: affiliations.name,
+      path: affiliations.path,
+      status: affiliations.status,
+    })
+    .from(churchAffiliations)
+    .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
+    .where(and(eq(churchAffiliations.churchId, church.id), isNull(affiliations.deletedAt)))
+    .all();
+
+  return result;
+}
+
+export async function setChurchAffiliationsMcp(
+  db: DbType,
+  auth: McpAuthIdentity,
+  identifier: EntityIdentifier,
+  expectedUpdatedAtInput: unknown,
+  affiliationIdsInput: unknown
+) {
+  const church = await getChurchForWrite(db, identifier, false);
+  const expectedUpdatedAt = parseExpectedUpdatedAt(expectedUpdatedAtInput);
+  assertVersionMatch(church.updatedAt, expectedUpdatedAt);
+
+  // Validate and parse affiliation IDs
+  if (!Array.isArray(affiliationIdsInput)) {
+    throw new McpValidationError('affiliation_ids must be an array');
+  }
+  const affiliationIds = affiliationIdsInput.map((id) => {
+    if (typeof id !== 'number' || id <= 0 || !Number.isInteger(id)) {
+      throw new McpValidationError('affiliation_ids must contain positive integers');
+    }
+    return id;
+  });
+
+  // Get current affiliations
+  const currentAffiliations = await db
+    .select({ affiliationId: churchAffiliations.affiliationId })
+    .from(churchAffiliations)
+    .where(eq(churchAffiliations.churchId, church.id))
+    .all();
+
+  const currentIds = currentAffiliations.map((ca) => ca.affiliationId);
+
+  // Calculate changes
+  const toAdd = affiliationIds.filter((id) => !currentIds.includes(id));
+  const toRemove = currentIds.filter((id) => !affiliationIds.includes(id));
+
+  // Execute changes
+  if (toAdd.length > 0) {
+    const newAffiliations = toAdd.map((affiliationId) => ({
+      churchId: church.id,
+      affiliationId,
+    }));
+    await db.insert(churchAffiliations).values(newAffiliations).run();
+  }
+
+  if (toRemove.length > 0) {
+    await db
+      .delete(churchAffiliations)
+      .where(and(eq(churchAffiliations.churchId, church.id), inArray(churchAffiliations.affiliationId, toRemove)))
+      .run();
+  }
+
+  // Update church timestamp (version bump)
+  await db.update(churches).set({ updatedAt: new Date() }).where(eq(churches.id, church.id)).run();
+
+  // Write audit log with before/after affiliation IDs
+  await insertWriteAudit(
+    db,
+    auth,
+    'set_affiliations',
+    'church_affiliations',
+    church.id,
+    { affiliations: currentIds },
+    { affiliations: affiliationIds }
+  );
+
+  return {
+    churchId: church.id,
+    added: toAdd,
+    removed: toRemove,
+    current: affiliationIds,
+  };
+}
+
+export async function addChurchAffiliationMcp(
+  db: DbType,
+  auth: McpAuthIdentity,
+  identifier: EntityIdentifier,
+  expectedUpdatedAtInput: unknown,
+  affiliationIdInput: unknown
+) {
+  if (typeof affiliationIdInput !== 'number' || affiliationIdInput <= 0 || !Number.isInteger(affiliationIdInput)) {
+    throw new McpValidationError('affiliation_id must be a positive integer');
+  }
+
+  const affiliationId = affiliationIdInput;
+
+  // Get current affiliations
+  const current = await listChurchAffiliationsMcp(db, auth, identifier);
+  const currentIds = current.map((a) => a.id);
+
+  // Add new ID if not present (idempotent)
+  const newIds = currentIds.includes(affiliationId) ? currentIds : [...currentIds, affiliationId];
+
+  // Use set operation
+  const result = await setChurchAffiliationsMcp(db, auth, identifier, expectedUpdatedAtInput, newIds);
+
+  return {
+    churchId: result.churchId,
+    affiliationId,
+    wasAdded: result.added.includes(affiliationId),
+    current: result.current,
+  };
+}
+
+export async function removeChurchAffiliationMcp(
+  db: DbType,
+  auth: McpAuthIdentity,
+  identifier: EntityIdentifier,
+  expectedUpdatedAtInput: unknown,
+  affiliationIdInput: unknown
+) {
+  if (typeof affiliationIdInput !== 'number' || affiliationIdInput <= 0 || !Number.isInteger(affiliationIdInput)) {
+    throw new McpValidationError('affiliation_id must be a positive integer');
+  }
+
+  const affiliationId = affiliationIdInput;
+
+  // Get current affiliations
+  const current = await listChurchAffiliationsMcp(db, auth, identifier);
+  const currentIds = current.map((a) => a.id);
+
+  // Remove ID if present (idempotent)
+  const newIds = currentIds.filter((id) => id !== affiliationId);
+
+  // Use set operation
+  const result = await setChurchAffiliationsMcp(db, auth, identifier, expectedUpdatedAtInput, newIds);
+
+  return {
+    churchId: result.churchId,
+    affiliationId,
+    wasRemoved: result.removed.includes(affiliationId),
+    current: result.current,
+  };
 }
