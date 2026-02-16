@@ -152,22 +152,26 @@ betterAuthApp.get('/signin', async (c) => {
 
 // Google OAuth initiation
 betterAuthApp.get('/google', async (c) => {
+  const redirectUrl = c.req.query('redirect') || '/admin';
+  console.log('[Better Auth Google] Initiating Google OAuth', { redirectUrl });
+
   // Validate OAuth environment variables
   try {
     validateAuthEnvVars(c.env);
   } catch (error) {
-    console.error('OAuth configuration error:', error);
+    console.error('[Better Auth Google] OAuth configuration error:', error);
     return c.redirect('/auth/signin?error=OAuth configuration missing');
   }
-
-  const redirectUrl = c.req.query('redirect') || '/admin';
 
   // Store redirect URL in session/cookie for after OAuth
   setCookie(c, 'auth_redirect', redirectUrl, {
     path: '/',
     httpOnly: true,
+    sameSite: 'Lax',
     maxAge: 600,
   });
+
+  console.log('[Better Auth Google] Stored redirect URL in cookie, redirecting to Google');
 
   // Create Google OAuth URL
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -182,17 +186,22 @@ betterAuthApp.get('/google', async (c) => {
 
 // Google OAuth callback
 betterAuthApp.get('/callback/google', async (c) => {
+  console.log('[Better Auth Callback] Google OAuth callback received');
+
   const code = c.req.query('code');
   const error = c.req.query('error');
 
   if (error) {
-    console.error('Google OAuth error:', error);
+    console.error('[Better Auth Callback] Google OAuth error:', error);
     return c.redirect('/auth/signin?error=Google OAuth failed');
   }
 
   if (!code) {
+    console.error('[Better Auth Callback] No authorization code received');
     return c.redirect('/auth/signin?error=No authorization code received');
   }
+
+  console.log('[Better Auth Callback] Authorization code received, exchanging for tokens');
 
   try {
     // Validate OAuth environment variables
@@ -298,8 +307,13 @@ betterAuthApp.get('/callback/google', async (c) => {
     // Set session cookie using Hono's setCookie function
     setCookie(c, 'session', sessionId, {
       path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
+
+    console.log('[Better Auth Callback] Session cookie set', { sessionId: sessionId.substring(0, 8) + '...', redirectUrl });
 
     // Clear redirect cookie
     setCookie(c, 'auth_redirect', '', {
