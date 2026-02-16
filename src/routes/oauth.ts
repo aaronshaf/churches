@@ -23,7 +23,7 @@ oauthRoutes.get('/.well-known/oauth-protected-resource', async (c) => {
 
   return c.json({
     resource: `${baseUrl}/mcp/admin`,
-    authorization_servers: [`${baseUrl}/oauth`],
+    authorization_servers: [baseUrl],
     bearer_methods_supported: ['header'],
     resource_documentation: `${baseUrl}/docs/mcp-oauth`,
   });
@@ -70,9 +70,8 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     return c.json({ error: 'unsupported_response_type', error_description: 'Only "code" is supported' }, 400);
   }
 
-  if (!client_id) {
-    return c.json({ error: 'invalid_request', error_description: 'client_id is required' }, 400);
-  }
+  // client_id is optional - default to 'anonymous' if not provided
+  const effectiveClientId = client_id || 'anonymous';
 
   if (!redirect_uri) {
     return c.json({ error: 'invalid_request', error_description: 'redirect_uri is required' }, 400);
@@ -97,7 +96,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     // Store OAuth params in a temporary state for callback
     const oauthState = btoa(
       JSON.stringify({
-        client_id,
+        client_id: effectiveClientId,
         redirect_uri,
         scope: scope || 'mcp:admin',
         state,
@@ -130,7 +129,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
   // User has required role - create authorization code
   try {
     const { code } = await createAuthorizationCode(db, {
-      clientId: client_id,
+      clientId: effectiveClientId,
       userId: session.user.id,
       redirectUri: redirect_uri,
       scope: scope || 'mcp:admin',
@@ -210,8 +209,9 @@ oauthRoutes.get('/oauth/callback', async (c) => {
   // Create authorization code
   const db = createDbWithContext(c);
   try {
+    const effectiveClientId = oauthParams.client_id || 'anonymous';
     const { code } = await createAuthorizationCode(db, {
-      clientId: oauthParams.client_id,
+      clientId: effectiveClientId,
       userId: session.user.id,
       redirectUri: oauthParams.redirect_uri,
       scope: oauthParams.scope,
@@ -258,20 +258,19 @@ oauthRoutes.post('/oauth/token', async (c) => {
     return c.json({ error: 'invalid_request', error_description: 'redirect_uri is required' }, 400);
   }
 
-  if (!client_id || typeof client_id !== 'string') {
-    return c.json({ error: 'invalid_request', error_description: 'client_id is required' }, 400);
-  }
-
   if (!code_verifier || typeof code_verifier !== 'string') {
     return c.json({ error: 'invalid_request', error_description: 'code_verifier is required (PKCE)' }, 400);
   }
+
+  // client_id is optional - default to 'anonymous' if not provided
+  const effectiveClientId = (typeof client_id === 'string' ? client_id : null) || 'anonymous';
 
   // Exchange code for token
   const db = createDbWithContext(c);
   try {
     const token = await exchangeCodeForToken(db, {
       code,
-      clientId: client_id,
+      clientId: effectiveClientId,
       redirectUri: redirect_uri,
       codeVerifier: code_verifier,
     });
