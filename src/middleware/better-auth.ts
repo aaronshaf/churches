@@ -1,10 +1,7 @@
-import type { D1Database } from '@cloudflare/workers-types';
 import type { MiddlewareHandler } from 'hono';
 import { createAuth } from '../lib/auth';
 import type { BetterAuthUser, Bindings } from '../types';
 import { EnvironmentError } from '../utils/env-validation';
-
-type ValidateDatabaseEnvVars = (env: Bindings) => asserts env is Bindings & { DB: D1Database };
 
 export const betterAuthMiddleware: MiddlewareHandler = async (c, next) => {
   try {
@@ -63,14 +60,11 @@ export const requireAdminBetter: MiddlewareHandler = async (c, next) => {
   const sessionId = sessionMatch[1];
 
   // Look up session in database
-  const { drizzle } = await import('drizzle-orm/d1');
+  const { createDb } = await import('../db');
   const { eq } = await import('drizzle-orm');
   const { users, sessions } = await import('../db/auth-schema');
-  const envValidation = await import('../utils/env-validation');
-  const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
-  validateDb(c.env);
 
-  const db = drizzle(c.env.DB, { schema: { users, sessions } });
+  const db = createDb(c.env);
 
   const session = await db
     .select({
@@ -180,14 +174,11 @@ export const getUser = async (c: {
 
   try {
     // Look up session in database
-    const { drizzle } = await import('drizzle-orm/d1');
+    const { createDb } = await import('../db');
     const { eq } = await import('drizzle-orm');
     const { users, sessions } = await import('../db/auth-schema');
-    const envValidation = await import('../utils/env-validation');
-    const validateDb: ValidateDatabaseEnvVars = envValidation.validateDatabaseEnvVars;
-    validateDb(c.env);
 
-    const db = drizzle(c.env.DB, { schema: { users, sessions } });
+    const db = createDb(c.env);
 
     const session = await db
       .select({
