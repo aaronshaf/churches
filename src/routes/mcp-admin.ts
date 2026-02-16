@@ -434,8 +434,8 @@ async function handleToolsCall(c: McpContext, auth: McpAuthIdentity | null, para
   const limit = readNumber(args.limit, 20, 1, 200);
   const offset = readNumber(args.offset, 0, 0, 1000000);
   const includeDeleted = readBoolean(args.include_deleted, false);
-  const id = readId(args.id);
-  const path = readString(args.path);
+  const id = readId(args.id ?? args.church_id);
+  const path = readString(args.path ?? args.church_path);
   const expectedUpdatedAt = args.updated_at ?? args.updatedAt;
   const writeIdentifier = { id, path };
 
@@ -847,6 +847,17 @@ mcpAdminRoutes.post('*', async (c) => {
 
   const auth = authResolution.identity;
 
+  // Define read-only tools that don't require authentication
+  const readOnlyTools = [
+    'churches_list',
+    'churches_get',
+    'counties_list',
+    'counties_get',
+    'networks_list',
+    'networks_get',
+    'churches_affiliations_list',
+  ];
+
   const responses: JsonRpcResponse[] = [];
   for (const request of requests) {
     if (!isJsonRpcRequest(request)) {
@@ -854,8 +865,15 @@ mcpAdminRoutes.post('*', async (c) => {
       continue;
     }
 
-    // Only require auth for non-discovery methods
-    const requiresAuth = !discoveryMethods.includes(request.method);
+    // Check if this is a tools/call for a read-only tool
+    let isReadOnlyToolCall = false;
+    if (request.method === 'tools/call' && isObject(request.params)) {
+      const toolName = readString((request.params as Record<string, unknown>).name);
+      isReadOnlyToolCall = toolName ? readOnlyTools.includes(toolName) : false;
+    }
+
+    // Only require auth for non-discovery methods and non-read-only tools
+    const requiresAuth = !discoveryMethods.includes(request.method) && !isReadOnlyToolCall;
     if (requiresAuth && !auth) {
       const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
       const authUrl = `${baseUrl}/auth/signin`;
