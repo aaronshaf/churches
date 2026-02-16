@@ -5,7 +5,6 @@
 
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
-import { createAuth } from '../lib/auth';
 import {
   createAuthorizationCode,
   exchangeCodeForToken,
@@ -87,11 +86,11 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
 
   const db = createDbWithContext(c);
 
-  // Check if user is already authenticated via Better Auth session
-  const auth = createAuth(c.env);
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  // Check if user is already authenticated via session cookie
+  const { getUser } = await import('../middleware/better-auth');
+  const user = await getUser(c);
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     // User not authenticated - redirect to Google OAuth
     // Store OAuth params in a temporary state for callback
     const oauthState = btoa(
@@ -114,7 +113,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
   }
 
   // User is authenticated - check role
-  const userRole = session.user.role || 'user';
+  const userRole = user.role || 'user';
   if (userRole !== 'admin' && userRole !== 'contributor') {
     // Build error redirect
     const errorUrl = new URL(redirect_uri);
@@ -130,7 +129,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
   try {
     const { code } = await createAuthorizationCode(db, {
       clientId: effectiveClientId,
-      userId: session.user.id,
+      userId: user.id,
       redirectUri: redirect_uri,
       scope: scope || 'mcp:admin',
       codeChallenge: code_challenge,
@@ -180,11 +179,11 @@ oauthRoutes.get('/oauth/callback', async (c) => {
     return c.text('Invalid state parameter', 400);
   }
 
-  // Check Better Auth session
-  const auth = createAuth(c.env);
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  // Check session cookie
+  const { getUser } = await import('../middleware/better-auth');
+  const user = await getUser(c);
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     const errorUrl = new URL(oauthParams.redirect_uri);
     errorUrl.searchParams.set('error', 'access_denied');
     errorUrl.searchParams.set('error_description', 'Authentication failed');
@@ -195,7 +194,7 @@ oauthRoutes.get('/oauth/callback', async (c) => {
   }
 
   // Check user role
-  const userRole = session.user.role || 'user';
+  const userRole = user.role || 'user';
   if (userRole !== 'admin' && userRole !== 'contributor') {
     const errorUrl = new URL(oauthParams.redirect_uri);
     errorUrl.searchParams.set('error', 'access_denied');
@@ -212,7 +211,7 @@ oauthRoutes.get('/oauth/callback', async (c) => {
     const effectiveClientId = oauthParams.client_id || 'anonymous';
     const { code } = await createAuthorizationCode(db, {
       clientId: effectiveClientId,
-      userId: session.user.id,
+      userId: user.id,
       redirectUri: oauthParams.redirect_uri,
       scope: oauthParams.scope,
       codeChallenge: oauthParams.code_challenge,
