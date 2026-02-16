@@ -64,8 +64,18 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     code_challenge_method,
   } = params;
 
+  console.log('[OAuth Authorize] Request received', {
+    response_type,
+    client_id: client_id || 'anonymous',
+    redirect_uri,
+    scope,
+    has_code_challenge: !!code_challenge,
+    code_challenge_method,
+  });
+
   // Validate required parameters
   if (!response_type || response_type !== 'code') {
+    console.log('[OAuth Authorize] ERROR: Invalid response_type', { response_type });
     return c.json({ error: 'unsupported_response_type', error_description: 'Only "code" is supported' }, 400);
   }
 
@@ -73,14 +83,17 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
   const effectiveClientId = client_id || 'anonymous';
 
   if (!redirect_uri) {
+    console.log('[OAuth Authorize] ERROR: Missing redirect_uri');
     return c.json({ error: 'invalid_request', error_description: 'redirect_uri is required' }, 400);
   }
 
   if (!code_challenge) {
+    console.log('[OAuth Authorize] ERROR: Missing code_challenge');
     return c.json({ error: 'invalid_request', error_description: 'code_challenge is required (PKCE)' }, 400);
   }
 
   if (!code_challenge_method || (code_challenge_method !== 'S256' && code_challenge_method !== 'plain')) {
+    console.log('[OAuth Authorize] ERROR: Invalid code_challenge_method', { code_challenge_method });
     return c.json({ error: 'invalid_request', error_description: 'code_challenge_method must be S256 or plain' }, 400);
   }
 
@@ -91,6 +104,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
   const user = await getUser(c);
 
   if (!user?.id) {
+    console.log('[OAuth Authorize] User not authenticated, redirecting to Google OAuth');
     // User not authenticated - redirect to Google OAuth
     // Store OAuth params in a temporary state for callback
     const oauthState = btoa(
@@ -109,12 +123,16 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     const callbackUrl = `${baseUrl}/oauth/callback?state=${encodeURIComponent(oauthState)}`;
     const googleAuthUrl = `${baseUrl}/auth/google?redirect=${encodeURIComponent(callbackUrl)}`;
 
+    console.log('[OAuth Authorize] Redirecting to Google OAuth', { googleAuthUrl: googleAuthUrl.substring(0, 80) + '...' });
     return c.redirect(googleAuthUrl);
   }
+
+  console.log('[OAuth Authorize] User authenticated', { userId: user.id, role: user.role || 'user' });
 
   // User is authenticated - check role
   const userRole = user.role || 'user';
   if (userRole !== 'admin' && userRole !== 'contributor') {
+    console.log('[OAuth Authorize] ERROR: Insufficient role', { userId: user.id, role: userRole });
     // Build error redirect
     const errorUrl = new URL(redirect_uri);
     errorUrl.searchParams.set('error', 'access_denied');
@@ -127,6 +145,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
 
   // User has required role - create authorization code
   try {
+    console.log('[OAuth Authorize] Creating authorization code', { userId: user.id, clientId: effectiveClientId });
     const { code } = await createAuthorizationCode(db, {
       clientId: effectiveClientId,
       userId: user.id,
@@ -134,6 +153,11 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
       scope: scope || 'mcp:admin',
       codeChallenge: code_challenge,
       codeChallengeMethod: code_challenge_method as 'S256' | 'plain',
+    });
+
+    console.log('[OAuth Authorize] Authorization code created, redirecting to client', {
+      code: code.substring(0, 8) + '...',
+      redirect_uri
     });
 
     // Redirect back to client with code
@@ -145,6 +169,10 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
 
     return c.redirect(successUrl.toString());
   } catch (error) {
+    console.error('[OAuth Authorize] ERROR: Failed to create authorization code', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: user.id,
+    });
     const errorUrl = new URL(redirect_uri);
     errorUrl.searchParams.set('error', 'server_error');
     errorUrl.searchParams.set('error_description', error instanceof Error ? error.message : 'Unknown error');
@@ -159,8 +187,11 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
  * OAuth callback - handles redirect from Better Auth Google OAuth
  */
 oauthRoutes.get('/oauth/callback', async (c) => {
+  console.log('[OAuth Callback] Request received');
+
   const stateParam = c.req.query('state');
   if (!stateParam) {
+    console.log('[OAuth Callback] ERROR: Missing state parameter');
     return c.text('Missing state parameter', 400);
   }
 
@@ -175,7 +206,13 @@ oauthRoutes.get('/oauth/callback', async (c) => {
 
   try {
     oauthParams = JSON.parse(atob(stateParam));
+    console.log('[OAuth Callback] Decoded state', {
+      client_id: oauthParams.client_id || 'anonymous',
+      redirect_uri: oauthParams.redirect_uri,
+      scope: oauthParams.scope,
+    });
   } catch {
+    console.log('[OAuth Callback] ERROR: Invalid state parameter');
     return c.text('Invalid state parameter', 400);
   }
 
@@ -184,6 +221,7 @@ oauthRoutes.get('/oauth/callback', async (c) => {
   const user = await getUser(c);
 
   if (!user?.id) {
+    console.log('[OAuth Callback] ERROR: No authenticated user after Google OAuth');
     const errorUrl = new URL(oauthParams.redirect_uri);
     errorUrl.searchParams.set('error', 'access_denied');
     errorUrl.searchParams.set('error_description', 'Authentication failed');
@@ -193,9 +231,12 @@ oauthRoutes.get('/oauth/callback', async (c) => {
     return c.redirect(errorUrl.toString());
   }
 
+  console.log('[OAuth Callback] User authenticated', { userId: user.id, role: user.role || 'user' });
+
   // Check user role
   const userRole = user.role || 'user';
   if (userRole !== 'admin' && userRole !== 'contributor') {
+    console.log('[OAuth Callback] ERROR: Insufficient role', { userId: user.id, role: userRole });
     const errorUrl = new URL(oauthParams.redirect_uri);
     errorUrl.searchParams.set('error', 'access_denied');
     errorUrl.searchParams.set('error_description', 'Admin or contributor role required');
@@ -209,6 +250,8 @@ oauthRoutes.get('/oauth/callback', async (c) => {
   const db = createDbWithContext(c);
   try {
     const effectiveClientId = oauthParams.client_id || 'anonymous';
+    console.log('[OAuth Callback] Creating authorization code', { userId: user.id, clientId: effectiveClientId });
+
     const { code } = await createAuthorizationCode(db, {
       clientId: effectiveClientId,
       userId: user.id,
@@ -216,6 +259,11 @@ oauthRoutes.get('/oauth/callback', async (c) => {
       scope: oauthParams.scope,
       codeChallenge: oauthParams.code_challenge,
       codeChallengeMethod: oauthParams.code_challenge_method as 'S256' | 'plain',
+    });
+
+    console.log('[OAuth Callback] Authorization code created, redirecting to client', {
+      code: code.substring(0, 8) + '...',
+      redirect_uri: oauthParams.redirect_uri,
     });
 
     // Redirect back to client with code
@@ -227,6 +275,10 @@ oauthRoutes.get('/oauth/callback', async (c) => {
 
     return c.redirect(successUrl.toString());
   } catch (error) {
+    console.error('[OAuth Callback] ERROR: Failed to create authorization code', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: user.id,
+    });
     const errorUrl = new URL(oauthParams.redirect_uri);
     errorUrl.searchParams.set('error', 'server_error');
     errorUrl.searchParams.set('error_description', error instanceof Error ? error.message : 'Unknown error');
