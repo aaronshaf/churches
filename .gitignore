@@ -50,3 +50,4 @@ SERMON_EXTRACTION_PLAN.md
 # Transcript files
 transcripts/
 *.vtt
+.dev.vars.backup
