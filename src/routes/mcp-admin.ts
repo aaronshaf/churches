@@ -270,11 +270,8 @@ function readId(value: unknown): number | undefined {
 }
 
 function buildToolList(auth: McpAuthIdentity | null): McpToolDefinition[] {
-  // Only include write tools if authenticated
-  if (auth) {
-    return [...readTools, ...writeTools];
-  }
-  return readTools;
+  // Always show all tools for admin endpoint (auth is enforced at execution time)
+  return [...readTools, ...writeTools];
 }
 
 function buildResourceList(auth: McpAuthIdentity | null) {
@@ -722,25 +719,16 @@ mcpAdminRoutes.post('*', async (c) => {
     return c.json(error(null, -32600, 'Invalid Request'), 400);
   }
 
-  // Check if this is an initialize request - allow without auth
+  // Check if requests are discovery methods that don't require auth
   const firstRequest = requests[0];
-  const isInitialize = isJsonRpcRequest(firstRequest) && firstRequest.method === 'initialize';
+  const discoveryMethods = ['initialize', 'ping', 'tools/list', 'resources/list', 'resources/templates/list'];
+  const isDiscovery =
+    isJsonRpcRequest(firstRequest) && discoveryMethods.includes(firstRequest.method);
 
-  // Get session (but don't require it for initialize)
-  const authResolution = await resolveMcpSessionAuth(c, { required: !isInitialize });
-
-  if (authResolution.response && !isInitialize) {
-    return authResolution.response;
-  }
+  // Get session (but don't require it for discovery methods)
+  const authResolution = await resolveMcpSessionAuth(c, { required: false });
 
   const auth = authResolution.identity;
-
-  // For non-initialize requests, require authentication
-  if (!auth && !isInitialize) {
-    const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
-    const authUrl = `${baseUrl}/auth/signin`;
-    return c.json(error(null, -32003, 'Authentication required', { authUrl }), 401);
-  }
 
   const responses: JsonRpcResponse[] = [];
   for (const request of requests) {
@@ -749,8 +737,9 @@ mcpAdminRoutes.post('*', async (c) => {
       continue;
     }
 
-    // For methods other than initialize, require auth
-    if (request.method !== 'initialize' && !auth) {
+    // Only require auth for non-discovery methods
+    const requiresAuth = !discoveryMethods.includes(request.method);
+    if (requiresAuth && !auth) {
       const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
       const authUrl = `${baseUrl}/auth/signin`;
       responses.push(error(request.id ?? null, -32003, 'Authentication required', { authUrl }));
