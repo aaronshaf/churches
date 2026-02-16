@@ -355,9 +355,7 @@ export const oauthAuthorizationCodes = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     code: text('code').notNull().unique(),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => oauthClients.clientId),
+    clientId: text('client_id').notNull(), // No foreign key - client registration is optional
     userId: text('user_id').notNull(), // Better Auth user ID
     redirectUri: text('redirect_uri').notNull(),
     scope: text('scope').notNull(),
@@ -379,9 +377,7 @@ export const oauthAccessTokens = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     accessToken: text('access_token').notNull().unique(),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => oauthClients.clientId),
+    clientId: text('client_id').notNull(), // No foreign key - client registration is optional
     userId: text('user_id').notNull(), // Better Auth user ID
     scope: text('scope').notNull(),
     expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
