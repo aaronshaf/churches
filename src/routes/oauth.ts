@@ -268,6 +268,7 @@ oauthRoutes.post('/oauth/token', async (c) => {
   // Exchange code for token
   const db = createDbWithContext(c);
   try {
+    console.log('[OAuth Token] Exchanging code for token, clientId:', effectiveClientId);
     const token = await exchangeCodeForToken(db, {
       code,
       clientId: effectiveClientId,
@@ -276,9 +277,11 @@ oauthRoutes.post('/oauth/token', async (c) => {
     });
 
     if (!token) {
+      console.log('[OAuth Token] Exchange failed - no token returned');
       return c.json({ error: 'invalid_grant', error_description: 'Invalid authorization code' }, 400);
     }
 
+    console.log('[OAuth Token] Token issued successfully');
     return c.json({
       access_token: token.accessToken,
       token_type: token.tokenType,
@@ -286,6 +289,7 @@ oauthRoutes.post('/oauth/token', async (c) => {
       scope: token.scope,
     });
   } catch (error) {
+    console.error('[OAuth Token] Exchange error:', error);
     return c.json({
       error: 'invalid_grant',
       error_description: error instanceof Error ? error.message : 'Token exchange failed',

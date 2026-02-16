@@ -29,6 +29,7 @@ export async function resolveMcpOAuthAuth(
   // Extract Bearer token from Authorization header
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('[OAuth Auth] No Bearer token in Authorization header');
     if (required) {
       return {
         identity: null,
@@ -45,6 +46,7 @@ export async function resolveMcpOAuthAuth(
   }
 
   const token = authHeader.substring(7); // Remove "Bearer " prefix
+  console.log('[OAuth Auth] Validating Bearer token:', token.substring(0, 8) + '...');
 
   // Validate token
   const db = createDbWithContext(c);
@@ -56,6 +58,7 @@ export async function resolveMcpOAuthAuth(
     .all();
 
   if (!tokenRecord) {
+    console.log('[OAuth Auth] Token not found in database');
     if (required) {
       return {
         identity: null,
@@ -70,6 +73,8 @@ export async function resolveMcpOAuthAuth(
     }
     return { identity: null };
   }
+
+  console.log('[OAuth Auth] Token found, userId:', tokenRecord.userId);
 
   // Check if token is revoked
   if (tokenRecord.revokedAt) {
