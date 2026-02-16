@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --minify",
-    "build:worker": "bunx esbuild src/index.tsx --bundle --format=esm --platform=browser --main-fields=module,main --target=es2022 --outfile=dist/worker.js",
+    "build:worker": "bunx esbuild src/index.tsx --bundle --format=esm --platform=neutral --main-fields=module,main --target=es2022 --outfile=dist/worker.js --external:@libsql/client",
     "build:ci": "bun run build:css && bun run build:worker",
     "watch:css": "tailwindcss -i ./src/styles/main.css -o ./public/css/styles.css --watch",
     "dev": "concurrently \"bun run watch:css\" \"wrangler dev\"",
