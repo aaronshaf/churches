@@ -11,21 +11,6 @@ export async function domainRedirectMiddleware(c: Context<{ Bindings: Bindings }
     return next();
   }
 
-  // Check if DB is available before attempting to use it
-  if (!c.env.DB) {
-    console.error('Domain redirect middleware: DB environment variable not found');
-    // Fall back to default behavior without database lookup
-    const defaultDomain = c.env.SITE_DOMAIN || 'localhost';
-
-    if (hostname.includes('.workers.dev') || (hostname !== defaultDomain && hostname !== `www.${defaultDomain}`)) {
-      const url = new URL(c.req.url);
-      url.hostname = defaultDomain;
-      return c.redirect(url.toString(), 301);
-    }
-
-    return next();
-  }
-
   try {
     // Get configured domain from settings cache
     const db = createDbWithContext(c);

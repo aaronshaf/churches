@@ -11,7 +11,8 @@ import {
 
 function makeValidEnv() {
   return {
-    DB: {} as any,
+    TURSO_DATABASE_URL: 'libsql://test.turso.io',
+    TURSO_AUTH_TOKEN: 'test-token',
     BETTER_AUTH_SECRET: 'secret',
     BETTER_AUTH_URL: 'http://localhost:8787',
     GOOGLE_CLIENT_ID: 'client-id',
@@ -48,20 +49,21 @@ describe('validateRequiredEnvVars', () => {
 });
 
 describe('validateDatabaseEnvVars', () => {
-  test('does not throw when DB is present', () => {
+  test('does not throw when Turso vars are present', () => {
     const env = makeValidEnv();
     expect(() => validateDatabaseEnvVars(env)).not.toThrow();
   });
 
-  test('throws when DB is missing', () => {
+  test('throws when Turso vars are missing', () => {
     const env = makeValidEnv();
-    delete env.DB;
+    delete env.TURSO_DATABASE_URL;
+    delete env.TURSO_AUTH_TOKEN;
     expect(() => validateDatabaseEnvVars(env)).toThrow(EnvironmentError);
   });
 });
 
 describe('validateAuthEnvVars', () => {
-  test('does not throw when auth vars and DB are present', () => {
+  test('does not throw when auth vars and Turso vars are present', () => {
     const env = makeValidEnv();
     expect(() => validateAuthEnvVars(env)).not.toThrow();
   });
@@ -72,9 +74,10 @@ describe('validateAuthEnvVars', () => {
     expect(() => validateAuthEnvVars(env)).toThrow(EnvironmentError);
   });
 
-  test('throws when DB is missing', () => {
+  test('throws when Turso vars are missing', () => {
     const env = makeValidEnv();
-    delete env.DB;
+    delete env.TURSO_DATABASE_URL;
+    delete env.TURSO_AUTH_TOKEN;
     expect(() => validateAuthEnvVars(env)).toThrow(EnvironmentError);
   });
 });

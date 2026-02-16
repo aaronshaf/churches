@@ -4,7 +4,7 @@
  */
 
 import { eq } from 'drizzle-orm';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import * as schema from '../db/schema';
 import { oauthAccessTokens, oauthAuthorizationCodes, oauthClients } from '../db/schema';
 import {
@@ -15,7 +15,7 @@ import {
   validateRedirectUri,
 } from '../utils/oauth';
 
-type OAuthDb = DrizzleD1Database<typeof schema>;
+type OAuthDb = LibSQLDatabase<typeof schema>;
 
 /**
  * Get OAuth client by client_id

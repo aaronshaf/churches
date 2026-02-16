@@ -1,5 +1,4 @@
 import { desc, eq, inArray } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
@@ -31,7 +30,6 @@ function formatDateOrDash(value: unknown): string {
 
 async function loadTokenPageData(c: AdminMcpContext, currentUser: BetterAuthUser) {
   const db = createDbWithContext(c);
-  const authDb = drizzle(c.env.DB, { schema: { users } });
   const isAdmin = currentUser.role === 'admin';
 
   const tokens = await db
@@ -52,7 +50,7 @@ async function loadTokenPageData(c: AdminMcpContext, currentUser: BetterAuthUser
   const tokenUserIds = Array.from(new Set(tokens.map((token) => token.userId)));
   const tokenUsers =
     tokenUserIds.length > 0
-      ? await authDb
+      ? await db
           .select({
             id: users.id,
             name: users.name,
@@ -66,7 +64,7 @@ async function loadTokenPageData(c: AdminMcpContext, currentUser: BetterAuthUser
   const usersById = new Map(tokenUsers.map((user) => [user.id, user]));
 
   const manageableUsers = isAdmin
-    ? await authDb
+    ? await db
         .select({
           id: users.id,
           name: users.name,

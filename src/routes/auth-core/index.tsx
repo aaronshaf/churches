@@ -2,11 +2,10 @@ import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
 import { users } from '../../db/auth-schema';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getCommonLayoutProps } from '../../utils/layout-props';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const authCoreRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

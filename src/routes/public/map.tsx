@@ -5,13 +5,12 @@ import { createDbWithContext } from '../../db';
 import { churches, churchGatherings, counties } from '../../db/schema';
 import { getUser } from '../../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../../middleware/cache';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getFromCache, putInCache } from '../../utils/cf-cache';
 import { hasGoogleMapsApiKey } from '../../utils/env-validation';
 import { getCommonLayoutProps } from '../../utils/layout-props';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const mapRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

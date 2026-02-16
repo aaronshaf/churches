@@ -10,8 +10,6 @@ import { churches, counties, pages, settings } from './db/schema';
 import { createAuth } from './lib/auth';
 import { betterAuthMiddleware, getUser } from './middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from './middleware/cache';
-import type { D1SessionVariables } from './middleware/d1-session';
-import { d1SessionMiddleware } from './middleware/d1-session';
 import { domainRedirectMiddleware } from './middleware/domain-redirect';
 import { envCheckMiddleware } from './middleware/env-check';
 import { i18nMiddleware } from './middleware/i18n';
@@ -20,7 +18,6 @@ import { adminAffiliationsRoutes } from './routes/admin/affiliations';
 import { adminCacheRoutes } from './routes/admin/cache';
 import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminCountiesRoutes } from './routes/admin/counties';
-import { adminDebugRoutes } from './routes/admin/debug';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
 import { adminMcpTokensRoutes } from './routes/admin/mcp-tokens';
 import { adminNotificationsRoutes } from './routes/admin/notifications';
@@ -47,7 +44,7 @@ import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from './uti
 import { getCommonLayoutProps } from './utils/layout-props';
 import { getSiteTitle } from './utils/settings';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -59,9 +56,6 @@ app.use('*', domainRedirectMiddleware);
 
 // Apply i18n middleware globally
 app.use('*', i18nMiddleware);
-
-// Apply D1 session middleware for read replication
-app.use('*', d1SessionMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
@@ -157,7 +151,7 @@ app.use(
 
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   const faviconUrlSetting = await db
     .select({ value: settings.value })
     .from(settings)
@@ -168,7 +162,7 @@ async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
 
 // Helper function to fetch logo URL
 async function getLogoUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   const logoUrlSetting = await db
     .select({ value: settings.value })
     .from(settings)
@@ -181,7 +175,7 @@ async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 async function getNavbarPages(
   env: Bindings
 ): Promise<Array<{ id: number; title: string; path: string; navbarOrder: number | null }>> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   const navbarPages = await db
     .select({
       id: pages.id,
@@ -257,7 +251,6 @@ app.route('/admin/affiliations', adminAffiliationsRoutes);
 app.route('/admin/feedback', adminFeedbackRoutes);
 app.route('/admin/activity', adminActivityRoutes);
 app.route('/admin/cache', adminCacheRoutes);
-app.route('/admin/debug', adminDebugRoutes);
 app.route('/api/admin/notifications', adminNotificationsRoutes);
 app.route('/feedback', feedbackRoutes);
 

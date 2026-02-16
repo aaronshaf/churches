@@ -7,16 +7,10 @@ assets = { directory = "./public" }
 [observability]
 enabled = true
 
-# D1 Database Configuration
-# Create your D1 databases using:
-# wrangler d1 create your-database-name
-# Then update the database_id values below with the output from those commands
-
-[[d1_databases]]
-binding = "DB"
-database_name = "utahchurches-production"
-database_id = "c5a5dea0-1a3d-4cc0-8df0-49507e84e01f"        # Your actual ID here
-preview_database_id = "5cd7354b-ab46-4b9e-b9b8-7cbe57f9eda5" # Your actual preview ID here
+# Turso Database Configuration
+# Set these secrets in production using:
+# wrangler secret put TURSO_DATABASE_URL
+# wrangler secret put TURSO_AUTH_TOKEN
 
 # R2 Bucket Configuration
 [[r2_buckets]]

@@ -1,6 +1,5 @@
 // Environment variable validation utility
 
-import type { D1Database } from '@cloudflare/workers-types';
 import type { Bindings } from '../types';
 
 export interface RequiredEnvVars {
@@ -49,9 +48,12 @@ export const validateRequiredEnvVars: (env: Bindings) => asserts env is Bindings
   }
 };
 
-export const validateDatabaseEnvVars: (env: Bindings) => asserts env is Bindings & { DB: D1Database } = (env) => {
-  if (!env.DB) {
-    throw new EnvironmentError(['DB']);
+export const validateDatabaseEnvVars: (env: Bindings) => asserts env is Bindings & { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: string } = (env) => {
+  const missing: string[] = [];
+  if (!env.TURSO_DATABASE_URL) missing.push('TURSO_DATABASE_URL');
+  if (!env.TURSO_AUTH_TOKEN) missing.push('TURSO_AUTH_TOKEN');
+  if (missing.length > 0) {
+    throw new EnvironmentError(missing);
   }
 };
 
@@ -60,14 +62,13 @@ export const validateAuthEnvVars: (
 ) => asserts env is Pick<
   EnvVars,
   'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'
-> & { DB: D1Database } = (env) => {
+> & { TURSO_DATABASE_URL: string; TURSO_AUTH_TOKEN: string } = (env) => {
   const envObj = env as Record<string, unknown>;
   const requiredVars = ['BETTER_AUTH_SECRET', 'BETTER_AUTH_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
   const missingVars = requiredVars.filter((varName) => !envObj[varName]);
 
-  if (!envObj.DB) {
-    missingVars.push('DB');
-  }
+  if (!envObj.TURSO_DATABASE_URL) missingVars.push('TURSO_DATABASE_URL');
+  if (!envObj.TURSO_AUTH_TOKEN) missingVars.push('TURSO_AUTH_TOKEN');
 
   if (missingVars.length > 0) {
     throw new EnvironmentError(missingVars);
@@ -90,7 +91,7 @@ export function getEnvVarStatus(env: Bindings): {
   const missing = requiredVars.filter((varName) => !env[varName]);
   const present = requiredVars.filter((varName) => env[varName]);
 
-  // DB is a D1 binding, not an env var - checked separately
+  // Database credentials (TURSO_DATABASE_URL, TURSO_AUTH_TOKEN) are checked separately
 
   return {
     missing,

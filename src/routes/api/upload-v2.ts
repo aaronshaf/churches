@@ -70,7 +70,7 @@ uploadV2.post('/image', async (c) => {
     // Upload to R2
     const uploadResult = await uploadImage(file, folder, c.env);
 
-    const db = createDb(c.env.DB);
+    const db = createDb(c.env);
 
     // Start transaction to ensure data consistency
     const result = await db.transaction(async (tx) => {
@@ -166,7 +166,7 @@ uploadV2.delete('/image/:imageId', async (c) => {
       return c.json({ error: 'Invalid image ID' }, 400);
     }
 
-    const db = createDb(c.env.DB);
+    const db = createDb(c.env);
 
     // Get image details before deletion
     const [image] = await db.select().from(images).where(eq(images.id, imageId));
@@ -208,7 +208,7 @@ uploadV2.patch('/image/:imageId/order', async (c) => {
       return c.json({ error: 'Invalid parameters' }, 400);
     }
 
-    const db = createDb(c.env.DB);
+    const db = createDb(c.env);
 
     // Update the appropriate junction table
     switch (entityType) {

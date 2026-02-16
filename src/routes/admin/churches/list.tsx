@@ -3,12 +3,11 @@ import type { Context } from 'hono';
 import { Layout } from '../../../components/Layout';
 import { createDbWithContext } from '../../../db';
 import { affiliations, churchAffiliations, churches, counties } from '../../../db/schema';
-import type { D1SessionVariables } from '../../../middleware/d1-session';
 import type { AuthenticatedVariables, Bindings, ChurchStatus } from '../../../types';
 import { batchedInQuery } from '../../../utils/db-helpers';
 import { getLogoUrl } from '../../../utils/settings';
 
-type Variables = AuthenticatedVariables & D1SessionVariables;
+type Variables = AuthenticatedVariables;
 
 export async function listChurches(c: Context<{ Bindings: Bindings; Variables: Variables }>) {
   const db = createDbWithContext(c);

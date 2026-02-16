@@ -8,7 +8,7 @@ import type { Bindings } from '../types';
  * Get favicon URL from settings
  */
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   const faviconSetting = await db
     .select({ value: settings.value })
     .from(settings)
@@ -22,7 +22,7 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
  * Get logo URL from settings
  */
 export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   const logoSetting = await db
     .select({ value: settings.value })
     .from(settings)
@@ -36,7 +36,7 @@ export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
  * Get navbar pages from database
  */
 export async function getNavbarPages(env: Bindings): Promise<Array<{ id: number; title: string; path: string }>> {
-  const db = createDb(env.DB);
+  const db = createDb(env);
   return await db
     .select({
       id: pages.id,

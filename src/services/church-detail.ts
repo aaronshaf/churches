@@ -13,11 +13,10 @@ import {
   counties,
   images,
 } from '../db/schema';
-import type { D1SessionVariables } from '../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../types';
 import { getSettingsWithCache, type SettingsMap } from '../utils/settings-cache';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export interface ChurchDetailData {
   church: any;

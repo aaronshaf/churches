@@ -10,7 +10,8 @@ app.route('/', assetsRoutes);
 
 function makeEnv(overrides: Partial<Bindings> = {}): Bindings {
   return {
-    DB: {} as any,
+    TURSO_DATABASE_URL: 'libsql://test.turso.io',
+    TURSO_AUTH_TOKEN: 'test-token',
     BETTER_AUTH_SECRET: 'placeholder-secret-at-least-32-chars',
     BETTER_AUTH_URL: 'http://localhost:8787',
     GOOGLE_CLIENT_ID: 'placeholder',
@@ -25,7 +26,7 @@ function makeEnv(overrides: Partial<Bindings> = {}): Bindings {
 describe('worker integration', () => {
   test('envCheck returns JSON 500 on API requests when required env vars are missing', async () => {
     const env = makeEnv({
-      DB: undefined as any,
+      TURSO_DATABASE_URL: undefined as any,
     });
 
     const res = await app.request('http://localhost/api/whatever', { headers: { Accept: 'application/json' } }, env);
@@ -34,7 +35,7 @@ describe('worker integration', () => {
     const json = (await res.json()) as any;
     expect(json.error).toBe('Configuration Error');
     expect(Array.isArray(json.missingVariables)).toBe(true);
-    expect(json.missingVariables).toContain('DB');
+    expect(json.missingVariables).toContain('TURSO_DATABASE_URL');
   });
 
   test('traffic advice endpoint returns expected JSON when env is configured', async () => {

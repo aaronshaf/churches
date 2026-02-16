@@ -5,12 +5,11 @@ import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations, churches, counties, settings } from '../../db/schema';
 import { applyCacheHeaders, shouldSkipCache } from '../../middleware/cache';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getFromCache, putInCache } from '../../utils/cf-cache';
 import { getCommonLayoutProps } from '../../utils/layout-props';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const networksRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

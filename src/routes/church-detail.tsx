@@ -8,7 +8,6 @@ import { ErrorPage } from '../components/ErrorPage';
 import { Layout } from '../components/Layout';
 import { getUser } from '../middleware/better-auth';
 import { applyCacheHeaders, shouldSkipCache } from '../middleware/cache';
-import type { D1SessionVariables } from '../middleware/d1-session';
 import { ChurchDetailService } from '../services/church-detail';
 import type { AuthVariables, Bindings } from '../types';
 import { getFromCache, putInCache } from '../utils/cf-cache';
@@ -16,7 +15,7 @@ import { getGravatarUrl } from '../utils/crypto';
 import { generateErrorId, getErrorStatusCode, sanitizeErrorMessage } from '../utils/error-handling';
 import { getCommonLayoutProps } from '../utils/layout-props';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const churchDetailRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

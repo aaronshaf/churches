@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const submissionsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

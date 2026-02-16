@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { countiesRoutes } from './counties';
 import { dashboardRoutes } from './dashboard';
@@ -8,7 +7,7 @@ import { pagesRoutes } from './pages';
 import { settingsRoutes } from './settings';
 import { submissionsRoutes } from './submissions';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const adminCoreRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

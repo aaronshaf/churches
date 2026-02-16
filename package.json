@@ -67,6 +67,7 @@
     "yaml": "^2.8.0"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "better-auth": "^1.2.12",
     "blurhash": "^2.0.5",
     "drizzle-orm": "^0.44.2",

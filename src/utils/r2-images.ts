@@ -22,7 +22,7 @@ export interface UploadResult {
 export async function uploadImage(
   file: File,
   folder: 'churches' | 'counties' | 'pages' | 'site',
-  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'DB'>,
+  env: Pick<Bindings, 'IMAGES_BUCKET' | 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'>,
   db?: DbType
 ): Promise<UploadResult> {
   // Validate file type
@@ -64,11 +64,11 @@ export async function uploadImage(
  * Get domain from settings table or fallback to environment/default
  */
 export async function getDomain(
-  env: Pick<Bindings, 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'DB'>,
+  env: Pick<Bindings, 'SITE_DOMAIN' | 'SETTINGS_CACHE' | 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'>,
   db?: DbType
 ): Promise<string> {
   try {
-    const dbInstance = db || createDb(env.DB);
+    const dbInstance = db || createDb(env as Bindings);
     const siteDomain = await getSettingWithCache(env.SETTINGS_CACHE, dbInstance, 'site_domain');
     if (siteDomain) {
       return siteDomain;
@@ -167,10 +167,10 @@ function getR2DomainFromEnv(): string | undefined {
  * Get R2 domain with database lookup
  * Hierarchy: Database settings → Environment variable → Error
  */
-export async function getR2DomainWithDb(env: Pick<Bindings, 'SETTINGS_CACHE' | 'DB'>, db?: DbType): Promise<string> {
+export async function getR2DomainWithDb(env: Pick<Bindings, 'SETTINGS_CACHE' | 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'>, db?: DbType): Promise<string> {
   // 1. Try database settings first
   try {
-    const dbInstance = db || createDb(env.DB);
+    const dbInstance = db || createDb(env as Bindings);
     const r2Domain = await getSettingWithCache(env.SETTINGS_CACHE, dbInstance, 'r2_image_domain');
     if (r2Domain) {
       return r2Domain;
@@ -197,7 +197,7 @@ export async function getR2DomainWithDb(env: Pick<Bindings, 'SETTINGS_CACHE' | '
  */
 export async function getImageUrlWithDb(
   path: string | null | undefined,
-  env: Pick<Bindings, 'SETTINGS_CACHE' | 'DB'>,
+  env: Pick<Bindings, 'SETTINGS_CACHE' | 'TURSO_DATABASE_URL' | 'TURSO_AUTH_TOKEN'>,
   db?: DbType,
   _transformations?: ImageTransformations
 ): Promise<string> {

@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { setCookie } from 'hono/cookie';
 import { Layout } from '../components/Layout';
@@ -236,7 +235,7 @@ betterAuthApp.get('/callback/google', async (c) => {
     }
 
     // Simple manual user/session creation
-    const db = drizzle(c.env.DB, { schema: { users } });
+    const db = createDbWithContext(c);
 
     // Check if user exists
     let user = await db.select().from(users).where(eq(users.email, googleUser.email)).get();

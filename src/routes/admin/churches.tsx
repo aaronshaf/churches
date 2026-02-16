@@ -5,13 +5,12 @@ import { Layout } from '../../components/Layout';
 import { NotFound } from '../../components/NotFound';
 import { createDbWithContext } from '../../db';
 import { affiliations, churchAffiliations, churches, churchGatherings, counties } from '../../db/schema';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import { requireAdminWithRedirect } from '../../middleware/redirect-auth';
 import type { AuthenticatedVariables, Bindings } from '../../types';
 import { getLogoUrl } from '../../utils/settings';
 import { listChurches } from './churches/list';
 
-type Variables = AuthenticatedVariables & D1SessionVariables;
+type Variables = AuthenticatedVariables;
 
 export const adminChurchesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

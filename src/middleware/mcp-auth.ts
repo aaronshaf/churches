@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/d1';
 import type { MiddlewareHandler } from 'hono';
 import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
@@ -55,8 +54,7 @@ export async function resolveMcpAuthIdentity(
     return { identity: null, response: unauthorized(c) };
   }
 
-  const authDb = drizzle(c.env.DB, { schema: { users } });
-  const user = await authDb
+  const user = await db
     .select({
       id: users.id,
       role: users.role,

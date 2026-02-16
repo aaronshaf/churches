@@ -5,11 +5,10 @@ import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
 import { churches, counties } from '../../db/schema';
 import { getUser, requireAuthBetter } from '../../middleware/better-auth';
-import type { D1SessionVariables } from '../../middleware/d1-session';
 import type { AuthVariables, Bindings } from '../../types';
 import { getCommonLayoutProps } from '../../utils/layout-props';
 
-type Variables = AuthVariables & D1SessionVariables;
+type Variables = AuthVariables;
 
 export const adminCountiesRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 

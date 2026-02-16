@@ -4,7 +4,7 @@ import { getSettingsWithCache, getSettingWithCache } from './settings-cache';
 
 export async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
   try {
-    const db = createDb(env.DB);
+    const db = createDb(env);
     const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'favicon_url');
     return value || undefined;
   } catch (error) {
@@ -15,7 +15,7 @@ export async function getFaviconUrl(env: Bindings): Promise<string | undefined> 
 
 export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
   try {
-    const db = createDb(env.DB);
+    const db = createDb(env);
     const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'logo_url');
     return value || undefined;
   } catch (error) {
@@ -26,7 +26,7 @@ export async function getLogoUrl(env: Bindings): Promise<string | undefined> {
 
 export async function getSiteTitle(env: Bindings): Promise<string> {
   try {
-    const db = createDb(env.DB);
+    const db = createDb(env);
     const value = await getSettingWithCache(env.SETTINGS_CACHE, db, 'site_title');
     return value || 'Churches';
   } catch (error) {
@@ -42,7 +42,7 @@ export async function getSiteSettings(env: Bindings): Promise<{
   faviconUrl: string | undefined;
 }> {
   try {
-    const db = createDb(env.DB);
+    const db = createDb(env);
 
     // Get all settings at once from cache
     const allSettings = await getSettingsWithCache(env.SETTINGS_CACHE, db);
@@ -66,7 +66,7 @@ export async function getSiteSettings(env: Bindings): Promise<{
 
 export async function getImagePrefix(env: Bindings): Promise<string> {
   try {
-    const db = createDb(env.DB);
+    const db = createDb(env);
     const allSettings = await getSettingsWithCache(env.SETTINGS_CACHE, db);
 
     // If no setting exists, derive from site domain or use default
