@@ -346,8 +346,8 @@ export const oauthClients = sqliteTable('oauth_clients', {
   scope: text('scope').notNull().default('mcp:admin'),
   grantTypes: text('grant_types').notNull().default('authorization_code'), // JSON array
   responseTypes: text('response_types').notNull().default('code'), // JSON array
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
 });
 
 export const oauthAuthorizationCodes = sqliteTable(
@@ -363,7 +363,7 @@ export const oauthAuthorizationCodes = sqliteTable(
     codeChallengeMethod: text('code_challenge_method').notNull().default('S256'), // S256 or plain
     expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
     usedAt: integer('used_at', { mode: 'timestamp' }), // Prevents code reuse
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
   },
   (table) => ({
     oauthAuthCodesClientIdIdx: index('idx_oauth_auth_codes_client_id').on(table.clientId),
@@ -382,7 +382,7 @@ export const oauthAccessTokens = sqliteTable(
     scope: text('scope').notNull(),
     expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
     revokedAt: integer('revoked_at', { mode: 'timestamp' }),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
   },
   (table) => ({
     oauthAccessTokensClientIdIdx: index('idx_oauth_access_tokens_client_id').on(table.clientId),
