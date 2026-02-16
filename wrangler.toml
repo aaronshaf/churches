@@ -1,0 +1,36 @@
+name = "utahchurches"
+main = "src/index.tsx"
+compatibility_date = "2025-01-19"
+assets = { directory = "./public" }
+
+# Enable Workers Logs
+[observability]
+enabled = true
+
+# D1 Database Configuration
+# Create your D1 databases using:
+# wrangler d1 create your-database-name
+# Then update the database_id values below with the output from those commands
+
+[[d1_databases]]
+binding = "DB"
+database_name = "utahchurches-production"
+database_id = "c5a5dea0-1a3d-4cc0-8df0-49507e84e01f"        # Your actual ID here
+preview_database_id = "5cd7354b-ab46-4b9e-b9b8-7cbe57f9eda5" # Your actual preview ID here
+
+# R2 Bucket Configuration
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "utahchurches-images"
+
+[vars]
+# Add your non-sensitive configuration here
+# For production, set the following secrets using wrangler:
+# wrangler secret put GOOGLE_MAPS_API_KEY
+
+[placement]
+mode = "smart"
+
+[[kv_namespaces]]
+binding = "SETTINGS_CACHE"
+id = "ad89fa6576f644d9b40a182a40795609"
