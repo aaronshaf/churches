@@ -18,7 +18,7 @@ export const Footer: FC<FooterProps> = ({ user, churchId, countyId, affiliationI
           <div class="text-gray-600 text-sm text-center sm:text-left">
             <blockquote cite="3 John 1:15">
               <p class="italic">"Peace be to you. The friends greet you.</p>
-              <p class="italic">Greet the friends, each by name...."</p>
+              <p class="italic">Greet the friends, each by name."</p>
               <cite class="mt-1 text-gray-500 not-italic">– 3 John 1:15</cite>
             </blockquote>
           </div>
