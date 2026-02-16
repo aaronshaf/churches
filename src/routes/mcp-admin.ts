@@ -269,13 +269,16 @@ function readId(value: unknown): number | undefined {
   return Math.trunc(value);
 }
 
-function buildToolList(auth: McpAuthIdentity): McpToolDefinition[] {
-  // Admin endpoint always has auth, so always include write tools
-  return [...readTools, ...writeTools];
+function buildToolList(auth: McpAuthIdentity | null): McpToolDefinition[] {
+  // Only include write tools if authenticated
+  if (auth) {
+    return [...readTools, ...writeTools];
+  }
+  return readTools;
 }
 
-function buildResourceList(auth: McpAuthIdentity) {
-  const includeDeletedHint = auth.role === 'admin' ? ' (supports include_deleted=true)' : '';
+function buildResourceList(auth: McpAuthIdentity | null) {
+  const includeDeletedHint = auth?.role === 'admin' ? ' (supports include_deleted=true)' : '';
 
   return [
     {
@@ -359,7 +362,7 @@ function ensureObjectParams(params: unknown): Record<string, unknown> {
   return params;
 }
 
-async function handleToolsCall(c: McpContext, auth: McpAuthIdentity, params: unknown) {
+async function handleToolsCall(c: McpContext, auth: McpAuthIdentity | null, params: unknown) {
   const db = createDbWithContext(c);
   const parsedParams = ensureObjectParams(params);
   const name = readString(parsedParams.name);
@@ -412,56 +415,92 @@ async function handleToolsCall(c: McpContext, auth: McpAuthIdentity, params: unk
       return asToolResult(result);
     }
     case 'churches_create': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const createInput = args.data ?? args;
       const result = await createChurchMcp(db, auth, createInput);
       return asToolResult(result);
     }
     case 'churches_update': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const patchInput = args.patch ?? args.data ?? args;
       const result = await updateChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
       return asToolResult(result);
     }
     case 'churches_delete': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await deleteChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
     case 'churches_restore': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await restoreChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
     case 'counties_create': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const createInput = args.data ?? args;
       const result = await createCountyMcp(db, auth, createInput);
       return asToolResult(result);
     }
     case 'counties_update': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const patchInput = args.patch ?? args.data ?? args;
       const result = await updateCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
       return asToolResult(result);
     }
     case 'counties_delete': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await deleteCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
     case 'counties_restore': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await restoreCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
     case 'networks_create': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const createInput = args.data ?? args;
       const result = await createNetworkMcp(db, auth, createInput);
       return asToolResult(result);
     }
     case 'networks_update': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const patchInput = args.patch ?? args.data ?? args;
       const result = await updateNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
       return asToolResult(result);
     }
     case 'networks_delete': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await deleteNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
     case 'networks_restore': {
+      if (!auth) {
+        return asToolResult({ error: 'Authentication required for write operations' }, true);
+      }
       const result = await restoreNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt);
       return asToolResult(result);
     }
@@ -470,7 +509,7 @@ async function handleToolsCall(c: McpContext, auth: McpAuthIdentity, params: unk
   throw new Error(`Unknown tool: ${name}`);
 }
 
-async function handleResourceRead(c: McpContext, auth: McpAuthIdentity, params: unknown) {
+async function handleResourceRead(c: McpContext, auth: McpAuthIdentity | null, params: unknown) {
   const db = createDbWithContext(c);
   const parsedParams = ensureObjectParams(params);
   const uri = readString(parsedParams.uri);
@@ -533,7 +572,7 @@ async function handleResourceRead(c: McpContext, auth: McpAuthIdentity, params: 
 
 async function handleRequest(
   c: McpContext,
-  auth: McpAuthIdentity,
+  auth: McpAuthIdentity | null,
   request: JsonRpcRequest
 ): Promise<JsonRpcResponse | null> {
   const id = request.id ?? null;
@@ -670,27 +709,7 @@ mcpAdminRoutes.get('*', async (c) => {
 
 // POST endpoint - handles MCP JSON-RPC requests
 mcpAdminRoutes.post('*', async (c) => {
-  // Session authentication is required for all MCP admin operations
-  const authResolution = await resolveMcpSessionAuth(c, { required: true });
-
-  if (authResolution.response) {
-    return authResolution.response;
-  }
-
-  const auth = authResolution.identity;
-  if (!auth) {
-    const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
-    const authUrl = `${baseUrl}/auth/signin`;
-    return c.json(
-      {
-        error: 'Unauthorized',
-        message: 'Authentication required. Please sign in.',
-        authUrl,
-      },
-      401
-    );
-  }
-
+  // Parse request first to check if it's initialize
   let payload: unknown;
   try {
     payload = await c.req.json();
@@ -703,6 +722,26 @@ mcpAdminRoutes.post('*', async (c) => {
     return c.json(error(null, -32600, 'Invalid Request'), 400);
   }
 
+  // Check if this is an initialize request - allow without auth
+  const firstRequest = requests[0];
+  const isInitialize = isJsonRpcRequest(firstRequest) && firstRequest.method === 'initialize';
+
+  // Get session (but don't require it for initialize)
+  const authResolution = await resolveMcpSessionAuth(c, { required: !isInitialize });
+
+  if (authResolution.response && !isInitialize) {
+    return authResolution.response;
+  }
+
+  const auth = authResolution.identity;
+
+  // For non-initialize requests, require authentication
+  if (!auth && !isInitialize) {
+    const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
+    const authUrl = `${baseUrl}/auth/signin`;
+    return c.json(error(null, -32003, 'Authentication required', { authUrl }), 401);
+  }
+
   const responses: JsonRpcResponse[] = [];
   for (const request of requests) {
     if (!isJsonRpcRequest(request)) {
@@ -710,7 +749,15 @@ mcpAdminRoutes.post('*', async (c) => {
       continue;
     }
 
-    const response = await handleRequest(c, auth, request);
+    // For methods other than initialize, require auth
+    if (request.method !== 'initialize' && !auth) {
+      const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
+      const authUrl = `${baseUrl}/auth/signin`;
+      responses.push(error(request.id ?? null, -32003, 'Authentication required', { authUrl }));
+      continue;
+    }
+
+    const response = await handleRequest(c, auth!, request);
     if (response) {
       responses.push(response);
     }
@@ -731,6 +778,11 @@ mcpAdminRoutes.post('*', async (c) => {
     (first.error.data as { statusCode?: number }).statusCode === 409
   ) {
     return c.json(first, 409);
+  }
+
+  // Return 401 for auth errors
+  if (first.error?.code === -32003) {
+    return c.json(first, 401);
   }
 
   return c.json(first);
