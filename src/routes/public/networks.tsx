@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { ChurchCard } from '../../components/ChurchCard';
 import { Layout } from '../../components/Layout';
@@ -38,7 +38,7 @@ networksRoutes.get('/networks', async (c) => {
   const affiliationsData = await db
     .select()
     .from(affiliations)
-    .where(sql`${affiliations.status} != 'Heretical'`)
+    .where(and(sql`${affiliations.status} != 'Heretical'`, isNull(affiliations.deletedAt)))
     .orderBy(affiliations.name)
     .all();
 
@@ -51,7 +51,7 @@ networksRoutes.get('/networks', async (c) => {
     })
     .from(churchAffiliations)
     .innerJoin(churches, eq(churches.id, churchAffiliations.churchId))
-    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
     .all();
 
   // Count churches per affiliation
@@ -190,10 +190,13 @@ networksRoutes.get('/networks/:id', async (c) => {
 
   // Get affiliation details - check if it's a numeric ID or a path
   const isNumericId = /^\d+$/.test(affiliationIdOrPath);
+  const affiliationIdentifierFilter = isNumericId
+    ? eq(affiliations.id, Number(affiliationIdOrPath))
+    : eq(affiliations.path, affiliationIdOrPath);
   const affiliation = await db
     .select()
     .from(affiliations)
-    .where(isNumericId ? eq(affiliations.id, Number(affiliationIdOrPath)) : eq(affiliations.path, affiliationIdOrPath))
+    .where(and(affiliationIdentifierFilter, isNull(affiliations.deletedAt)))
     .get();
 
   if (!affiliation) {
@@ -216,7 +219,7 @@ networksRoutes.get('/networks/:id', async (c) => {
     .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
-      sql`${churchAffiliations.affiliationId} = ${affiliation.id} AND (${churches.status} = 'Listed' OR ${churches.status} = 'Unlisted')`
+      sql`${churchAffiliations.affiliationId} = ${affiliation.id} AND (${churches.status} = 'Listed' OR ${churches.status} = 'Unlisted') AND ${churches.deletedAt} IS NULL`
     )
     .orderBy(churches.name)
     .all();

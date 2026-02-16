@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { AffiliationForm } from '../../components/AffiliationForm';
 import { Layout } from '../../components/Layout';
@@ -34,8 +34,27 @@ adminAffiliationsRoutes.get('/', async (c) => {
   const logoUrl = await getLogoUrl(c.env);
   const faviconUrl = await getFaviconUrl(c.env);
   const navbarPages = await getNavbarPages(c.env);
+  const success = c.req.query('success');
+  const error = c.req.query('error');
 
-  const allAffiliations = await db.select().from(affiliations).orderBy(desc(affiliations.updatedAt)).all();
+  const allAffiliations = await db
+    .select()
+    .from(affiliations)
+    .where(isNull(affiliations.deletedAt))
+    .orderBy(desc(affiliations.updatedAt))
+    .all();
+
+  const deletedAffiliations = await db
+    .select({
+      id: affiliations.id,
+      name: affiliations.name,
+      path: affiliations.path,
+      deletedAt: affiliations.deletedAt,
+    })
+    .from(affiliations)
+    .where(isNotNull(affiliations.deletedAt))
+    .orderBy(desc(affiliations.deletedAt))
+    .all();
 
   const content = (
     <Layout title="Manage Affiliations" user={user} faviconUrl={faviconUrl} logoUrl={logoUrl} pages={navbarPages}>
@@ -54,6 +73,19 @@ adminAffiliationsRoutes.get('/', async (c) => {
             </a>
           </div>
         </div>
+
+        {success && (
+          <div class="mt-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {success === 'restored' ? 'Affiliation restored successfully.' : 'Operation completed successfully.'}
+          </div>
+        )}
+
+        {error && (
+          <div class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error === 'not_found_deleted' && 'Deleted affiliation not found.'}
+            {error === 'restore_failed' && 'Failed to restore affiliation.'}
+          </div>
+        )}
 
         <div class="mt-8 flow-root">
           <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -116,6 +148,32 @@ adminAffiliationsRoutes.get('/', async (c) => {
             </div>
           </div>
         </div>
+
+        {deletedAffiliations.length > 0 && (
+          <div class="mt-8 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Deleted Networks</h2>
+            <ul class="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 bg-white">
+              {deletedAffiliations.map((affiliation) => (
+                <li class="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{affiliation.name}</p>
+                    <p class="text-xs text-gray-500">
+                      Deleted: {affiliation.deletedAt ? affiliation.deletedAt.toISOString() : 'unknown'}
+                    </p>
+                  </div>
+                  <form method="post" action={`/admin/affiliations/${affiliation.id}/restore`}>
+                    <button
+                      type="submit"
+                      class="rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50"
+                    >
+                      Restore
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </Layout>
   );
@@ -123,23 +181,36 @@ adminAffiliationsRoutes.get('/', async (c) => {
   return c.html(content);
 });
 
-// New affiliation form
-adminAffiliationsRoutes.get('/new', async (c) => {
-  const user = c.get('betterUser');
-  const _logoUrl = await getLogoUrl(c.env);
+// Restore affiliation
+adminAffiliationsRoutes.post('/:id/restore', async (c) => {
+  const db = createDbWithContext(c);
+  const id = Number(c.req.param('id'));
 
-  const content = (
-    <Layout title="Add Affiliation" user={user}>
-      <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div class="mb-8">
-          <h1 class="text-2xl font-semibold text-gray-900">Add Affiliation</h1>
-        </div>
-        <AffiliationForm affiliation={undefined} action="/admin/affiliations" cancelUrl="/admin/affiliations" />
-      </div>
-    </Layout>
-  );
+  try {
+    const deletedAffiliation = await db
+      .select()
+      .from(affiliations)
+      .where(and(eq(affiliations.id, id), isNotNull(affiliations.deletedAt)))
+      .get();
 
-  return c.html(content);
+    if (!deletedAffiliation) {
+      return c.redirect('/admin/affiliations?error=not_found_deleted');
+    }
+
+    await db
+      .update(affiliations)
+      .set({
+        deletedAt: null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(affiliations.id, id), isNotNull(affiliations.deletedAt)));
+
+    await cacheInvalidation.affiliation(c, id.toString());
+    return c.redirect('/admin/affiliations?success=restored');
+  } catch (error) {
+    console.error('Error restoring affiliation:', error);
+    return c.redirect('/admin/affiliations?error=restore_failed');
+  }
 });
 
 // New affiliation form
@@ -244,7 +315,11 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
   const navbarPages = await getNavbarPages(c.env);
   const id = Number(c.req.param('id'));
 
-  const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
+  const affiliation = await db
+    .select()
+    .from(affiliations)
+    .where(and(eq(affiliations.id, id), isNull(affiliations.deletedAt)))
+    .get();
 
   if (!affiliation) {
     return c.html(<NotFound />, 404);
@@ -261,7 +336,7 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     .from(churches)
     .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(eq(churchAffiliations.affiliationId, id))
+    .where(and(eq(churchAffiliations.affiliationId, id), isNull(churches.deletedAt)))
     .orderBy(churches.name)
     .all()) as any[];
 
@@ -275,7 +350,9 @@ adminAffiliationsRoutes.get('/:id/edit', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
+    .where(
+      sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted') AND ${churches.deletedAt} IS NULL`
+    )
     .orderBy(churches.name)
     .all()) as any[];
 
@@ -487,7 +564,11 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
 
     if (!validationResult.success) {
       const logoUrl = await getLogoUrl(c.env);
-      const affiliation = await db.select().from(affiliations).where(eq(affiliations.id, id)).get();
+      const affiliation = await db
+        .select()
+        .from(affiliations)
+        .where(and(eq(affiliations.id, id), isNull(affiliations.deletedAt)))
+        .get();
 
       if (!affiliation) {
         return c.html(<NotFound />, 404);
@@ -504,7 +585,7 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         .from(churches)
         .innerJoin(churchAffiliations, eq(churches.id, churchAffiliations.churchId))
         .leftJoin(counties, eq(churches.countyId, counties.id))
-        .where(eq(churchAffiliations.affiliationId, id))
+        .where(and(eq(churchAffiliations.affiliationId, id), isNull(churches.deletedAt)))
         .orderBy(churches.name)
         .all()) as any[];
 
@@ -517,7 +598,9 @@ adminAffiliationsRoutes.post('/:id', async (c) => {
         })
         .from(churches)
         .leftJoin(counties, eq(churches.countyId, counties.id))
-        .where(sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted')`)
+        .where(
+          sql`${churches.status} IN ('Listed', 'Ready to list', 'Assess', 'Needs data', 'Unlisted') AND ${churches.deletedAt} IS NULL`
+        )
         .orderBy(churches.name)
         .all()) as any[];
 
@@ -641,11 +724,14 @@ adminAffiliationsRoutes.post('/:id/delete', async (c) => {
   const db = createDbWithContext(c);
   const id = Number(c.req.param('id'));
 
-  // First delete all church affiliations
-  await db.delete(churchAffiliations).where(eq(churchAffiliations.affiliationId, id));
-
-  // Then delete the affiliation
-  await db.delete(affiliations).where(eq(affiliations.id, id));
+  // Soft-delete the affiliation.
+  await db
+    .update(affiliations)
+    .set({
+      deletedAt: sql`CURRENT_TIMESTAMP`,
+      updatedAt: sql`CURRENT_TIMESTAMP`,
+    })
+    .where(and(eq(affiliations.id, id), isNull(affiliations.deletedAt)));
 
   // Invalidate cache for affiliation changes
   await cacheInvalidation.affiliation(c, id.toString());

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { Layout } from '../components/Layout';
 import { createDbWithContext } from '../db';
@@ -24,7 +24,11 @@ feedbackRoutes.get('/', async (c) => {
     const churchMatch = referrer.match(/\/churches\/([^/?]+)/);
     if (churchMatch) {
       const churchPath = churchMatch[1];
-      referringChurch = await db.select().from(churches).where(eq(churches.path, churchPath)).get();
+      referringChurch = await db
+        .select()
+        .from(churches)
+        .where(and(eq(churches.path, churchPath), isNull(churches.deletedAt)))
+        .get();
     }
   }
 
@@ -45,7 +49,7 @@ feedbackRoutes.get('/', async (c) => {
     church = await db
       .select()
       .from(churches)
-      .where(eq(churches.id, Number(churchId)))
+      .where(and(eq(churches.id, Number(churchId)), isNull(churches.deletedAt)))
       .get();
   } else if (referringChurch && feedbackType === 'church') {
     church = referringChurch;
@@ -59,7 +63,7 @@ feedbackRoutes.get('/', async (c) => {
       name: churches.name,
     })
     .from(churches)
-    .where(eq(churches.status, 'Listed'))
+    .where(and(eq(churches.status, 'Listed'), isNull(churches.deletedAt)))
     .orderBy(churches.name)
     .all();
 
@@ -477,7 +481,11 @@ feedbackRoutes.post('/submit', async (c) => {
 
     // If this is church feedback with a churchId, redirect back to the church page
     if (feedbackType === 'church' && churchId) {
-      const church = await db.select({ path: churches.path }).from(churches).where(eq(churches.id, churchId)).get();
+      const church = await db
+        .select({ path: churches.path })
+        .from(churches)
+        .where(and(eq(churches.id, churchId), isNull(churches.deletedAt)))
+        .get();
 
       if (church?.path) {
         return c.redirect(`/churches/${church.path}?feedback=success`);
@@ -490,7 +498,11 @@ feedbackRoutes.post('/submit', async (c) => {
 
     // If this is church feedback with a churchId, redirect back to the church page with error
     if (feedbackType === 'church' && churchId) {
-      const church = await db.select({ path: churches.path }).from(churches).where(eq(churches.id, churchId)).get();
+      const church = await db
+        .select({ path: churches.path })
+        .from(churches)
+        .where(and(eq(churches.id, churchId), isNull(churches.deletedAt)))
+        .get();
 
       if (church?.path) {
         return c.redirect(`/churches/${church.path}?feedback=error`);

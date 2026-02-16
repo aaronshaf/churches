@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, like, or, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { Layout } from '../../../components/Layout';
 import { createDbWithContext } from '../../../db';
@@ -24,12 +24,17 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
   const affiliationFilter = url.searchParams.get('affiliation') || '';
   const sortBy = url.searchParams.get('sortBy') || 'name';
   const sortOrder = url.searchParams.get('sortOrder') || 'asc';
+  const success = url.searchParams.get('success') || '';
+  const error = url.searchParams.get('error') || '';
 
   // Build where conditions
-  const whereConditions = [];
+  const whereConditions = [isNull(churches.deletedAt)];
 
   if (search) {
-    whereConditions.push(or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`)));
+    const searchCondition = or(like(churches.name, `%${search}%`), like(churches.gatheringAddress, `%${search}%`));
+    if (searchCondition) {
+      whereConditions.push(searchCondition);
+    }
   }
 
   if (statusFilter) {
@@ -121,10 +126,28 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
   }
 
   // Get all counties for filter dropdown
-  const allCounties = await db.select().from(counties).orderBy(counties.name).all();
+  const allCounties = await db.select().from(counties).where(isNull(counties.deletedAt)).orderBy(counties.name).all();
 
   // Get all affiliations for filter dropdown
-  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
+  const allAffiliations = await db
+    .select()
+    .from(affiliations)
+    .where(isNull(affiliations.deletedAt))
+    .orderBy(affiliations.name)
+    .all();
+
+  const deletedChurches = await db
+    .select({
+      id: churches.id,
+      name: churches.name,
+      status: churches.status,
+      deletedAt: churches.deletedAt,
+    })
+    .from(churches)
+    .where(isNotNull(churches.deletedAt))
+    .orderBy(desc(churches.deletedAt))
+    .limit(100)
+    .all();
 
   // Get logo URL
   const logoUrl = await getLogoUrl(c.env);
@@ -153,6 +176,23 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
             </a>
           </div>
         </div>
+
+        {success && (
+          <div class="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {success === 'deleted' && 'Church deleted successfully.'}
+            {success === 'restored' && 'Church restored successfully.'}
+          </div>
+        )}
+
+        {error && (
+          <div class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error === 'invalid_id' && 'Invalid church id.'}
+            {error === 'not_found' && 'Church not found.'}
+            {error === 'not_found_deleted' && 'Deleted church not found.'}
+            {error === 'delete_failed' && 'Failed to delete church.'}
+            {error === 'restore_failed' && 'Failed to restore church.'}
+          </div>
+        )}
 
         {/* Filters */}
         <div class="mt-6 bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-6">
@@ -442,6 +482,33 @@ export async function listChurches(c: Context<{ Bindings: Bindings; Variables: V
             )}
           </div>
         </div>
+
+        {deletedChurches.length > 0 && (
+          <div class="mt-6 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Deleted Churches</h2>
+            <ul class="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 bg-white">
+              {deletedChurches.map((church) => (
+                <li class="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{church.name}</p>
+                    <p class="text-xs text-gray-500">
+                      Status: {church.status || 'Unknown'} | Deleted:{' '}
+                      {church.deletedAt ? church.deletedAt.toISOString() : 'unknown'}
+                    </p>
+                  </div>
+                  <form method="post" action={`/admin/churches/${church.id}/restore`}>
+                    <button
+                      type="submit"
+                      class="rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50"
+                    >
+                      Restore
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </Layout>
   );

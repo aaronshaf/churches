@@ -37,6 +37,7 @@ export async function getOAuthClient(db: OAuthDb, clientId: string) {
 
 /**
  * Create authorization code with PKCE
+ * Note: Client registration is optional - any client_id is accepted
  */
 export async function createAuthorizationCode(
   db: OAuthDb,
@@ -49,16 +50,6 @@ export async function createAuthorizationCode(
     codeChallengeMethod: 'S256' | 'plain';
   }
 ): Promise<{ code: string; expiresAt: Date }> {
-  const client = await getOAuthClient(db, params.clientId);
-  if (!client) {
-    throw new Error('Invalid client_id');
-  }
-
-  // Validate redirect URI
-  if (!validateRedirectUri(params.redirectUri, client.redirectUris)) {
-    throw new Error('Invalid redirect_uri');
-  }
-
   // Validate code challenge format
   if (!validateCodeChallengeFormat(params.codeChallenge)) {
     throw new Error('Invalid code_challenge format');

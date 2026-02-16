@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
 import { affiliations, churches, counties, pages } from '../db/schema';
@@ -140,7 +140,7 @@ seoRoutes.get('/sitemap.xml', async (c) => {
         createdAt: churches.createdAt,
       })
       .from(churches)
-      .where(eq(churches.status, 'Listed'))
+      .where(and(eq(churches.status, 'Listed'), isNull(churches.deletedAt)))
       .all(),
     db
       .select({
@@ -149,6 +149,7 @@ seoRoutes.get('/sitemap.xml', async (c) => {
         createdAt: counties.createdAt,
       })
       .from(counties)
+      .where(isNull(counties.deletedAt))
       .all(),
     db
       .select({
@@ -166,7 +167,7 @@ seoRoutes.get('/sitemap.xml', async (c) => {
         createdAt: affiliations.createdAt,
       })
       .from(affiliations)
-      .where(eq(affiliations.status, 'Listed'))
+      .where(and(eq(affiliations.status, 'Listed'), isNull(affiliations.deletedAt)))
       .all(),
   ]);
 

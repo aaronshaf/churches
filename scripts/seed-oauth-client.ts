@@ -1,5 +1,8 @@
 /**
  * Seed OAuth client for Claude.ai MCP integration
+ * NOTE: Client registration is OPTIONAL - the OAuth flow accepts any client_id
+ * This script is for reference only if you want to track registered clients
+ *
  * Run with: bun tsx scripts/seed-oauth-client.ts
  */
 
@@ -13,12 +16,14 @@ const CLAUDE_AI_CLIENT_ID = 'claude-ai-mcp';
 
 async function seedOAuthClient() {
   // Note: This script is for reference only
-  // In practice, you'll need to run this using wrangler or via the admin UI
+  // Client registration is OPTIONAL - not required for OAuth to work
+  // The OAuth flow accepts any client_id and relies on PKCE for security
 
-  console.log('OAuth Client Seed Script');
-  console.log('========================');
-  console.log('\nThis script creates an OAuth client for Claude.ai integration.');
-  console.log('\nTo run this in production, use wrangler D1 execute:');
+  console.log('OAuth Client Seed Script (OPTIONAL)');
+  console.log('====================================');
+  console.log('\nNOTE: Client registration is optional and not enforced.');
+  console.log('The OAuth flow accepts any client_id - this is just for tracking.');
+  console.log('\nIf you want to register Claude.ai in the database, use wrangler D1 execute:');
   console.log('\n  wrangler d1 execute utahchurches --command "');
   console.log("    INSERT INTO oauth_clients (");
   console.log("      client_id, client_secret, client_name,");

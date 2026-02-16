@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createDbWithContext } from '../db';
 import { users } from '../db/auth-schema';
@@ -72,7 +72,7 @@ export class ChurchDetailService {
       })
       .from(churches)
       .leftJoin(counties, eq(churches.countyId, counties.id))
-      .where(eq(churches.path, churchPath))
+      .where(and(eq(churches.path, churchPath), isNull(churches.deletedAt)))
       .limit(1)
       .get();
 
@@ -160,7 +160,7 @@ export class ChurchDetailService {
       })
       .from(churchAffiliations)
       .leftJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-      .where(eq(churchAffiliations.churchId, churchId))
+      .where(and(eq(churchAffiliations.churchId, churchId), isNull(affiliations.deletedAt)))
       .orderBy(affiliations.name)
       .all();
   }

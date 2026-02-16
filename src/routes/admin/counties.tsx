@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { CountyForm } from '../../components/CountyForm';
 import { Layout } from '../../components/Layout';
@@ -19,6 +19,8 @@ adminCountiesRoutes.use('*', requireAuthBetter);
 // Counties list page
 adminCountiesRoutes.get('/', async (c) => {
   const db = createDbWithContext(c);
+  const success = c.req.query('success');
+  const error = c.req.query('error');
 
   // Get common layout props (includes user, i18n, favicon, etc.)
   const layoutProps = await getCommonLayoutProps(c);
@@ -31,12 +33,27 @@ adminCountiesRoutes.get('/', async (c) => {
       name: counties.name,
       path: counties.path,
       population: counties.population,
-      churchCount: sql<number>`(SELECT COUNT(*) FROM ${churches} WHERE ${churches.countyId} = ${counties.id})`.as(
-        'church_count'
-      ),
+      deletedAt: counties.deletedAt,
+      churchCount:
+        sql<number>`(SELECT COUNT(*) FROM ${churches} WHERE ${churches.countyId} = ${counties.id} AND ${churches.deletedAt} IS NULL)`.as(
+          'church_count'
+        ),
     })
     .from(counties)
+    .where(isNull(counties.deletedAt))
     .orderBy(counties.name)
+    .all();
+
+  const deletedCounties = await db
+    .select({
+      id: counties.id,
+      name: counties.name,
+      path: counties.path,
+      deletedAt: counties.deletedAt,
+    })
+    .from(counties)
+    .where(isNotNull(counties.deletedAt))
+    .orderBy(desc(counties.deletedAt))
     .all();
 
   return c.html(
@@ -52,6 +69,25 @@ adminCountiesRoutes.get('/', async (c) => {
               {t('admin.addCounty')}
             </a>
           </div>
+
+          {success && (
+            <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+              {success === 'created' && 'County created successfully.'}
+              {success === 'deleted' && 'County deleted successfully.'}
+              {success === 'restored' && 'County restored successfully.'}
+            </div>
+          )}
+
+          {error && (
+            <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+              {error === 'has_churches' && 'Cannot delete county while it still has active churches.'}
+              {error === 'not_found' && 'County not found.'}
+              {error === 'not_found_deleted' && 'Deleted county not found.'}
+              {error === 'forbidden' && 'Only admins can restore counties.'}
+              {error === 'restore_failed' && 'Failed to restore county.'}
+              {error === 'delete_failed' && 'Failed to delete county.'}
+            </div>
+          )}
 
           <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <ul class="divide-y divide-gray-200">
@@ -81,6 +117,32 @@ adminCountiesRoutes.get('/', async (c) => {
               ))}
             </ul>
           </div>
+
+          {deletedCounties.length > 0 && (
+            <div class="mt-8 rounded-md border border-gray-200 bg-gray-50 p-4">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-700">Deleted Counties</h2>
+              <ul class="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 bg-white">
+                {deletedCounties.map((county) => (
+                  <li class="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">{county.name}</p>
+                      <p class="text-xs text-gray-500">
+                        Deleted: {county.deletedAt ? county.deletedAt.toISOString() : 'unknown'}
+                      </p>
+                    </div>
+                    <form method="post" action={`/admin/counties/${county.id}/restore`}>
+                      <button
+                        type="submit"
+                        class="rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50"
+                      >
+                        Restore
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
@@ -146,10 +208,13 @@ adminCountiesRoutes.get('/:id/edit', async (c) => {
   const db = createDbWithContext(c);
 
   const layoutProps = await getCommonLayoutProps(c);
-  const { t } = layoutProps;
 
   // Get the county
-  const county = await db.select().from(counties).where(eq(counties.id, countyId)).get();
+  const county = await db
+    .select()
+    .from(counties)
+    .where(and(eq(counties.id, countyId), isNull(counties.deletedAt)))
+    .get();
 
   if (!county) {
     return c.html(
@@ -221,7 +286,7 @@ adminCountiesRoutes.post('/:id/edit', async (c) => {
         population: population ? parseInt(population, 10) : null,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       })
-      .where(eq(counties.id, countyId))
+      .where(and(eq(counties.id, countyId), isNull(counties.deletedAt)))
       .returning()
       .get();
 
@@ -242,7 +307,11 @@ adminCountiesRoutes.post('/:id/delete', async (c) => {
 
   try {
     // Get county details before deletion
-    const county = await db.select().from(counties).where(eq(counties.id, countyId)).get();
+    const county = await db
+      .select()
+      .from(counties)
+      .where(and(eq(counties.id, countyId), isNull(counties.deletedAt)))
+      .get();
 
     if (!county) {
       return c.redirect('/admin/counties?error=not_found');
@@ -252,15 +321,21 @@ adminCountiesRoutes.post('/:id/delete', async (c) => {
     const churchCount = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(churches)
-      .where(eq(churches.countyId, countyId))
+      .where(and(eq(churches.countyId, countyId), isNull(churches.deletedAt)))
       .get();
 
     if (churchCount && churchCount.count > 0) {
       return c.redirect('/admin/counties?error=has_churches');
     }
 
-    // Delete the county
-    await db.delete(counties).where(eq(counties.id, countyId));
+    // Soft-delete the county
+    await db
+      .update(counties)
+      .set({
+        deletedAt: sql`CURRENT_TIMESTAMP`,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(counties.id, countyId), isNull(counties.deletedAt)));
 
     // TODO: Add activity tracking when audit trail is implemented
 
@@ -268,5 +343,41 @@ adminCountiesRoutes.post('/:id/delete', async (c) => {
   } catch (error) {
     console.error('Error deleting county:', error);
     return c.redirect('/admin/counties?error=delete_failed');
+  }
+});
+
+// Restore county (admin-only)
+adminCountiesRoutes.post('/:id/restore', async (c) => {
+  const countyId = parseInt(c.req.param('id'), 10);
+  const db = createDbWithContext(c);
+  const user = c.get('betterUser');
+
+  if (user?.role !== 'admin') {
+    return c.redirect('/admin/counties?error=forbidden');
+  }
+
+  try {
+    const county = await db
+      .select()
+      .from(counties)
+      .where(and(eq(counties.id, countyId), isNotNull(counties.deletedAt)))
+      .get();
+
+    if (!county) {
+      return c.redirect('/admin/counties?error=not_found_deleted');
+    }
+
+    await db
+      .update(counties)
+      .set({
+        deletedAt: null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(counties.id, countyId), isNotNull(counties.deletedAt)));
+
+    return c.redirect('/admin/counties?success=restored');
+  } catch (error) {
+    console.error('Error restoring county:', error);
+    return c.redirect('/admin/counties?error=restore_failed');
   }
 });

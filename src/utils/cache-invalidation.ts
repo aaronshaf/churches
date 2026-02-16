@@ -1,3 +1,4 @@
+import { isNull } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createDbWithContext } from '../db';
 import { affiliations, churches, counties } from '../db/schema';
@@ -156,14 +157,22 @@ export class CacheInvalidator {
 
     try {
       // Get all county paths
-      const countyPaths = await db.select({ path: counties.path }).from(counties).all();
+      const countyPaths = await db
+        .select({ path: counties.path })
+        .from(counties)
+        .where(isNull(counties.deletedAt))
+        .all();
 
       countyPaths.forEach((county) => {
         urlsToInvalidate.push(`/counties/${county.path}`);
       });
 
       // Get all network paths
-      const networkPaths = await db.select({ id: affiliations.id, path: affiliations.path }).from(affiliations).all();
+      const networkPaths = await db
+        .select({ id: affiliations.id, path: affiliations.path })
+        .from(affiliations)
+        .where(isNull(affiliations.deletedAt))
+        .all();
 
       networkPaths.forEach((network) => {
         urlsToInvalidate.push(`/networks/${network.path || network.id}`);
@@ -179,7 +188,12 @@ export class CacheInvalidator {
 
       // For individual church pages, we'll just clear a sample
       // (too many to clear all, they'll expire via TTL)
-      const sampleChurches = await db.select({ path: churches.path }).from(churches).limit(20).all();
+      const sampleChurches = await db
+        .select({ path: churches.path })
+        .from(churches)
+        .where(isNull(churches.deletedAt))
+        .limit(20)
+        .all();
 
       sampleChurches.forEach((church) => {
         urlsToInvalidate.push(`/churches/${church.path}`);

@@ -18,6 +18,7 @@
     "db:seed-affiliations": "bun tsx scripts/seed-affiliations.ts",
     "db:import-churches": "bun tsx scripts/import-churches.ts",
     "db:add-comment-type": "bun tsx scripts/add-comment-type.ts",
+    "mcp:smoke": "bun run scripts/mcp-smoke.ts",
     "better-auth:setup": "bun tsx scripts/setup-better-auth-env.ts",
     "better-auth:schema": "bun tsx scripts/generate-auth-schema.ts",
     "better-auth:test": "bun tsx scripts/test-better-auth.ts",

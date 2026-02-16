@@ -144,6 +144,23 @@ The application uses the following main tables:
 - `GET /churches.csv` - CSV format
 - `GET /churches.xlsx` - Excel format
 
+### MCP Routes
+- `GET /mcp` - MCP endpoint metadata/health
+- `POST /mcp` - MCP Streamable HTTP (JSON-RPC)
+- `GET /admin/mcp-tokens` - Create/revoke MCP bearer tokens (admin/contributor)
+- MCP docs:
+  - PRD: `docs/prd/0001-mcp-endpoint.md`
+  - ADR: `docs/adr/0001-mcp-endpoint-architecture.md`
+
+### MCP Smoke Testing
+```bash
+# Read/auth checks
+MCP_BASE_URL=http://localhost:56087 MCP_ADMIN_TOKEN='mcp_admin_token' bun run mcp:smoke
+
+# Full write checks (admin-only mode is supported)
+MCP_BASE_URL=http://localhost:56087 MCP_ENABLE_WRITES=true MCP_ADMIN_TOKEN='mcp_admin_token' bun run mcp:smoke
+```
+
 ### Admin Routes (Authentication Required)
 - `GET /admin` - Dashboard
 - `GET /admin/churches` - Manage churches

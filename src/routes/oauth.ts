@@ -9,7 +9,6 @@ import { createAuth } from '../lib/auth';
 import {
   createAuthorizationCode,
   exchangeCodeForToken,
-  getOAuthClient,
 } from '../services/oauth-service';
 import type { AuthVariables, Bindings } from '../types';
 
@@ -87,17 +86,7 @@ oauthRoutes.get('/oauth/authorize', async (c) => {
     return c.json({ error: 'invalid_request', error_description: 'code_challenge_method must be S256 or plain' }, 400);
   }
 
-  // Validate client exists
   const db = createDbWithContext(c);
-  const client = await getOAuthClient(db, client_id);
-  if (!client) {
-    return c.json({ error: 'invalid_client', error_description: 'Unknown client_id' }, 400);
-  }
-
-  // Validate redirect_uri
-  if (!client.redirectUris.includes(redirect_uri)) {
-    return c.json({ error: 'invalid_request', error_description: 'redirect_uri not registered' }, 400);
-  }
 
   // Check if user is already authenticated via Better Auth session
   const auth = createAuth(c.env);

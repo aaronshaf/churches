@@ -28,19 +28,15 @@ The `/mcp/admin` endpoint tries OAuth Bearer token authentication first, then fa
 
 Three new tables support OAuth:
 
-1. **oauth_clients** - Pre-registered OAuth clients
+1. **oauth_clients** - OAuth client metadata (optional, not enforced)
 2. **oauth_authorization_codes** - Short-lived codes with PKCE
 3. **oauth_access_tokens** - Bearer tokens for API access
 
-## Setup Instructions
+**Note:** Client registration is optional. The OAuth flow accepts any `client_id` and relies on PKCE for security.
+
+## Quick Setup (2 Steps)
 
 ### 1. Apply Database Migrations
-
-**Local (development):**
-```bash
-wrangler d1 execute DB --local --file=drizzle/0011_add_session_id_to_audit.sql
-wrangler d1 execute DB --local --file=drizzle/0012_add_oauth_tables.sql
-```
 
 **Production:**
 ```bash
@@ -48,47 +44,13 @@ wrangler d1 execute DB --remote --file=drizzle/0011_add_session_id_to_audit.sql
 wrangler d1 execute DB --remote --file=drizzle/0012_add_oauth_tables.sql
 ```
 
-### 2. Register OAuth Client
-
-The Claude.ai OAuth client must be pre-registered in the database.
-
-**Local:**
+**Local (development):**
 ```bash
-wrangler d1 execute DB --local --command "
-  INSERT INTO oauth_clients (
-    client_id, client_secret, client_name,
-    redirect_uris, scope, grant_types, response_types
-  ) VALUES (
-    'claude-ai-mcp',
-    NULL,
-    'Claude.ai MCP Integration',
-    '[\"https://claude.ai/oauth/callback\"]',
-    'mcp:admin',
-    '[\"authorization_code\"]',
-    '[\"code\"]'
-  );
-"
+wrangler d1 execute DB --local --file=drizzle/0011_add_session_id_to_audit.sql
+wrangler d1 execute DB --local --file=drizzle/0012_add_oauth_tables.sql
 ```
 
-**Production:**
-```bash
-wrangler d1 execute DB --remote --command "
-  INSERT INTO oauth_clients (
-    client_id, client_secret, client_name,
-    redirect_uris, scope, grant_types, response_types
-  ) VALUES (
-    'claude-ai-mcp',
-    NULL,
-    'Claude.ai MCP Integration',
-    '[\"https://claude.ai/oauth/callback\"]',
-    'mcp:admin',
-    '[\"authorization_code\"]',
-    '[\"code\"]'
-  );
-"
-```
-
-### 3. Configure Claude.ai Custom Connector
+### 2. Configure Claude.ai Custom Connector
 
 In Claude.ai, create a new MCP Custom Connector with these settings:
 
@@ -173,14 +135,6 @@ Only users with `admin` or `contributor` roles can:
 - Use MCP write tools
 
 ## Troubleshooting
-
-### "Invalid client_id"
-
-The OAuth client hasn't been registered. Run the registration SQL command above.
-
-### "Invalid redirect_uri"
-
-The redirect URI in the request doesn't match the registered URI. Claude.ai should use `https://claude.ai/oauth/callback`.
 
 ### "Invalid code_challenge"
 

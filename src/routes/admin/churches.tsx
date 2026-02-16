@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { ChurchForm } from '../../components/ChurchForm';
 import { Layout } from '../../components/Layout';
@@ -27,10 +27,15 @@ adminChurchesRoutes.get('/new', async (c) => {
   const user = c.get('betterUser');
 
   // Get all counties for dropdown
-  const allCounties = await db.select().from(counties).orderBy(counties.name).all();
+  const allCounties = await db.select().from(counties).where(isNull(counties.deletedAt)).orderBy(counties.name).all();
 
   // Get all affiliations for checkboxes
-  const allAffiliations = await db.select().from(affiliations).orderBy(affiliations.name).all();
+  const allAffiliations = await db
+    .select()
+    .from(affiliations)
+    .where(isNull(affiliations.deletedAt))
+    .orderBy(affiliations.name)
+    .all();
 
   const logoUrl = await getLogoUrl(c.env);
 
@@ -76,7 +81,11 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   }
 
   // Get church data
-  const church = await db.select().from(churches).where(eq(churches.id, churchId)).get();
+  const church = await db
+    .select()
+    .from(churches)
+    .where(and(eq(churches.id, churchId), isNull(churches.deletedAt)))
+    .get();
 
   if (!church) {
     return c.html(<NotFound />, 404);
@@ -86,8 +95,8 @@ adminChurchesRoutes.get('/:id/edit', async (c) => {
   const [gatherings, churchAffiliationData, allCounties, allAffiliations] = await Promise.all([
     db.select().from(churchGatherings).where(eq(churchGatherings.churchId, churchId)).all(),
     db.select().from(churchAffiliations).where(eq(churchAffiliations.churchId, churchId)).all(),
-    db.select().from(counties).orderBy(counties.name).all(),
-    db.select().from(affiliations).orderBy(affiliations.name).all(),
+    db.select().from(counties).where(isNull(counties.deletedAt)).orderBy(counties.name).all(),
+    db.select().from(affiliations).where(isNull(affiliations.deletedAt)).orderBy(affiliations.name).all(),
   ]);
 
   const logoUrl = await getLogoUrl(c.env);
@@ -128,9 +137,72 @@ adminChurchesRoutes.post('/:id', async (c) => {
 
 // Delete church - simplified version
 adminChurchesRoutes.post('/:id/delete', async (c) => {
-  // This would contain the delete logic
-  // For now, redirect to list
-  return c.redirect('/admin/churches');
+  const db = createDbWithContext(c);
+  const churchId = parseInt(c.req.param('id'));
+
+  if (Number.isNaN(churchId)) {
+    return c.redirect('/admin/churches?error=invalid_id');
+  }
+
+  try {
+    const church = await db
+      .select()
+      .from(churches)
+      .where(and(eq(churches.id, churchId), isNull(churches.deletedAt)))
+      .get();
+
+    if (!church) {
+      return c.redirect('/admin/churches?error=not_found');
+    }
+
+    await db
+      .update(churches)
+      .set({
+        deletedAt: sql`CURRENT_TIMESTAMP`,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(churches.id, churchId), isNull(churches.deletedAt)));
+
+    return c.redirect('/admin/churches?success=deleted');
+  } catch (error) {
+    console.error('Error deleting church:', error);
+    return c.redirect('/admin/churches?error=delete_failed');
+  }
+});
+
+// Restore church
+adminChurchesRoutes.post('/:id/restore', async (c) => {
+  const db = createDbWithContext(c);
+  const churchId = parseInt(c.req.param('id'));
+
+  if (Number.isNaN(churchId)) {
+    return c.redirect('/admin/churches?error=invalid_id');
+  }
+
+  try {
+    const deletedChurch = await db
+      .select()
+      .from(churches)
+      .where(and(eq(churches.id, churchId), isNotNull(churches.deletedAt)))
+      .get();
+
+    if (!deletedChurch) {
+      return c.redirect('/admin/churches?error=not_found_deleted');
+    }
+
+    await db
+      .update(churches)
+      .set({
+        deletedAt: null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(churches.id, churchId), isNotNull(churches.deletedAt)));
+
+    return c.redirect('/admin/churches?success=restored');
+  } catch (error) {
+    console.error('Error restoring church:', error);
+    return c.redirect('/admin/churches?error=restore_failed');
+  }
 });
 
 // Extract website data - simplified version

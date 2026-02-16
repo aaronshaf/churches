@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import yaml from 'js-yaml';
 import * as XLSX from 'xlsx';
@@ -46,7 +46,7 @@ dataExportRoutes.get('/churches.json', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
     .orderBy(churches.name)
     .all();
 
@@ -72,7 +72,7 @@ dataExportRoutes.get('/churches.json', async (c) => {
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .where(and(createInClause(churchAffiliations.churchId, batchIds), isNull(affiliations.deletedAt)))
         .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
@@ -147,7 +147,7 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
     .orderBy(churches.name)
     .all();
 
@@ -173,7 +173,7 @@ dataExportRoutes.get('/churches.yaml', async (c) => {
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .where(and(createInClause(churchAffiliations.churchId, batchIds), isNull(affiliations.deletedAt)))
         .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
@@ -270,7 +270,7 @@ dataExportRoutes.get('/churches.csv', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
     .orderBy(churches.name)
     .all();
 
@@ -296,7 +296,7 @@ dataExportRoutes.get('/churches.csv', async (c) => {
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .where(and(createInClause(churchAffiliations.churchId, batchIds), isNull(affiliations.deletedAt)))
         .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
@@ -397,7 +397,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+    .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
     .orderBy(churches.name)
     .all();
 
@@ -410,6 +410,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
       population: counties.population,
     })
     .from(counties)
+    .where(isNull(counties.deletedAt))
     .orderBy(counties.name)
     .all();
 
@@ -422,7 +423,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
       publicNotes: affiliations.publicNotes,
     })
     .from(affiliations)
-    .where(eq(affiliations.status, 'Listed'))
+    .where(and(eq(affiliations.status, 'Listed'), isNull(affiliations.deletedAt)))
     .orderBy(affiliations.name)
     .all();
 
@@ -448,7 +449,7 @@ dataExportRoutes.get('/churches.xlsx', async (c) => {
         })
         .from(churchAffiliations)
         .innerJoin(affiliations, eq(churchAffiliations.affiliationId, affiliations.id))
-        .where(createInClause(churchAffiliations.churchId, batchIds))
+        .where(and(createInClause(churchAffiliations.churchId, batchIds), isNull(affiliations.deletedAt)))
         .orderBy(churchAffiliations.churchId, affiliations.name)
         .all();
     });
@@ -571,7 +572,7 @@ dataExportRoutes.get('/data', async (c) => {
         count: sql<number>`COUNT(*)`.as('count'),
       })
       .from(churches)
-      .where(sql`${churches.status} IN ('Listed', 'Unlisted')`)
+      .where(sql`${churches.status} IN ('Listed', 'Unlisted') AND ${churches.deletedAt} IS NULL`)
       .get();
 
     // Get favicon URL

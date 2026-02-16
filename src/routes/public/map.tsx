@@ -118,8 +118,8 @@ mapRoutes.get('/map', async (c) => {
     .leftJoin(counties, eq(churches.countyId, counties.id))
     .where(
       showHereticalOption
-        ? sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL`
-        : sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical'`
+        ? sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.deletedAt} IS NULL`
+        : sql`${churches.latitude} IS NOT NULL AND ${churches.longitude} IS NOT NULL AND ${churches.status} != 'Heretical' AND ${churches.deletedAt} IS NULL`
     )
     .all();
 

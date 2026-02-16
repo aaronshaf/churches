@@ -1,84 +1,49 @@
 import { describe, expect, test } from 'bun:test';
-import { build } from 'esbuild';
-import { Miniflare } from 'miniflare';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { Hono } from 'hono';
+import { envCheckMiddleware } from '../middleware/env-check';
+import { assetsRoutes } from '../routes/assets';
+import type { Bindings } from '../types';
 
-const compatibilityDate = '2025-01-19';
+const app = new Hono<{ Bindings: Bindings }>();
+app.use('*', envCheckMiddleware);
+app.route('/', assetsRoutes);
 
-async function buildWorker(outdir: string) {
-  const outfile = path.join(outdir, 'worker.mjs');
-  await build({
-    entryPoints: ['src/index.tsx'],
-    bundle: true,
-    format: 'esm',
-    platform: 'browser',
-    mainFields: ['module', 'main'],
-    target: 'es2022',
-    outfile,
-  });
-  return { outfile, scriptPath: 'worker.mjs' as const };
+function makeEnv(overrides: Partial<Bindings> = {}): Bindings {
+  return {
+    DB: {} as any,
+    BETTER_AUTH_SECRET: 'placeholder-secret-at-least-32-chars',
+    BETTER_AUTH_URL: 'http://localhost:8787',
+    GOOGLE_CLIENT_ID: 'placeholder',
+    GOOGLE_CLIENT_SECRET: 'placeholder',
+    CLOUDFLARE_ACCOUNT_HASH: 'placeholder',
+    IMAGES_BUCKET: {} as any,
+    SETTINGS_CACHE: {} as any,
+    ...overrides,
+  };
 }
 
-describe('worker integration (Miniflare)', () => {
+describe('worker integration', () => {
   test('envCheck returns JSON 500 on API requests when required env vars are missing', async () => {
-    // Miniflare/workerd is strict about module file paths; keep build artifacts inside repo.
-    mkdirSync('dist', { recursive: true });
-    const outdir = mkdtempSync(path.join(process.cwd(), 'dist', 'tmp-worker-test-'));
-    try {
-      const { scriptPath } = await buildWorker(outdir);
-      const mf = new Miniflare({
-        rootPath: outdir,
-        modules: true,
-        scriptPath,
-        compatibilityDate,
-      });
+    const env = makeEnv({
+      DB: undefined as any,
+    });
 
-      const res = await mf.dispatchFetch('http://localhost/api/whatever', {
-        headers: { Accept: 'application/json' },
-      });
+    const res = await app.request('http://localhost/api/whatever', { headers: { Accept: 'application/json' } }, env);
 
-      expect(res.status).toBe(500);
-      const json = (await res.json()) as any;
-      expect(json.error).toBe('Configuration Error');
-      expect(Array.isArray(json.missingVariables)).toBe(true);
-      expect(json.missingVariables).toContain('DB');
-    } finally {
-      rmSync(outdir, { recursive: true, force: true });
-    }
+    expect(res.status).toBe(500);
+    const json = (await res.json()) as any;
+    expect(json.error).toBe('Configuration Error');
+    expect(Array.isArray(json.missingVariables)).toBe(true);
+    expect(json.missingVariables).toContain('DB');
   });
 
   test('traffic advice endpoint returns expected JSON when env is configured', async () => {
-    mkdirSync('dist', { recursive: true });
-    const outdir = mkdtempSync(path.join(process.cwd(), 'dist', 'tmp-worker-test-'));
-    try {
-      const { scriptPath } = await buildWorker(outdir);
-      const mf = new Miniflare({
-        rootPath: outdir,
-        modules: true,
-        scriptPath,
-        compatibilityDate,
-        d1Databases: ['DB'],
-        r2Buckets: ['IMAGES_BUCKET'],
-        kvNamespaces: ['SETTINGS_CACHE'],
-        bindings: {
-          BETTER_AUTH_SECRET: 'placeholder-secret-at-least-32-chars',
-          BETTER_AUTH_URL: 'http://localhost:8787',
-          GOOGLE_CLIENT_ID: 'placeholder',
-          GOOGLE_CLIENT_SECRET: 'placeholder',
-          CLOUDFLARE_ACCOUNT_HASH: 'placeholder',
-        },
-      });
-
-      const res = await mf.dispatchFetch('http://localhost/.well-known/traffic-advice');
-      expect(res.status).toBe(200);
-      const json = (await res.json()) as any;
-      expect(json.version).toBe(1);
-      expect(Array.isArray(json.endpoints)).toBe(true);
-      expect(json.endpoints[0].location).toBe('.');
-    } finally {
-      rmSync(outdir, { recursive: true, force: true });
-    }
+    const env = makeEnv();
+    const res = await app.request('http://localhost/.well-known/traffic-advice', {}, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as any;
+    expect(json.version).toBe(1);
+    expect(Array.isArray(json.endpoints)).toBe(true);
+    expect(json.endpoints[0].location).toBe('.');
   });
 });

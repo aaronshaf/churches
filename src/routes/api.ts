@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
 import { affiliations, churches, comments, counties } from '../db/schema';
@@ -33,7 +33,7 @@ apiRoutes.get('/churches/search', async (c) => {
     })
     .from(churches)
     .leftJoin(counties, eq(churches.countyId, counties.id))
-    .where(sql`${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE`)
+    .where(and(isNull(churches.deletedAt), sql`${churches.name} LIKE ${`%${query}%`} COLLATE NOCASE`))
     .orderBy(
       sql`CASE 
         WHEN ${churches.name} LIKE ${`${query}%`} COLLATE NOCASE THEN 1 
@@ -64,6 +64,7 @@ apiRoutes.get('/churches', async (c) => {
       website: churches.website,
     })
     .from(churches)
+    .where(isNull(churches.deletedAt))
     .limit(limit)
     .offset(offset)
     .all();
@@ -88,7 +89,7 @@ apiRoutes.get('/churches/:id', async (c) => {
   const church = await db
     .select()
     .from(churches)
-    .where(eq(churches.id, Number(id)))
+    .where(and(eq(churches.id, Number(id)), isNull(churches.deletedAt)))
     .get();
 
   if (!church) {
@@ -144,6 +145,7 @@ apiRoutes.get('/counties', async (c) => {
       population: counties.population,
     })
     .from(counties)
+    .where(isNull(counties.deletedAt))
     .orderBy(counties.name)
     .all();
 
@@ -169,7 +171,7 @@ apiRoutes.get('/networks', async (c) => {
       publicNotes: affiliations.publicNotes,
     })
     .from(affiliations)
-    .where(eq(affiliations.status, 'Listed'))
+    .where(and(eq(affiliations.status, 'Listed'), isNull(affiliations.deletedAt)))
     .orderBy(affiliations.name)
     .all();
 

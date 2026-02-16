@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { ChurchCard } from '../../components/ChurchCard';
 import { Layout } from '../../components/Layout';
@@ -38,7 +38,11 @@ countiesRoutes.get('/counties/:path', async (c) => {
   const { t } = layoutProps;
 
   // Get county by path
-  const county = await db.select().from(counties).where(eq(counties.path, countyPath)).get();
+  const county = await db
+    .select()
+    .from(counties)
+    .where(and(eq(counties.path, countyPath), isNull(counties.deletedAt)))
+    .get();
 
   if (!county) {
     return c.html(
@@ -62,7 +66,9 @@ countiesRoutes.get('/counties/:path', async (c) => {
       publicNotes: churches.publicNotes,
     })
     .from(churches)
-    .where(sql`${churches.countyId} = ${county.id} AND ${churches.status} != 'Heretical'`)
+    .where(
+      sql`${churches.countyId} = ${county.id} AND ${churches.status} != 'Heretical' AND ${churches.deletedAt} IS NULL`
+    )
     .orderBy(churches.name)
     .all();
 

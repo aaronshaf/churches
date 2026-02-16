@@ -1,4 +1,4 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { Layout } from '../../components/Layout';
 import { createDbWithContext } from '../../db';
@@ -19,9 +19,21 @@ dashboardRoutes.get('/admin', requireAdminBetter, async (c) => {
   const layoutProps = await getCommonLayoutProps(c);
 
   // Get statistics using COUNT for efficiency
-  const churchCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churches).get();
-  const countyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(counties).get();
-  const affiliationCount = await db.select({ count: sql<number>`COUNT(*)` }).from(affiliations).get();
+  const churchCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(churches)
+    .where(isNull(churches.deletedAt))
+    .get();
+  const countyCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(counties)
+    .where(isNull(counties.deletedAt))
+    .get();
+  const affiliationCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(affiliations)
+    .where(isNull(affiliations.deletedAt))
+    .get();
   const pageCount = await db.select({ count: sql<number>`COUNT(*)` }).from(pages).get();
   const userCount = await db.select({ count: sql<number>`COUNT(*)` }).from(users).get();
   const submissionCount = await db.select({ count: sql<number>`COUNT(*)` }).from(churchSuggestions).get();
@@ -36,7 +48,7 @@ dashboardRoutes.get('/admin', requireAdminBetter, async (c) => {
       lastUpdated: churches.lastUpdated,
     })
     .from(churches)
-    .where(sql`${churches.status} != 'Closed' OR ${churches.status} IS NULL`)
+    .where(and(isNull(churches.deletedAt), sql`${churches.status} != 'Closed' OR ${churches.status} IS NULL`))
     .orderBy(sql`${churches.lastUpdated} ASC NULLS FIRST`)
     .limit(1)
     .all();
