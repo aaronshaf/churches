@@ -1,4 +1,4 @@
-import { desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -22,6 +22,7 @@ import { adminChurchesRoutes } from './routes/admin/churches';
 import { adminCountiesRoutes } from './routes/admin/counties';
 import { adminDebugRoutes } from './routes/admin/debug';
 import { adminFeedbackRoutes } from './routes/admin/feedback';
+import { adminMcpTokensRoutes } from './routes/admin/mcp-tokens';
 import { adminNotificationsRoutes } from './routes/admin/notifications';
 import { adminCoreRoutes } from './routes/admin-core';
 import { adminUsersApp } from './routes/admin-users';
@@ -32,6 +33,7 @@ import { betterAuthApp } from './routes/better-auth';
 import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
+import { mcpRoutes } from './routes/mcp';
 import { countiesRoutes } from './routes/public/counties';
 import { mapRoutes } from './routes/public/map';
 import { networksRoutes } from './routes/public/networks';
@@ -141,6 +143,8 @@ app.all('/api/auth/*', async (c) => {
 app.use('*', betterAuthMiddleware);
 
 app.use('/api/*', cors());
+app.use('/mcp', cors());
+app.use('/mcp/*', cors());
 
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
@@ -212,8 +216,15 @@ app.route('/auth', betterAuthApp);
 // Mount admin users route
 app.route('/admin/users', adminUsersApp);
 
+// Mount admin MCP token management route
+app.route('/admin/mcp-tokens', adminMcpTokensRoutes);
+
 // Mount API routes
 app.route('/api', apiRoutes);
+
+// Mount MCP routes (ensure both /mcp and /mcp/* are handled)
+app.route('/mcp', mcpRoutes);
+app.route('/mcp/*', mcpRoutes);
 
 // Mount SEO routes
 app.route('/', seoRoutes);
@@ -295,7 +306,15 @@ app.get('/', async (c) => {
         churchCount: sql<number>`COUNT(${churches.id})`.as('churchCount'),
       })
       .from(counties)
-      .innerJoin(churches, sql`${counties.id} = ${churches.countyId} AND ${churches.status} IN ('Listed', 'Unlisted')`)
+      .innerJoin(
+        churches,
+        and(
+          eq(counties.id, churches.countyId),
+          sql`${churches.status} IN ('Listed', 'Unlisted')`,
+          isNull(churches.deletedAt)
+        )
+      )
+      .where(isNull(counties.deletedAt))
       .groupBy(counties.id, counties.name, counties.path, counties.description, counties.population)
       .orderBy(desc(counties.population))
       .all();
@@ -595,14 +614,22 @@ app.get('*', async (c) => {
     }
 
     // Then check if it's a church redirect
-    const church = await db.select({ id: churches.id }).from(churches).where(eq(churches.path, slug)).get();
+    const church = await db
+      .select({ id: churches.id })
+      .from(churches)
+      .where(and(eq(churches.path, slug), isNull(churches.deletedAt)))
+      .get();
 
     if (church) {
       return c.redirect(`/churches/${slug}`, 301);
     }
 
     // Check if it's a county redirect
-    const county = await db.select({ id: counties.id }).from(counties).where(eq(counties.path, slug)).get();
+    const county = await db
+      .select({ id: counties.id })
+      .from(counties)
+      .where(and(eq(counties.path, slug), isNull(counties.deletedAt)))
+      .get();
 
     if (county) {
       return c.redirect(`/counties/${slug}`, 301);
