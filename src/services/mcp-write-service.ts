@@ -117,7 +117,8 @@ async function insertWriteAudit(
     .insert(mcpWriteAudit)
     .values({
       userId: auth.userId,
-      tokenId: auth.tokenId,
+      tokenId: auth.tokenId ?? null, // Null for session-based auth
+      sessionId: auth.sessionId ?? null, // Null for token-based auth
       action,
       entity,
       recordId,

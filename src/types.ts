@@ -19,6 +19,7 @@ export interface Bindings {
 
 // User role types (matches auth schema)
 export type UserRole = 'admin' | 'contributor' | 'user';
+export type McpWriteRole = 'admin' | 'contributor';
 
 // Church status types (matches database schema)
 export type ChurchStatus = 'Listed' | 'Ready to list' | 'Assess' | 'Needs data' | 'Unlisted' | 'Heretical' | 'Closed';
@@ -64,6 +65,7 @@ export interface AuthVariables {
   betterUser?: BetterAuthUser;
   betterSession?: BetterAuthSession;
   betterAuth?: any; // Better-auth instance - will be typed properly later
+  mcpAuth?: McpAuthIdentity;
   language?: string;
   t?: (key: string, options?: object) => string;
 }
@@ -73,6 +75,14 @@ export interface AuthenticatedVariables {
   betterUser: BetterAuthUser;
   betterSession?: BetterAuthSession;
   betterAuth?: any; // Better-auth instance - will be typed properly later
+}
+
+export interface McpAuthIdentity {
+  tokenId?: number; // Present for bearer token auth
+  sessionId?: string; // Present for session-based auth
+  userId: string;
+  role: McpWriteRole;
+  scope: string;
 }
 
 // Church suggestion type
@@ -136,6 +146,7 @@ export interface Church {
   imageAlt: string | null; // R2 field
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
   // Optional joined fields
   countyName?: string | null;
 }
@@ -150,6 +161,7 @@ export interface County {
   imageAlt: string | null; // New R2 field
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface Affiliation {
@@ -162,6 +174,30 @@ export interface Affiliation {
   publicNotes: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
+}
+
+export interface McpToken {
+  id: number;
+  userId: string;
+  tokenName: string;
+  tokenHash: string;
+  scope: string;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
+}
+
+export interface McpWriteAudit {
+  id: number;
+  userId: string;
+  tokenId: number | null; // Null for session-based writes
+  sessionId: string | null; // Null for token-based writes
+  action: string;
+  entity: string;
+  recordId: number;
+  diff: string | null;
+  createdAt: Date;
 }
 
 export interface ChurchGathering {

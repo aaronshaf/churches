@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { createDbWithContext } from '../db';
+import { resolveMcpSessionAuth } from '../middleware/mcp-session-auth';
 import {
   getChurchMcp,
   getCountyMcp,
@@ -11,7 +12,25 @@ import {
   McpForbiddenError,
   McpNotFoundError,
 } from '../services/mcp-read-service';
-import type { AuthVariables, Bindings } from '../types';
+import {
+  createChurchMcp,
+  createCountyMcp,
+  createNetworkMcp,
+  deleteChurchMcp,
+  deleteCountyMcp,
+  deleteNetworkMcp,
+  McpConflictError,
+  McpValidationError,
+  McpWriteForbiddenError,
+  McpWriteNotFoundError,
+  restoreChurchMcp,
+  restoreCountyMcp,
+  restoreNetworkMcp,
+  updateChurchMcp,
+  updateCountyMcp,
+  updateNetworkMcp,
+} from '../services/mcp-write-service';
+import type { AuthVariables, Bindings, McpAuthIdentity } from '../types';
 
 type JsonRpcId = number | string | null;
 
@@ -41,86 +60,155 @@ type McpToolDefinition = {
 
 const DEFAULT_PROTOCOL_VERSION = '2025-01-01';
 const SERVER_INFO = {
-  name: 'churches-mcp-public',
+  name: 'churches-mcp-admin',
   version: '1.0.0',
 };
 
 const readTools: McpToolDefinition[] = [
   {
     name: 'churches_list',
-    description: 'List churches with offset pagination (public, read-only).',
+    description: 'List churches with offset pagination. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'number', minimum: 1, maximum: 200 },
         offset: { type: 'number', minimum: 0 },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'churches_get',
-    description: 'Get one church by id or path (public, read-only).',
+    description: 'Get one church by id or path. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'number' },
         path: { type: 'string' },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'counties_list',
-    description: 'List counties with offset pagination (public, read-only).',
+    description: 'List counties with offset pagination. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'number', minimum: 1, maximum: 200 },
         offset: { type: 'number', minimum: 0 },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'counties_get',
-    description: 'Get one county by id or path (public, read-only).',
+    description: 'Get one county by id or path. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'number' },
         path: { type: 'string' },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'networks_list',
-    description: 'List networks with offset pagination (public, read-only).',
+    description: 'List networks with offset pagination. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'number', minimum: 1, maximum: 200 },
         offset: { type: 'number', minimum: 0 },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
   {
     name: 'networks_get',
-    description: 'Get one network by id or path (public, read-only).',
+    description: 'Get one network by id or path. Supports include_deleted for admins.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'number' },
         path: { type: 'string' },
+        include_deleted: { type: 'boolean' },
       },
       additionalProperties: false,
     },
   },
 ];
 
-const mcpRoutes = new Hono<{ Bindings: Bindings; Variables: AuthVariables }>();
+const writeTools: McpToolDefinition[] = [
+  {
+    name: 'churches_create',
+    description: 'Create one church record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'churches_update',
+    description: 'Update one church record with optimistic concurrency (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'churches_delete',
+    description: 'Soft delete one church record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'churches_restore',
+    description: 'Restore one soft-deleted church record (admin-only write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'counties_create',
+    description: 'Create one county record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'counties_update',
+    description: 'Update one county record with optimistic concurrency (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'counties_delete',
+    description: 'Soft delete one county record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'counties_restore',
+    description: 'Restore one soft-deleted county record (admin-only write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'networks_create',
+    description: 'Create one network record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'networks_update',
+    description: 'Update one network record with optimistic concurrency (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'networks_delete',
+    description: 'Soft delete one network record (authenticated write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+  {
+    name: 'networks_restore',
+    description: 'Restore one soft-deleted network record (admin-only write tool).',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: true },
+  },
+];
+
+const mcpAdminRoutes = new Hono<{ Bindings: Bindings; Variables: AuthVariables }>();
 type McpContext = Context<{ Bindings: Bindings; Variables: AuthVariables }>;
 
 function success(id: JsonRpcId, result: unknown): JsonRpcResponse {
@@ -163,6 +251,10 @@ function readNumber(value: unknown, defaultValue: number, min: number, max: numb
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
+function readBoolean(value: unknown, defaultValue: boolean): boolean {
+  return typeof value === 'boolean' ? value : defaultValue;
+}
+
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
@@ -177,30 +269,32 @@ function readId(value: unknown): number | undefined {
   return Math.trunc(value);
 }
 
-function buildToolList(): McpToolDefinition[] {
-  // Public endpoint is read-only, no authentication
-  return readTools;
+function buildToolList(auth: McpAuthIdentity): McpToolDefinition[] {
+  // Admin endpoint always has auth, so always include write tools
+  return [...readTools, ...writeTools];
 }
 
-function buildResourceList() {
+function buildResourceList(auth: McpAuthIdentity) {
+  const includeDeletedHint = auth.role === 'admin' ? ' (supports include_deleted=true)' : '';
+
   return [
     {
       uri: 'churches://list',
       name: 'Churches',
       mimeType: 'application/json',
-      description: 'Public church list resource (read-only).',
+      description: `Church list resource${includeDeletedHint}.`,
     },
     {
       uri: 'counties://list',
       name: 'Counties',
       mimeType: 'application/json',
-      description: 'Public county list resource (read-only).',
+      description: `County list resource${includeDeletedHint}.`,
     },
     {
       uri: 'networks://list',
       name: 'Networks',
       mimeType: 'application/json',
-      description: 'Public network list resource (read-only).',
+      description: `Network list resource${includeDeletedHint}.`,
     },
   ];
 }
@@ -265,7 +359,7 @@ function ensureObjectParams(params: unknown): Record<string, unknown> {
   return params;
 }
 
-async function handleToolsCall(c: McpContext, params: unknown) {
+async function handleToolsCall(c: McpContext, auth: McpAuthIdentity, params: unknown) {
   const db = createDbWithContext(c);
   const parsedParams = ensureObjectParams(params);
   const name = readString(parsedParams.name);
@@ -277,12 +371,11 @@ async function handleToolsCall(c: McpContext, params: unknown) {
 
   const limit = readNumber(args.limit, 20, 1, 200);
   const offset = readNumber(args.offset, 0, 0, 1000000);
+  const includeDeleted = readBoolean(args.include_deleted, false);
   const id = readId(args.id);
   const path = readString(args.path);
-
-  // Public endpoint: no auth, force includeDeleted to false
-  const auth = null;
-  const includeDeleted = false;
+  const expectedUpdatedAt = args.updated_at ?? args.updatedAt;
+  const writeIdentifier = { id, path };
 
   switch (name) {
     case 'churches_list': {
@@ -318,12 +411,66 @@ async function handleToolsCall(c: McpContext, params: unknown) {
       const result = await getNetworkMcp(db, auth, { id, path }, includeDeleted);
       return asToolResult(result);
     }
+    case 'churches_create': {
+      const createInput = args.data ?? args;
+      const result = await createChurchMcp(db, auth, createInput);
+      return asToolResult(result);
+    }
+    case 'churches_update': {
+      const patchInput = args.patch ?? args.data ?? args;
+      const result = await updateChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
+      return asToolResult(result);
+    }
+    case 'churches_delete': {
+      const result = await deleteChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'churches_restore': {
+      const result = await restoreChurchMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'counties_create': {
+      const createInput = args.data ?? args;
+      const result = await createCountyMcp(db, auth, createInput);
+      return asToolResult(result);
+    }
+    case 'counties_update': {
+      const patchInput = args.patch ?? args.data ?? args;
+      const result = await updateCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
+      return asToolResult(result);
+    }
+    case 'counties_delete': {
+      const result = await deleteCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'counties_restore': {
+      const result = await restoreCountyMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'networks_create': {
+      const createInput = args.data ?? args;
+      const result = await createNetworkMcp(db, auth, createInput);
+      return asToolResult(result);
+    }
+    case 'networks_update': {
+      const patchInput = args.patch ?? args.data ?? args;
+      const result = await updateNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt, patchInput);
+      return asToolResult(result);
+    }
+    case 'networks_delete': {
+      const result = await deleteNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
+    case 'networks_restore': {
+      const result = await restoreNetworkMcp(db, auth, writeIdentifier, expectedUpdatedAt);
+      return asToolResult(result);
+    }
   }
 
   throw new Error(`Unknown tool: ${name}`);
 }
 
-async function handleResourceRead(c: McpContext, params: unknown) {
+async function handleResourceRead(c: McpContext, auth: McpAuthIdentity, params: unknown) {
   const db = createDbWithContext(c);
   const parsedParams = ensureObjectParams(params);
   const uri = readString(parsedParams.uri);
@@ -334,12 +481,9 @@ async function handleResourceRead(c: McpContext, params: unknown) {
   const parsedUrl = new URL(uri);
   const entity = parsedUrl.protocol.replace(':', '');
   const mode = parsedUrl.hostname;
+  const includeDeleted = parsedUrl.searchParams.get('include_deleted') === 'true';
   const limit = readNumber(Number(parsedUrl.searchParams.get('limit')), 20, 1, 200);
   const offset = readNumber(Number(parsedUrl.searchParams.get('offset')), 0, 0, 1000000);
-
-  // Public endpoint: no auth, force includeDeleted to false
-  const auth = null;
-  const includeDeleted = false;
 
   let payload: unknown;
   if (entity === 'churches' && mode === 'list') {
@@ -387,7 +531,11 @@ async function handleResourceRead(c: McpContext, params: unknown) {
   };
 }
 
-async function handleRequest(c: McpContext, request: JsonRpcRequest): Promise<JsonRpcResponse | null> {
+async function handleRequest(
+  c: McpContext,
+  auth: McpAuthIdentity,
+  request: JsonRpcRequest
+): Promise<JsonRpcResponse | null> {
   const id = request.id ?? null;
   const isNotification = request.id === undefined;
 
@@ -432,20 +580,20 @@ async function handleRequest(c: McpContext, request: JsonRpcRequest): Promise<Js
         if (isNotification) {
           return null;
         }
-        return success(id, { tools: buildToolList() });
+        return success(id, { tools: buildToolList(auth) });
       }
       case 'tools/call': {
         if (isNotification) {
           return null;
         }
-        const result = await handleToolsCall(c, request.params);
+        const result = await handleToolsCall(c, auth, request.params);
         return success(id, result);
       }
       case 'resources/list': {
         if (isNotification) {
           return null;
         }
-        return success(id, { resources: buildResourceList() });
+        return success(id, { resources: buildResourceList(auth) });
       }
       case 'resources/templates/list': {
         if (isNotification) {
@@ -457,7 +605,7 @@ async function handleRequest(c: McpContext, request: JsonRpcRequest): Promise<Js
         if (isNotification) {
           return null;
         }
-        const result = await handleResourceRead(c, request.params);
+        const result = await handleResourceRead(c, auth, request.params);
         return success(id, result);
       }
       default:
@@ -479,6 +627,22 @@ async function handleRequest(c: McpContext, request: JsonRpcRequest): Promise<Js
       return error(id, -32004, err.message);
     }
 
+    if (err instanceof McpWriteForbiddenError) {
+      return error(id, -32003, err.message);
+    }
+
+    if (err instanceof McpWriteNotFoundError) {
+      return error(id, -32004, err.message);
+    }
+
+    if (err instanceof McpConflictError) {
+      return error(id, -32009, err.message, { statusCode: 409 });
+    }
+
+    if (err instanceof McpValidationError) {
+      return error(id, -32602, err.message);
+    }
+
     if (err instanceof Error) {
       return error(id, -32602, err.message);
     }
@@ -487,18 +651,46 @@ async function handleRequest(c: McpContext, request: JsonRpcRequest): Promise<Js
   }
 }
 
-// GET endpoint - returns metadata about the public MCP endpoint
-mcpRoutes.get('*', async (c) => {
+// GET endpoint - returns metadata about the MCP admin endpoint
+mcpAdminRoutes.get('*', async (c) => {
+  const authResolution = await resolveMcpSessionAuth(c, { required: false });
+
+  if (authResolution.response) {
+    return authResolution.response;
+  }
+
   return c.json({
-    endpoint: '/mcp',
+    endpoint: '/mcp/admin',
     transport: 'streamable-http',
-    authentication: 'none',
-    access: 'public read-only',
+    authentication: 'session-based',
+    authenticated: Boolean(authResolution.identity),
+    role: authResolution.identity?.role || null,
   });
 });
 
-// POST endpoint - handles MCP JSON-RPC requests (public, read-only)
-mcpRoutes.post('*', async (c) => {
+// POST endpoint - handles MCP JSON-RPC requests
+mcpAdminRoutes.post('*', async (c) => {
+  // Session authentication is required for all MCP admin operations
+  const authResolution = await resolveMcpSessionAuth(c, { required: true });
+
+  if (authResolution.response) {
+    return authResolution.response;
+  }
+
+  const auth = authResolution.identity;
+  if (!auth) {
+    const baseUrl = c.env.BETTER_AUTH_URL || `https://${c.env.SITE_DOMAIN}`;
+    const authUrl = `${baseUrl}/auth/signin`;
+    return c.json(
+      {
+        error: 'Unauthorized',
+        message: 'Authentication required. Please sign in.',
+        authUrl,
+      },
+      401
+    );
+  }
+
   let payload: unknown;
   try {
     payload = await c.req.json();
@@ -518,7 +710,7 @@ mcpRoutes.post('*', async (c) => {
       continue;
     }
 
-    const response = await handleRequest(c, request);
+    const response = await handleRequest(c, auth, request);
     if (response) {
       responses.push(response);
     }
@@ -532,7 +724,16 @@ mcpRoutes.post('*', async (c) => {
     return c.json(responses);
   }
 
-  return c.json(responses[0]);
+  const first = responses[0];
+  if (
+    first.error?.data &&
+    typeof first.error.data === 'object' &&
+    (first.error.data as { statusCode?: number }).statusCode === 409
+  ) {
+    return c.json(first, 409);
+  }
+
+  return c.json(first);
 });
 
-export { mcpRoutes };
+export { mcpAdminRoutes };

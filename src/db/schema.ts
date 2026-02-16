@@ -320,9 +320,8 @@ export const mcpWriteAudit = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     userId: text('user_id').notNull(),
-    tokenId: integer('token_id')
-      .notNull()
-      .references(() => mcpTokens.id),
+    tokenId: integer('token_id').references(() => mcpTokens.id), // Nullable for session-based writes
+    sessionId: text('session_id'), // Nullable for token-based writes
     action: text('action').notNull(),
     entity: text('entity').notNull(),
     recordId: integer('record_id').notNull(),
@@ -331,6 +330,7 @@ export const mcpWriteAudit = sqliteTable(
   },
   (table) => ({
     mcpWriteAuditTokenIdIdx: index('idx_mcp_write_audit_token_id').on(table.tokenId),
+    mcpWriteAuditSessionIdIdx: index('idx_mcp_write_audit_session_id').on(table.sessionId),
     mcpWriteAuditEntityRecordIdx: index('idx_mcp_write_audit_entity_record').on(table.entity, table.recordId),
     mcpWriteAuditCreatedAtIdx: index('idx_mcp_write_audit_created_at').on(table.createdAt),
   })

@@ -34,6 +34,7 @@ import { churchDetailRoutes } from './routes/church-detail';
 import { dataExportRoutes } from './routes/data-export';
 import { feedbackRoutes } from './routes/feedback';
 import { mcpRoutes } from './routes/mcp';
+import { mcpAdminRoutes } from './routes/mcp-admin';
 import { countiesRoutes } from './routes/public/counties';
 import { mapRoutes } from './routes/public/map';
 import { networksRoutes } from './routes/public/networks';
@@ -222,7 +223,10 @@ app.route('/admin/mcp-tokens', adminMcpTokensRoutes);
 // Mount API routes
 app.route('/api', apiRoutes);
 
-// Mount MCP routes (ensure both /mcp and /mcp/* are handled)
+// Mount MCP routes
+// IMPORTANT: Register /mcp/admin BEFORE /mcp to avoid route shadowing
+app.route('/mcp/admin', mcpAdminRoutes);
+app.route('/mcp/admin/*', mcpAdminRoutes);
 app.route('/mcp', mcpRoutes);
 app.route('/mcp/*', mcpRoutes);
 
