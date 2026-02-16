@@ -144,8 +144,15 @@ app.all('/api/auth/*', async (c) => {
 app.use('*', betterAuthMiddleware);
 
 app.use('/api/*', cors());
-app.use('/mcp', cors());
-app.use('/mcp/*', cors());
+app.use(
+  '/mcp/*',
+  cors({
+    origin: (origin) => origin, // Allow any origin for MCP
+    credentials: true, // Required for session-based auth
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Helper function to fetch favicon URL
 async function getFaviconUrl(env: Bindings): Promise<string | undefined> {
